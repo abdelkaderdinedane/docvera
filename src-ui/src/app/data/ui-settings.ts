@@ -23,7 +23,7 @@ export enum CollapsibleSection {
   ATTRIBUTES = 'attributes',
 }
 
-export const PAPERLESS_GREEN_HEX = '#17541f'
+export const PAPERLESS_GREEN_HEX = '#1A3D7C'
 
 export const SETTINGS_KEYS = {
   VERSION: 'version',
