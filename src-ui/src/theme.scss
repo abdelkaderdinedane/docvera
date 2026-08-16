@@ -1,8 +1,9 @@
 @use "sass:color";
 @mixin paperless-green {
-  // base color e.g. #17541f = hsl(128, 57%, 21%)
-  --pngx-primary: 128, 57%;
-  --pngx-primary-lightness: 21%;
+  // Docvera Navy: #1A3D7C = hsl(217, 65%, 29%)
+  // See DOCVERA_BRAND.primaryColor — single source of truth
+  --pngx-primary: 217, 65%;
+  --pngx-primary-lightness: 29%;
 }
 
 :root {
@@ -68,7 +69,8 @@ $form-check-radio-checked-bg-image-dark: url("data:image/svg+xml,<svg xmlns='htt
 
 // Dark mode
 @mixin paperless-green-dark-mode {
-  --pngx-primary-lightness: 31%;
+  // Docvera Navy lightened for dark mode readability
+  --pngx-primary-lightness: 42%;
   --bs-primary: hsl(var(--pngx-primary),var(--pngx-primary-lightness));
 }
 
