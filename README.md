@@ -1,103 +1,165 @@
-[![ci](https://github.com/paperless-ngx/paperless-ngx/workflows/ci/badge.svg)](https://github.com/paperless-ngx/paperless-ngx/actions)
-[![Crowdin](https://badges.crowdin.net/paperless-ngx/localized.svg)](https://crowdin.com/project/paperless-ngx)
-[![Documentation Status](https://img.shields.io/github/deployments/paperless-ngx/paperless-ngx/github-pages?label=docs)](https://docs.paperless-ngx.com)
-[![codecov](https://codecov.io/gh/paperless-ngx/paperless-ngx/branch/main/graph/badge.svg?token=VK6OUPJ3TY)](https://codecov.io/gh/paperless-ngx/paperless-ngx)
-[![Chat on Matrix](https://matrix.to/img/matrix-badge.svg)](https://matrix.to/#/%23paperlessngx%3Amatrix.org)
-[![demo](https://cronitor.io/badges/ve7ItY/production/W5E_B9jkelG9ZbDiNHUPQEVH3MY.svg)](https://demo.paperless-ngx.com)
+# Docvera
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/paperless-ngx/paperless-ngx/blob/main/resources/logo/web/png/White%20logo%20-%20no%20background.png" width="50%">
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/paperless-ngx/paperless-ngx/raw/main/resources/logo/web/png/Black%20logo%20-%20no%20background.png" width="50%">
-    <img src="https://github.com/paperless-ngx/paperless-ngx/raw/main/resources/logo/web/png/Black%20logo%20-%20no%20background.png" width="50%">
-  </picture>
-</p>
+**Commercial multi-tenant SaaS document management platform**
 
-<!-- omit in toc -->
+Docvera is an intelligent document management platform built by [Veltrix AI](https://veltrix.ai) for
+commercial deployment. It provides secure document ingestion, bilingual OCR (English and Arabic),
+full-text search, metadata management, workflow automation and external sharing, delivered as a
+hosted SaaS product with isolated customer environments.
 
-# Paperless-ngx
+---
 
-Paperless-ngx is a document management system that transforms your physical documents into a searchable online archive so you can keep, well, _less paper_.
+## Project status
 
-Paperless-ngx is the official successor to the original [Paperless](https://github.com/the-paperless-project/paperless) & [Paperless-ng](https://github.com/jonaswinkler/paperless-ng) projects and is designed to distribute the responsibility of advancing and supporting the project among a team of people. [Consider joining us!](#community-support)
+| | |
+|---|---|
+| **Current phase** | Phase 2 — Branding & UX Foundation |
+| **Upstream baseline** | [paperless-ngx](https://github.com/paperless-ngx/paperless-ngx) v2.20.15 (pinned) |
+| **Active branch** | `docvera-baseline-v2.20.15` |
+| **Docvera version** | 0.2.0-dev |
 
-Thanks to the generous folks at [DigitalOcean](https://m.do.co/c/8d70b916d462), a demo is available at [demo.paperless-ngx.com](https://demo.paperless-ngx.com) using login `demo` / `demo`. _Note: demo content is reset frequently and confidential information should not be uploaded._
+Docvera is built on top of the open-source paperless-ngx project. The upstream repository is
+configured as a read-only `upstream` remote so that future releases can be reviewed, compared and
+selectively integrated without losing Docvera-specific work.
 
-- [Features](#features)
-- [Getting started](#getting-started)
-- [Contributing](#contributing)
-  - [Community Support](#community-support)
-  - [Translation](#translation)
-  - [Feature Requests](#feature-requests)
-  - [Bugs](#bugs)
-- [Related Projects](#related-projects)
-- [Important Note](#important-note)
+---
 
-<p align="right">This project is supported by:<br/>
-  <a href="https://m.do.co/c/8d70b916d462" style="padding-top: 4px; display: block;">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_horizontal_white.svg" width="140px">
-      <source media="(prefers-color-scheme: light)" srcset="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_horizontal_blue.svg" width="140px">
-      <img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_horizontal_black_.svg" width="140px">
-    </picture>
-  </a>
-</p>
+## Repository structure
 
-# Features
+| Path | Contents |
+|---|---|
+| `src/` | Django backend — document models, REST API, ingestion pipeline, OCR parsers, workflows |
+| `src-ui/` | Angular frontend — components, routing, services, theme, locale files |
+| `docker/` | Docker Compose stacks and container build definitions |
+| `docs/` | Upstream documentation (retained) |
+| `DOCVERA_BRANDING.md` | Single source of truth for all Docvera brand values |
+| `DOCVERA_CHANGELOG.md` | Record of every modification: reason, approach, upgrade impact |
+| `UPSTREAM_VERSION` | Pinned upstream release tag |
+| `UPSTREAM_COMMIT` | Exact upstream commit SHA |
+| `DOCVERA_VERSION` | Current Docvera product version |
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/paperless-ngx/paperless-ngx/main/docs/assets/screenshots/documents-smallcards-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/paperless-ngx/paperless-ngx/main/docs/assets/screenshots/documents-smallcards.png">
-  <img src="https://raw.githubusercontent.com/paperless-ngx/paperless-ngx/main/docs/assets/screenshots/documents-smallcards.png">
-</picture>
+---
 
-A full list of [features](https://docs.paperless-ngx.com/#features) and [screenshots](https://docs.paperless-ngx.com/#screenshots) are available in the [documentation](https://docs.paperless-ngx.com/).
+## Local development
 
-# Getting started
+### Prerequisites
 
-The easiest way to deploy paperless is `docker compose`. The files in the [`/docker/compose` directory](https://github.com/paperless-ngx/paperless-ngx/tree/main/docker/compose) are configured to pull the image from the GitHub container registry.
+- Docker Desktop
+- Node.js v20+ and [pnpm](https://pnpm.io/) (frontend builds — `npm` is blocked by design)
+- Git
 
-If you'd like to jump right in, you can configure a `docker compose` environment with our install script:
+### Running the stack
 
 ```bash
-bash -c "$(curl -L https://raw.githubusercontent.com/paperless-ngx/paperless-ngx/main/install-paperless-ngx.sh)"
+cd docker/compose
+docker compose -f docker-compose.postgres-tika.yml up -d
+docker compose -f docker-compose.postgres-tika.yml ps
 ```
 
-More details and step-by-step guides for alternative installation methods can be found in [the documentation](https://docs.paperless-ngx.com/setup/#installation).
+Wait for the `webserver` container to report `healthy`, then open <http://localhost:8000>.
 
-Migrating from Paperless-ng is easy, just drop in the new docker image! See the [documentation on migrating](https://docs.paperless-ngx.com/setup/#migrating-to-paperless-ngx) for more details.
+Create an administrator account:
 
-<!-- omit in toc -->
+```bash
+docker compose -f docker-compose.postgres-tika.yml exec webserver python manage.py createsuperuser
+```
 
-### Documentation
+### Frontend development
 
-The documentation for Paperless-ngx is available at [https://docs.paperless-ngx.com](https://docs.paperless-ngx.com/).
+For rapid iteration with hot reload:
 
-# Contributing
+```bash
+cd src-ui
+pnpm install
+pnpm start
+```
 
-If you feel like contributing to the project, please do! Bug fixes, enhancements, visual fixes etc. are always welcome. If you want to implement something big: Please start a discussion about that! The [documentation](https://docs.paperless-ngx.com/development/) has some basic information on how to get started.
+The dev server runs on <http://localhost:4200> and proxies API calls to the backend on port 8000.
 
-## Community Support
+For a production build:
 
-People interested in continuing the work on paperless-ngx are encouraged to reach out here on github and in the [Matrix Room](https://matrix.to/#/#paperless:matrix.org). If you would like to contribute to the project on an ongoing basis there are multiple [teams](https://github.com/orgs/paperless-ngx/people) (frontend, ci/cd, etc) that could use your help so please reach out!
+```bash
+pnpm run build
+```
 
-## Translation
+---
 
-Paperless-ngx is available in many languages that are coordinated on Crowdin. If you want to help out by translating paperless-ngx into your language, please head over to https://crowdin.com/project/paperless-ngx, and thank you! More details can be found in [CONTRIBUTING.md](https://github.com/paperless-ngx/paperless-ngx/blob/main/CONTRIBUTING.md#translating-paperless-ngx).
+## Services
 
-## Feature Requests
+| Service | Technology | Role |
+|---|---|---|
+| Webserver | Django 4 + DRF + Gunicorn | Application, API, orchestration |
+| Frontend | Angular (compiled, served statically) | Single-page user interface |
+| Database | PostgreSQL 18 | Documents, metadata, users, permissions |
+| Broker | Redis | Celery task queue |
+| OCR | Tesseract 5 + ocrmypdf | Text extraction (`eng+ara`) |
+| Tika | Apache Tika | Office document text extraction |
+| Gotenberg | Gotenberg | Office to PDF conversion |
 
-Feature requests can be submitted via [GitHub Discussions](https://github.com/paperless-ngx/paperless-ngx/discussions/categories/feature-requests), you can search for existing ideas, add your own and vote for the ones you care about.
+---
 
-## Bugs
+## Branding
 
-For bugs please [open an issue](https://github.com/paperless-ngx/paperless-ngx/issues) or [start a discussion](https://github.com/paperless-ngx/paperless-ngx/discussions) if you have questions.
+All brand values are centralized. Do not hardcode brand strings, colours or asset paths in
+components.
 
-# Related Projects
+| Value | Location |
+|---|---|
+| Product name | `src-ui/src/environments/environment.ts` and `environment.prod.ts` (`appTitle`) |
+| Theme colours | `src-ui/src/theme.scss` (primary colour mixins) |
+| Brand constants | `src-ui/src/app/data/docvera-brand.ts` (`DOCVERA_BRAND`) |
+| Logo assets | `src-ui/src/assets/logo*.svg`, `src-ui/src/favicon.ico` |
+| Runtime overrides | `PAPERLESS_APP_TITLE`, `PAPERLESS_APP_LOGO` (environment variables) |
 
-Please see [the wiki](https://github.com/paperless-ngx/paperless-ngx/wiki/Related-Projects) for a user-maintained list of related projects and software that is compatible with Paperless-ngx.
+Primary brand colour: **Navy `#1A3D7C`** · Secondary: **Teal `#0E7490`**
 
-# Important Note
+See [`DOCVERA_BRANDING.md`](DOCVERA_BRANDING.md) for the complete inventory, including the list of
+technical identifiers that must never be renamed.
 
-> Document scanners are typically used to scan sensitive documents like your social insurance number, tax records, invoices, etc. **Paperless-ngx should never be run on an untrusted host** because information is stored in clear text without encryption. No guarantees are made regarding security (but we do try!) and you use the app at your own risk.
-> **The safest way to run Paperless-ngx is on a local server in your own home with backups in place**.
+---
+
+## Contributing to this repository
+
+- Work on a feature branch — never commit directly to the default branch
+- Split work into logical, per-feature commits rather than one large change
+- Record every modification to upstream code in `DOCVERA_CHANGELOG.md` with its upgrade impact
+- Prefer **configuration** over **extension** over **wrapper** over **core modification**
+- Never commit credentials, secrets or environment files containing real values
+
+### Upstream synchronization
+
+```bash
+git fetch upstream --tags
+git checkout -b upgrade/vX.Y.Z
+git merge tags/vX.Y.Z --no-ff
+```
+
+Resolve conflicts, re-apply Docvera patches from the customization inventory, run the full
+regression suite, then update `UPSTREAM_VERSION`, `UPSTREAM_COMMIT` and `DOCVERA_VERSION`.
+
+---
+
+## Licensing
+
+Docvera is derived from paperless-ngx, which is licensed under the **GNU General Public License
+v3.0 (GPLv3)**. This repository inherits that licence.
+
+- The original `LICENSE` file, copyright notices and third-party attributions are retained and
+  must not be removed.
+- Docvera control-plane, AI and billing services are maintained as **separate codebases** that
+  communicate with this application only through its REST API, and are therefore not derivative
+  works of the GPLv3 codebase.
+
+---
+
+## Documentation
+
+| Document | Purpose |
+|---|---|
+| `DOCVERA_BRANDING.md` | Brand configuration inventory |
+| `DOCVERA_CHANGELOG.md` | Modification history with upgrade impact |
+| Architecture Assessment | System architecture, database schema, REST API, UI map, customization inventory, upgrade strategy, licence comparison |
+
+---
+
+*Internal repository — Veltrix AI. Not for public distribution.*
