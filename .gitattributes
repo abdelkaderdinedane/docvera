@@ -1,0 +1,5 @@
+# Container scripts must keep Unix line endings.
+# Windows CRLF breaks shebang lines inside Linux containers.
+docker/rootfs/** text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
