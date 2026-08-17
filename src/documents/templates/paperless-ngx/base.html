@@ -13,7 +13,7 @@
             {% endblock head_title %}
         </title>
         <link href="{% static 'bootstrap.min.css' %}" rel="stylesheet">
-        <link href="{% static 'base.css' %}" rel="stylesheet">
+        <link rel="icon" type="image/x-icon" href="{% static 'frontend/en-US/favicon.ico' %}">
     </head>
 
     <body class="text-center">
@@ -33,7 +33,7 @@
                             {% include "paperless-ngx/snippets/svg_leaf.html" with extra_attrs="width='30' class='mt-2'" %}
                             <div class="d-flex flex-column align-items-end mb-4">
                                 <span class="ms-2">{{ APP_TITLE }}</span>
-                                <span class="byline text-uppercase font-monospace">by by Veltrix AI</span>
+                                <span class="byline text-uppercase font-monospace">by Veltrix AI</span>
                             </div>
                         </h1>
                     {% endif %}

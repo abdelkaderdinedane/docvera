@@ -1,10 +1,10 @@
 body {
   --bs-body-bg: #f5f5f5;
-  --bs-link-color-rgb: 23, 84, 31; /* #17541f */
+  --bs-link-color-rgb: 26, 61, 124; /* #1A3D7C Docvera Navy */
   --bs-link-hover-color-rgb: 15, 56, 20;
-  --pngx-primary: #17541f;
-  --pngx-primary-hover: #0f3614;
-  --pngx-primary-active: #0c2c10;
+  --pngx-primary: #1A3D7C;
+  --pngx-primary-hover: #132D5C;
+  --pngx-primary-active: #0E2447;
 }
 
 .logo {
