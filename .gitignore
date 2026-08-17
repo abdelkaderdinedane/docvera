@@ -112,3 +112,5 @@ celerybeat-schedule*
 .pnpm-store/
 
 .locale-backup/
+
+docker/compose/export/
