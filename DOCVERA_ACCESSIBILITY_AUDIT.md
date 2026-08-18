@@ -14,7 +14,7 @@ not by running an automated scanner (e.g. axe-core) or a live screen-reader pass
 | Accessible names (icon-only controls) | **32 violations found, 32 fixed.** 1 ambiguous case left for judgment. |
 | Focus indicator | **1 real violation found, fixed.** 4 borderline cases reviewed, not violations. |
 | Live regions (toasts, validation) | Toasts already compliant (via `ngb-toast`). **11 violations found (validation messages), 11 fixed.** |
-| Color contrast (Docvera Navy) | Light mode passes comfortably. **Dark mode fails on two interdependent pairings — reported, not auto-fixed** (see [Contrast](#color-contrast)). |
+| Color contrast (Docvera Navy) | Light mode passes comfortably. Dark mode had two interdependent pairings failing. **One fixed by raising `--pngx-primary-lightness` 42% → 58%** (text/link-on-page-background, now ≈4.85:1); **the other (button label text on primary background) got worse as a result, ≈3.07:1 → ≈1.75:1 — accepted trade-off, needs its own follow-up fix.** See [Contrast](#4-color-contrast--docvera-navy). |
 | New components (empty-state, skeleton, error-state) | **1 real defect found (hard-coded heading level), fixed in both affected components.** Everything else already compliant. |
 | Motion (`prefers-reduced-motion`) | Only `pngx-skeleton` had motion to control; it already handles it. Broader app-wide animation audit not attempted (see [Not covered](#not-covered-in-this-pass)). |
 | Keyboard, semantics/landmarks, zoom | Spot-checked, not exhaustively audited — see [Not covered](#not-covered-in-this-pass). |
@@ -132,8 +132,7 @@ identical edits remediate validation-error announcements for essentially every f
 ## 4. Color contrast — Docvera Navy
 
 Computed WCAG relative-luminance contrast ratios (not eyeballed) for the theme's Navy primary color
-in both light and dark mode, since this is the one item explicitly scoped as "report, only fix if
-it's a simple token change."
+in both light and dark mode.
 
 ### Light mode: passes comfortably, no action needed
 
@@ -142,34 +141,40 @@ it's a simple token change."
 `.text-primary`) or as white text on a Navy button/navbar background: **≈ 10.5:1** either direction —
 passes both the 4.5:1 text and 3:1 non-text thresholds with wide margin.
 
-### Dark mode: fails, and the two failures pull in opposite directions
+### Dark mode: two pairings shared one token and needed it to move in opposite directions
 
-Dark mode raises the primary's lightness to 42% (`theme.scss`'s `paperless-green-dark-mode` mixin):
-`hsl(217, 65%, 42%)` ≈ `rgb(37, 91, 177)`. Two separate pairings both use this color, and both fail:
+Dark mode raises the primary's lightness in `theme.scss`'s `paperless-green-dark-mode` mixin. Two
+separate pairings use this same color, and originally (at the previous 42% lightness,
+`hsl(217, 65%, 42%)` ≈ `rgb(37, 91, 177)`) both failed:
 
 1. **As literal text/link color directly on the page background** (Bootstrap's default `<a>` link
    color, `.text-primary`, `.btn-link` text — all inherit `--bs-primary` as `color`, not background)
-   against `--bs-body-bg` in dark mode (`#161618`): **≈ 2.76:1**. Fails the 4.5:1 normal-text minimum
-   *and* the 3:1 non-text minimum.
+   against `--bs-body-bg` in dark mode (`#161618`): was **≈ 2.76:1**, failing both the 4.5:1 normal-text
+   and 3:1 non-text minimums.
 2. **As a button/badge background with `--pngx-primary-text-contrast` (`#abb2bf`, a light gray) as the
-   foreground text** (`.btn-primary` label text, dark mode): **≈ 3.07:1**. Fails the 4.5:1 minimum
+   foreground text** (`.btn-primary` label text, dark mode): was **≈ 3.07:1**, failing the 4.5:1 minimum
    required for button label text (it's text content, not a lone UI-boundary indicator, so 3:1 doesn't
    apply here).
 
-**Why this isn't a simple token fix**: both pairings share the same `--pngx-primary-lightness` variable,
-and they need it to move in *opposite* directions. Raising the lightness (to fix pairing 1, text-on-page-bg)
-brings the color closer to the light gray button-text color and **makes pairing 2 measurably worse** —
-recomputed at a lightness that would fix pairing 1 (≈57%, reaching ~4.67:1 against the page background),
-pairing 2 drops to **≈1.81:1**, nearly unreadable. Lowering it instead would fix pairing 2 but worsen
-pairing 1 further. One token, two conflicting contrast requirements — this needs either a second,
-distinct color token (one for link/text use, a different one for button backgrounds) or a change to
-which *foreground* color pairs with the button background, not a blind lightness bump. **Flagged for a
-design decision, not auto-fixed**, per this task's own scoping rule.
+Raising lightness fixes pairing 1 but worsens pairing 2, since the background then converges toward the
+light gray button-text color instead of staying dark. **Decision made explicitly by the user, prioritizing
+accessibility over exact brand-hue fidelity**: `--pngx-primary-lightness` raised from 42% to **58%**
+(`hsl(217, 65%, 58%)` ≈ `rgb(78, 132, 218)`). Applied in `theme.scss`.
 
-Also flagged, not independently computed: the keyboard focus ring (`box-shadow` built from
+- **Pairing 1 (text/link on page background): now ≈ 4.85:1 — passes** the 4.5:1 requirement, with a
+  small margin.
+- **Pairing 2 (button label text on primary background): now ≈ 1.75:1 — still fails, and is
+  meaningfully worse than the pre-fix ≈3.07:1.** This is the accepted trade-off, not a fixed item —
+  `.btn-primary` label text in dark mode is now less readable than before this change, not more. Needs
+  its own follow-up: either a second, distinct color token (this lightened value for links/text, a
+  separate one for button backgrounds), or a different foreground color for button-on-primary text in
+  dark mode (e.g. darkening `--pngx-primary-text-contrast` for this specific pairing instead of white/
+  light gray). Not fixed here — flagged as the immediate next accessibility item for dark mode.
+
+Also flagged, not independently recomputed: the keyboard focus ring (`box-shadow` built from
 `--pngx-primary`/`--pngx-primary-lightness`/`--pngx-focus-alpha`, see §2) shares the same underlying
-dark-mode color variables — whatever remediation is chosen for the two pairings above should be
-re-checked against the focus ring's own contrast once decided, since it may move together with the fix.
+dark-mode color variables and moved together with this change — re-verify its contrast against the
+surfaces it appears on now that the base hue is lighter.
 
 ### Not applicable today
 

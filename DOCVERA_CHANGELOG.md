@@ -278,8 +278,10 @@ locale `.xlf` files (pre-existing pattern from the empty-state increment, not a 
 
 ---
 
-## UI consistency — error states, Increment 1 (pending commit)
+## `eee16f0e9` — error states, Increment 1
 
+Landed in the same commit as the accessibility section below (`eee16f0e9`) — both were still uncommitted
+when the accessibility pass started, so they were committed together rather than split retroactively.
 Not a branding-identity change — logged here at the user's request as the third piece of "Docvera
 design system Increment 1" (after empty states and skeleton loading states above). Design system
 section 5.9 specifies four severity levels (field, section, page, system) and one absolute rule: never
@@ -430,7 +432,7 @@ warnings appear, for the new English source strings not yet present in the 47 lo
 
 ---
 
-## UI consistency — accessibility (WCAG 2.1 AA), Increment 1 (pending commit)
+## `eee16f0e9` — accessibility (WCAG 2.1 AA), Increment 1
 
 Not a branding-identity change — logged here at the user's request as the fourth and final piece of
 "Docvera design system Increment 1" (after empty states, skeleton loading states, and error states
@@ -513,6 +515,47 @@ app-wide `prefers-reduced-motion` coverage beyond `pngx-skeleton` (six other `.s
 short hover/UI transitions without the media query — not treated as violations, since WCAG's
 reduced-motion criterion targets sustained/large motion, not brief hover transitions) — is recorded in
 `DOCVERA_ACCESSIBILITY_AUDIT.md` rather than silently dropped.
+
+---
+
+## UI consistency — dark-mode contrast decision, Increment 1 follow-up (pending commit)
+
+Direct follow-up to the accessibility audit above. `DOCVERA_ACCESSIBILITY_AUDIT.md` §4 flagged a
+dark-mode contrast failure as needing a design decision rather than an automatic fix, because the
+single `--pngx-primary-lightness` token was shared by two pairings that needed to move in opposite
+directions. The user made that decision explicitly: accessibility over exact brand-hue fidelity.
+
+- **Files**: `src-ui/src/theme.scss`
+- **Reason**: apply the decision — Navy-colored text/links directly on the dark page background
+  (`.text-primary`, default `<a>` links, `.btn-link` text) measured ≈2.76:1, failing the 4.5:1 minimum.
+- **Approach**: raised `--pngx-primary-lightness` in the `paperless-green-dark-mode` mixin from `42%`
+  to `58%` (`hsl(217, 65%, 58%)` ≈ `rgb(78, 132, 218)`). Recomputed: text/link-on-page-background now
+  ≈4.85:1, passing. The trade-off flagged in the audit is real and not silently absorbed: light-gray
+  button label text on this same Navy background (`.btn-primary` text, dark mode) was already failing
+  at ≈3.07:1 and is now measurably worse at ≈1.75:1, since the background lightened toward the
+  foreground text color instead of away from it. Documented, not fixed here — needs its own follow-up
+  (a second distinct color token, or a different foreground for that specific pairing).
+- **Upgrade impact**: low, single-value token change — but re-verify the keyboard focus ring (§2 of the
+  audit; it derives its color from these same variables) and the newly-worse button-text pairing before
+  calling dark mode fully AA-compliant.
+
+- **Files**: `DOCVERA_ACCESSIBILITY_AUDIT.md`
+- **Approach**: updated §4 (Color contrast) and the summary table with the applied fix, the recomputed
+  numbers for both pairings, and the accepted trade-off — not marked as a second violation "fixed,"
+  since pairing 2 is worse than before, only pairing 1 is resolved.
+
+- **Files**: `DOCVERA_DESIGN_SYSTEM.md` (new)
+- **Reason**: this file was referenced throughout Increment 1 (component docstrings, the audit report)
+  as the source spec for sections 5.7 (empty states), 5.8 (skeletons), 5.9 (error states), and 7
+  (accessibility) but never actually existed in this repository. Asked the user for clarification
+  rather than silently fabricating it; the user asked for it to be created now.
+- **Approach**: reconstructed sections 5.7/5.8/5.9/7 from what was actually specified and implemented
+  across this increment (inputs, behavior requirements, usage rules per component, the WCAG 2.1 AA
+  criteria list, and this color-token decision), with an explicit scope note that this covers only what
+  Increment 1 built — not a claim that the rest of a complete design system exists in this file.
+- **Upgrade impact**: none — new reference documentation.
+
+Verified with `pnpm run build` after the `theme.scss` change — production build succeeds.
 
 ---
 

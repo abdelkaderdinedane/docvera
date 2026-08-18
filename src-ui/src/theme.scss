@@ -69,8 +69,13 @@ $form-check-radio-checked-bg-image-dark: url("data:image/svg+xml,<svg xmlns='htt
 
 // Dark mode
 @mixin paperless-green-dark-mode {
-  // Docvera Navy lightened for dark mode readability
-  --pngx-primary-lightness: 42%;
+  // Docvera Navy lightened for dark mode readability. 58% (not the original
+  // 42%) so Navy text/links on the dark page background pass WCAG AA 4.5:1
+  // (~4.85:1) — see DOCVERA_ACCESSIBILITY_AUDIT.md. Accessibility was
+  // prioritized over exact hue fidelity to the brand token; this trade-off
+  // makes light-gray button label text on this same color noticeably worse
+  // (~1.75:1) and needs its own follow-up fix.
+  --pngx-primary-lightness: 58%;
   --bs-primary: hsl(var(--pngx-primary),var(--pngx-primary-lightness));
 }
 
