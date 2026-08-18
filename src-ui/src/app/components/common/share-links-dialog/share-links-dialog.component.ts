@@ -8,12 +8,18 @@ import { FileVersion, ShareLink } from 'src/app/data/share-link'
 import { ShareLinkService } from 'src/app/services/rest/share-link.service'
 import { ToastService } from 'src/app/services/toast.service'
 import { environment } from 'src/environments/environment'
+import { EmptyStateComponent } from '../empty-state/empty-state.component'
 
 @Component({
   selector: 'pngx-share-links-dialog',
   templateUrl: './share-links-dialog.component.html',
   styleUrls: ['./share-links-dialog.component.scss'],
-  imports: [FormsModule, ReactiveFormsModule, NgxBootstrapIconsModule],
+  imports: [
+    FormsModule,
+    ReactiveFormsModule,
+    NgxBootstrapIconsModule,
+    EmptyStateComponent,
+  ],
 })
 export class ShareLinksDialogComponent implements OnInit {
   private activeModal = inject(NgbActiveModal)

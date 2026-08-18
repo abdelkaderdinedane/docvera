@@ -67,6 +67,8 @@
     </li>
   }
   @if (!loading && fields.length === 0) {
-    <li class="list-group-item" i18n>No fields defined.</li>
+    <li class="list-group-item" i18n>
+      <pngx-empty-state icon="ui-checks" heading="No custom fields yet" i18n-heading body="Custom fields let you attach your own metadata to documents, such as a VAT number or contract value." i18n-body></pngx-empty-state>
+    </li>
   }
 </ul>

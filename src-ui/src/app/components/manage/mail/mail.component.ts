@@ -25,6 +25,7 @@ import { EditDialogMode } from '../../common/edit-dialog/edit-dialog.component'
 import { MailAccountEditDialogComponent } from '../../common/edit-dialog/mail-account-edit-dialog/mail-account-edit-dialog.component'
 import { MailRuleEditDialogComponent } from '../../common/edit-dialog/mail-rule-edit-dialog/mail-rule-edit-dialog.component'
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
+import { EmptyStateComponent } from '../../common/empty-state/empty-state.component'
 import { PermissionsDialogComponent } from '../../common/permissions-dialog/permissions-dialog.component'
 import { ComponentWithPermissions } from '../../with-permissions/with-permissions.component'
 import { ProcessedMailDialogComponent } from './processed-mail-dialog/processed-mail-dialog.component'
@@ -35,6 +36,7 @@ import { ProcessedMailDialogComponent } from './processed-mail-dialog/processed-
   styleUrls: ['./mail.component.scss'],
   imports: [
     PageHeaderComponent,
+    EmptyStateComponent,
     IfPermissionsDirective,
     IfOwnerDirective,
     AsyncPipe,

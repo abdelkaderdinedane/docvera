@@ -17,7 +17,12 @@
       </div>
     </div>
     @if (toasts.length === 0) {
-      <p class="text-center mb-0 small text-muted"><em i18n>No notifications</em></p>
+      <pngx-empty-state
+        compact="true"
+        icon="bell"
+        i18n-heading heading="No notifications"
+        i18n-body body="You're all caught up.">
+      </pngx-empty-state>
     }
     <div class="scroll-list">
       @for (toast of toasts; track toast.id) {

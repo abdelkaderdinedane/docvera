@@ -92,7 +92,9 @@
       </li>
     }
     @if (!loadingAccounts && mailAccounts.length === 0) {
-      <li class="list-group-item" i18n>No mail accounts defined.</li>
+      <li class="list-group-item" i18n>
+        <pngx-empty-state icon="envelope" heading="No mail accounts yet" i18n-heading body="Connect a mailbox so Docvera can import documents from email attachments automatically." i18n-body></pngx-empty-state>
+      </li>
     }
   </ul>
 
@@ -180,7 +182,9 @@
       </li>
     }
     @if (!loadingRules && mailRules.length === 0) {
-      <li class="list-group-item" i18n>No mail rules defined.</li>
+      <li class="list-group-item" i18n>
+        <pngx-empty-state icon="funnel" heading="No mail rules yet" i18n-heading body="Rules decide which emails are imported and how their attachments are processed." i18n-body></pngx-empty-state>
+      </li>
     }
   </ul>
 

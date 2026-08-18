@@ -17,7 +17,9 @@
       </div>
     </div>
   } @else if (processedMails.length === 0) {
-    <span i18n>No processed email messages found.</span>
+    <span i18n>
+      <pngx-empty-state compact="true" icon="envelope-open" heading="No processed messages" i18n-heading body="Messages appear here once this rule has run." i18n-body></pngx-empty-state>
+    </span>
   } @else {
     <div class="table-responsive">
       <table class="table table-hover table-sm align-middle">

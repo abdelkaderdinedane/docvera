@@ -52,6 +52,7 @@ import {
   CustomFieldQueriesModel,
   CustomFieldsQueryDropdownComponent,
 } from '../../custom-fields-query-dropdown/custom-fields-query-dropdown.component'
+import { EmptyStateComponent } from '../../empty-state/empty-state.component'
 import { CheckComponent } from '../../input/check/check.component'
 import { CustomFieldsValuesComponent } from '../../input/custom-fields-values/custom-fields-values.component'
 import { EntriesComponent } from '../../input/entries/entries.component'
@@ -394,6 +395,7 @@ const FILTER_HANDLERS: Record<TriggerFilterType, FilterHandler> = {
     NgTemplateOutlet,
     DragDropModule,
     NgxBootstrapIconsModule,
+    EmptyStateComponent,
   ],
 })
 export class WorkflowEditDialogComponent

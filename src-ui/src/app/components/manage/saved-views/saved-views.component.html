@@ -59,7 +59,13 @@
 
     @if (savedViews && savedViews.length === 0) {
       <li class="list-group-item">
-        <div i18n>No saved views defined.</div>
+        <pngx-empty-state
+  icon="bookmark"
+  i18n-heading heading="No saved views yet"
+  i18n-body body="Saved views let you keep a filtered document list one click away. Create one from the documents page."
+  i18n-actionLabel actionLabel="Go to documents"
+  actionLink="/documents">
+        </pngx-empty-state>
       </li>
     }
 

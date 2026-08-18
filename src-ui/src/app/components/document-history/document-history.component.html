@@ -7,7 +7,9 @@
         @if (entries.length === 0) {
             <li class="list-group-item">
                 <div class="d-flex justify-content-center">
-                    <span class="fst-italic" i18n>No entries found.</span>
+                    <span class="fst-italic" i18n>
+                        <pngx-empty-state compact="true" icon="clock-history" heading="No history yet" i18n-heading body="Changes to this document will be recorded here." i18n-body></pngx-empty-state>
+                    </span>
                 </div>
             </li>
         } @else {

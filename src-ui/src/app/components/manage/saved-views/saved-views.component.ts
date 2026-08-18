@@ -1,3 +1,4 @@
+import { EmptyStateComponent } from '../../common/empty-state/empty-state.component'
 import { AsyncPipe } from '@angular/common'
 import { Component, OnDestroy, OnInit, inject } from '@angular/core'
 import {
@@ -34,6 +35,7 @@ import { LoadingComponentWithPermissions } from '../../loading-component/loading
     FormsModule,
     ReactiveFormsModule,
     AsyncPipe,
+    EmptyStateComponent,
   ],
 })
 export class SavedViewsComponent

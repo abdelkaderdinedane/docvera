@@ -6,6 +6,7 @@ import {
 import { NgxBootstrapIconsModule } from 'ngx-bootstrap-icons'
 import { Subscription } from 'rxjs'
 import { Toast, ToastService } from 'src/app/services/toast.service'
+import { EmptyStateComponent } from '../../common/empty-state/empty-state.component'
 import { ToastComponent } from '../../common/toast/toast.component'
 
 @Component({
@@ -17,6 +18,7 @@ import { ToastComponent } from '../../common/toast/toast.component'
     NgbDropdownModule,
     NgbProgressbarModule,
     NgxBootstrapIconsModule,
+    EmptyStateComponent,
   ],
 })
 export class ToastsDropdownComponent implements OnInit, OnDestroy {

@@ -55,6 +55,7 @@ import { StoragePathEditDialogComponent } from '../../common/edit-dialog/storage
 import { TagEditDialogComponent } from '../../common/edit-dialog/tag-edit-dialog/tag-edit-dialog.component'
 import { UserEditDialogComponent } from '../../common/edit-dialog/user-edit-dialog/user-edit-dialog.component'
 import { WorkflowEditDialogComponent } from '../../common/edit-dialog/workflow-edit-dialog/workflow-edit-dialog.component'
+import { EmptyStateComponent } from '../../common/empty-state/empty-state.component'
 
 @Component({
   selector: 'pngx-global-search',
@@ -67,6 +68,7 @@ import { WorkflowEditDialogComponent } from '../../common/edit-dialog/workflow-e
     NgxBootstrapIconsModule,
     NgbDropdownModule,
     NgTemplateOutlet,
+    EmptyStateComponent,
   ],
 })
 export class GlobalSearchComponent implements OnInit {

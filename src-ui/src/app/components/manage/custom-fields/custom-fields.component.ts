@@ -22,6 +22,7 @@ import { SettingsService } from 'src/app/services/settings.service'
 import { ToastService } from 'src/app/services/toast.service'
 import { ConfirmDialogComponent } from '../../common/confirm-dialog/confirm-dialog.component'
 import { CustomFieldEditDialogComponent } from '../../common/edit-dialog/custom-field-edit-dialog/custom-field-edit-dialog.component'
+import { EmptyStateComponent } from '../../common/empty-state/empty-state.component'
 import { EditDialogMode } from '../../common/edit-dialog/edit-dialog.component'
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
 import { LoadingComponentWithPermissions } from '../../loading-component/loading.component'
@@ -32,6 +33,7 @@ import { LoadingComponentWithPermissions } from '../../loading-component/loading
   styleUrls: ['./custom-fields.component.scss'],
   imports: [
     PageHeaderComponent,
+    EmptyStateComponent,
     IfPermissionsDirective,
     NgbDropdownModule,
     NgbPaginationModule,

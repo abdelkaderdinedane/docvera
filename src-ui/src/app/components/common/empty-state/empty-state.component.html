@@ -1,0 +1,16 @@
+<div class="docvera-empty-state" [class.compact]="compact">
+  <div class="empty-icon">
+    <i-bs [name]="icon"></i-bs>
+  </div>
+  @if (heading) {
+    <h5 class="empty-heading">{{ heading }}</h5>
+  }
+  @if (body) {
+    <p class="empty-body">{{ body }}</p>
+  }
+  @if (actionLabel) {
+    <a class="btn btn-sm btn-primary empty-action" [routerLink]="actionLink">
+      {{ actionLabel }}
+    </a>
+  }
+</div>

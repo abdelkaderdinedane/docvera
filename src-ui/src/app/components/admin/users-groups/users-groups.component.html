@@ -81,7 +81,9 @@
       </li>
     }
     @if (groups.length === 0) {
-      <li class="list-group-item" i18n>No groups defined</li>
+      <li class="list-group-item" i18n>
+        <pngx-empty-state icon="people" heading="No groups yet" i18n-heading body="Groups let you assign permissions to several users at once." i18n-body></pngx-empty-state>
+      </li>
     }
   </ul>
 }

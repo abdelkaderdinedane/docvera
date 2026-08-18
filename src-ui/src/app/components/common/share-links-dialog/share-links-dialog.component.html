@@ -5,8 +5,13 @@
 <div class="modal-body p-0">
   <ul class="list-group list-group-flush">
     @if (!shareLinks || shareLinks.length === 0) {
-      <li class="list-group-item fst-italic small text-center text-secondary" i18n>
-        No existing links
+      <li class="list-group-item">
+        <pngx-empty-state
+          compact="true"
+          icon="link-45deg"
+          i18n-heading heading="No share links yet"
+          i18n-body body="Create a link below to share this document outside the app.">
+        </pngx-empty-state>
       </li>
     }
     @for (link of shareLinks; track link) {

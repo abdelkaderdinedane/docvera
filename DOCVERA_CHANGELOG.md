@@ -140,6 +140,56 @@ listed at the bottom for traceability but don't get full entries.
 
 ---
 
+## UI consistency — extend the shared empty-state component (pending commit)
+
+Not a branding-identity change (no product name/color/logo touched) — logged here at the user's request
+because it continues the design-system work started by the `pngx-empty-state` component
+(`src-ui/src/app/components/common/empty-state/`), which was already applied to `saved-views`,
+`custom-fields`, `workflows`, `mail`, `users-groups`, `processed-mail-dialog` and `document-history`.
+This pass found and converted the remaining plain-text empty states elsewhere in `src-ui/src/app/components/`.
+
+- **Files**: `src-ui/src/app/components/common/share-links-dialog/share-links-dialog.component.html`,
+  `.ts`
+- **Reason**: the document share-links modal rendered its empty state ("No existing links") as a bare
+  italic `<li>` instead of the shared component used everywhere else.
+- **Approach**: replaced it with `<pngx-empty-state compact="true" icon="link-45deg" ...>`, imported
+  `EmptyStateComponent` into the component's standalone `imports`. Body copy avoids the product name
+  per `DOCVERA_BRANDING.md` (don't hardcode brand strings in components).
+- **Upgrade impact**: low — an isolated dialog component, unlikely to be touched by upstream.
+
+- **Files**:
+  `src-ui/src/app/components/common/edit-dialog/workflow-edit-dialog/workflow-edit-dialog.component.html`,
+  `.ts`
+- **Reason**: the "advanced filters" section of a workflow trigger showed "No advanced workflow filters
+  defined." as plain muted text.
+- **Approach**: replaced it with `<pngx-empty-state compact="true" icon="funnel" ...>`, added
+  `EmptyStateComponent` to the dialog's large standalone `imports` array.
+- **Upgrade impact**: moderate — `workflow-edit-dialog.component.html`/`.ts` are large, frequently-touched
+  upstream files; re-check this block after upstream workflow-editor changes.
+
+- **Files**: `src-ui/src/app/components/app-frame/toasts-dropdown/toasts-dropdown.component.html`, `.ts`
+- **Reason**: the notifications bell dropdown showed "No notifications" as a plain centered `<em>`.
+- **Approach**: replaced it with `<pngx-empty-state compact="true" icon="bell" ...>`.
+- **Upgrade impact**: low — small, self-contained dropdown component.
+
+- **Files**: `src-ui/src/app/components/app-frame/global-search/global-search.component.html`, `.ts`
+- **Reason**: the global search dropdown's "no results" state was a plain `<h6 class="dropdown-header">`.
+- **Approach**: replaced it with `<pngx-empty-state compact="true" icon="search" ...>`, preserving the
+  existing custom Angular i18n message id (`@@searchResults.noResults`) on the `heading` input via
+  `i18n-heading="@@searchResults.noResults"` so existing locale translations for that string are not
+  orphaned.
+- **Upgrade impact**: low-to-moderate — `global-search.component.html` is a core app-shell file; re-verify
+  after upstream search UI changes.
+
+Two other `length === 0` empty-text candidates were reviewed and deliberately left as-is because they
+don't match the "plain-text list empty state" pattern the shared component targets: the dashboard's
+"Hint: saved views can be created…" card (already has its own icon/card styling, not raw text) and
+`drag-drop-select.component.html`'s inline `{{emptyText}}` badge placeholder (a tiny reusable input
+widget, not a page/panel-level empty state — wrapping it in the full component would look disproportionate
+in its compact badge layout).
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

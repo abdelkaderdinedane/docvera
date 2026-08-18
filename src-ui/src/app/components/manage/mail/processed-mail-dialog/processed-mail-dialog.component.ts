@@ -9,6 +9,7 @@ import {
 } from '@ng-bootstrap/ng-bootstrap'
 import { NgxBootstrapIconsModule } from 'ngx-bootstrap-icons'
 import { ConfirmButtonComponent } from 'src/app/components/common/confirm-button/confirm-button.component'
+import { EmptyStateComponent } from 'src/app/components/common/empty-state/empty-state.component'
 import { MailRule } from 'src/app/data/mail-rule'
 import { ProcessedMail } from 'src/app/data/processed-mail'
 import { CustomDatePipe } from 'src/app/pipes/custom-date.pipe'
@@ -19,6 +20,7 @@ import { ToastService } from 'src/app/services/toast.service'
   selector: 'pngx-processed-mail-dialog',
   imports: [
     ConfirmButtonComponent,
+    EmptyStateComponent,
     CustomDatePipe,
     NgbPagination,
     NgbPopoverModule,

@@ -84,7 +84,12 @@
     <div ngbDropdownMenu class="w-100 mh-75 overflow-y-scroll shadow-lg">
         <div (keydown)="dropdownKeyDown($event)">
             @if (searchResults?.total === 0) {
-                <h6 class="dropdown-header" i18n="@@searchResults.noResults">No results</h6>
+                <pngx-empty-state
+                  compact="true"
+                  icon="search"
+                  i18n-heading="@@searchResults.noResults" heading="No results"
+                  i18n-body body="Try a different search term.">
+                </pngx-empty-state>
             } @else {
                 @if (searchResults?.documents.length) {
                     <h6 class="dropdown-header" i18n="@@searchResults.documents">Documents</h6>

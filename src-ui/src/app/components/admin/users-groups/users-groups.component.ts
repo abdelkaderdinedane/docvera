@@ -20,6 +20,7 @@ import { EditDialogMode } from '../../common/edit-dialog/edit-dialog.component'
 import { GroupEditDialogComponent } from '../../common/edit-dialog/group-edit-dialog/group-edit-dialog.component'
 import { UserEditDialogComponent } from '../../common/edit-dialog/user-edit-dialog/user-edit-dialog.component'
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
+import { EmptyStateComponent } from '../../common/empty-state/empty-state.component'
 import { ComponentWithPermissions } from '../../with-permissions/with-permissions.component'
 
 @Component({
@@ -28,6 +29,7 @@ import { ComponentWithPermissions } from '../../with-permissions/with-permission
   styleUrls: ['./users-groups.component.scss'],
   imports: [
     PageHeaderComponent,
+    EmptyStateComponent,
     IfPermissionsDirective,
     NgxBootstrapIconsModule,
   ],

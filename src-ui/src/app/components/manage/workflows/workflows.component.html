@@ -77,6 +77,8 @@
     </li>
   }
   @if (!loading && workflows.length === 0) {
-    <li class="list-group-item" [class.show]="show" i18n>No workflows defined.</li>
+    <li class="list-group-item" [class.show]="show" i18n>
+      <pngx-empty-state icon="boxes" heading="No workflows yet" i18n-heading body="Workflows automatically apply tags, correspondents and other metadata when documents arrive." i18n-body></pngx-empty-state>
+    </li>
   }
 </ul>
