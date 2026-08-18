@@ -518,7 +518,7 @@ reduced-motion criterion targets sustained/large motion, not brief hover transit
 
 ---
 
-## UI consistency — dark-mode contrast decision, Increment 1 follow-up (pending commit)
+## `4d4392d9a` — dark-mode contrast decision, Increment 1 follow-up
 
 Direct follow-up to the accessibility audit above. `DOCVERA_ACCESSIBILITY_AUDIT.md` §4 flagged a
 dark-mode contrast failure as needing a design decision rather than an automatic fix, because the
