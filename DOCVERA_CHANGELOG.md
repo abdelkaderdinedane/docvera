@@ -190,7 +190,7 @@ in its compact badge layout).
 
 ---
 
-## UI consistency — skeleton loading states, Increment 1 (pending commit)
+## `9c81cb9e6` — feat(ui): add shared skeleton component, replace loading spinners
 
 Not a branding-identity change — logged here at the user's request as the second piece of "Docvera
 design system Increment 1" (after the empty-state work above). Design system section 5.8 specifies
