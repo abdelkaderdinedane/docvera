@@ -14,7 +14,7 @@
 
     <input #inputField class="form-control" [class.is-invalid]="error" [id]="inputId" [(ngModel)]="value" (change)="onChange(value)" [autoClose]="'outside'" [ngbPopover]="popContent" #colorPicker="ngbPopover" placement="bottom" popoverClass="shadow">
 
-    <button class="btn btn-outline-secondary" type="button" (click)="randomize()">
+    <button class="btn btn-outline-secondary" type="button" (click)="randomize()" i18n-aria-label aria-label="Randomize color">
       <i-bs name="dice5"></i-bs>
     </button>
 
@@ -22,7 +22,7 @@
   @if (hint) {
     <small class="form-text text-muted">{{hint}}</small>
   }
-  <div class="invalid-feedback">
+  <div class="invalid-feedback" role="alert">
     {{error}}
   </div>
 </div>

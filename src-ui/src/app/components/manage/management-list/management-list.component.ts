@@ -39,6 +39,7 @@ import {
   BulkEditObjectOperation,
 } from 'src/app/services/rest/abstract-name-filter-service'
 import { ToastService } from 'src/app/services/toast.service'
+import { getHttpErrorDetail } from 'src/app/utils/http'
 import { ConfirmDialogComponent } from '../../common/confirm-dialog/confirm-dialog.component'
 import { EditDialogMode } from '../../common/edit-dialog/edit-dialog.component'
 import { PermissionsDialogComponent } from '../../common/permissions-dialog/permissions-dialog.component'
@@ -100,6 +101,9 @@ export abstract class ManagementListComponent<T extends MatchingModel>
 
   public selectedObjects: Set<number> = new Set()
   public togggleAll: boolean = false
+
+  public error: boolean = false
+  public errorDetail: string = null
 
   ngOnInit(): void {
     this.reloadData()
@@ -165,6 +169,7 @@ export abstract class ManagementListComponent<T extends MatchingModel>
 
   reloadData(extraParams: { [key: string]: any } = null) {
     this.loading = true
+    this.error = false
     this.clearSelection()
     this.service
       .listFiltered(
@@ -191,6 +196,10 @@ export abstract class ManagementListComponent<T extends MatchingModel>
           if (error.error?.detail?.includes('Invalid page')) {
             this.page = 1
             this.reloadData()
+          } else {
+            this.loading = false
+            this.error = true
+            this.errorDetail = getHttpErrorDetail(error)
           }
         },
         next: () => {

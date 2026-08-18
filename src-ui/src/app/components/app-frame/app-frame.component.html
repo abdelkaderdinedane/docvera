@@ -358,6 +358,18 @@
 
     <main role="main" class="ms-sm-auto px-md-4"
       [ngClass]="slimSidebarEnabled ? 'col-slim' : 'col-md-9 col-lg-10 col-xxxl-11'">
+      @if (settingsService.initializationFailed) {
+        <pngx-error-state
+          level="page"
+          icon="gear"
+          i18n-heading heading="Couldn't load your settings"
+          i18n-body body="The app is running with default settings for now. Your saved preferences and permissions may not be applied until this is resolved — try again, or check with your administrator if the problem continues."
+          i18n-retryLabel retryLabel="Retry"
+          [showDetails]="true"
+          [details]="settingsService.initializationErrorDetail"
+          (retry)="settingsService.retryInitialization()">
+        </pngx-error-state>
+      }
       <router-outlet></router-outlet>
     </main>
   </div>

@@ -34,7 +34,18 @@
       </div>
     </li>
 
-    @if (loadingAccounts) {
+    @if (accountsError) {
+      <li class="list-group-item">
+        <pngx-error-state
+          i18n-heading heading="Couldn't load mail accounts"
+          i18n-body body="Something went wrong while loading this list. You can try again, or check with your administrator if the problem continues."
+          i18n-retryLabel retryLabel="Retry"
+          [showDetails]="true"
+          [details]="accountsErrorDetail"
+          (retry)="loadAccounts()">
+        </pngx-error-state>
+      </li>
+    } @else if (loadingAccounts) {
       <li class="list-group-item">
         <pngx-skeleton variant="row" [count]="3"></pngx-skeleton>
       </li>
@@ -57,7 +68,7 @@
           <div class="col">
             <div class="btn-group d-block d-sm-none">
               <div ngbDropdown container="body" class="d-inline-block">
-                <button type="button" class="btn btn-link" id="actionsMenuMobile" (click)="$event.stopPropagation()" ngbDropdownToggle>
+                <button type="button" class="btn btn-link" id="actionsMenuMobile" (click)="$event.stopPropagation()" ngbDropdownToggle i18n-aria-label aria-label="More actions">
                   <i-bs name="three-dots-vertical"></i-bs>
                 </button>
                 <div ngbDropdownMenu aria-labelledby="actionsMenuMobile">
@@ -90,7 +101,7 @@
         </div>
       </li>
     }
-    @if (!loadingAccounts && mailAccounts.length === 0) {
+    @if (!loadingAccounts && !accountsError && mailAccounts.length === 0) {
       <li class="list-group-item" i18n>
         <pngx-empty-state icon="envelope" heading="No mail accounts yet" i18n-heading body="Connect a mailbox so Docvera can import documents from email attachments automatically." i18n-body></pngx-empty-state>
       </li>
@@ -118,7 +129,18 @@
       </div>
     </li>
 
-    @if (loadingRules) {
+    @if (rulesError) {
+      <li class="list-group-item">
+        <pngx-error-state
+          i18n-heading heading="Couldn't load mail rules"
+          i18n-body body="Something went wrong while loading this list. You can try again, or check with your administrator if the problem continues."
+          i18n-retryLabel retryLabel="Retry"
+          [showDetails]="true"
+          [details]="rulesErrorDetail"
+          (retry)="loadRules()">
+        </pngx-error-state>
+      </li>
+    } @else if (loadingRules) {
       <li class="list-group-item">
         <pngx-skeleton variant="row" [count]="3"></pngx-skeleton>
       </li>
@@ -146,7 +168,7 @@
           <div class="col-3">
             <div class="btn-group d-block d-sm-none">
               <div ngbDropdown container="body" class="d-inline-block">
-                <button type="button" class="btn btn-link" id="actionsMenuMobile" (click)="$event.stopPropagation()" ngbDropdownToggle>
+                <button type="button" class="btn btn-link" id="actionsMenuMobile" (click)="$event.stopPropagation()" ngbDropdownToggle i18n-aria-label aria-label="More actions">
                   <i-bs name="three-dots-vertical"></i-bs>
                 </button>
                 <div ngbDropdownMenu aria-labelledby="actionsMenuMobile">
@@ -179,7 +201,7 @@
         </div>
       </li>
     }
-    @if (!loadingRules && mailRules.length === 0) {
+    @if (!loadingRules && !rulesError && mailRules.length === 0) {
       <li class="list-group-item" i18n>
         <pngx-empty-state icon="funnel" heading="No mail rules yet" i18n-heading body="Rules decide which emails are imported and how their attachments are processed." i18n-body></pngx-empty-state>
       </li>

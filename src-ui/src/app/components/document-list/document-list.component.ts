@@ -58,6 +58,7 @@ import {
 } from 'src/app/utils/filter-rules'
 import { ClearableBadgeComponent } from '../common/clearable-badge/clearable-badge.component'
 import { CustomFieldDisplayComponent } from '../common/custom-field-display/custom-field-display.component'
+import { ErrorStateComponent } from '../common/error-state/error-state.component'
 import { PageHeaderComponent } from '../common/page-header/page-header.component'
 import { PreviewPopupComponent } from '../common/preview-popup/preview-popup.component'
 import { SkeletonComponent } from '../common/skeleton/skeleton.component'
@@ -102,6 +103,7 @@ import { SaveViewConfigDialogComponent } from './save-view-config-dialog/save-vi
     RouterModule,
     TourNgBootstrapModule,
     SkeletonComponent,
+    ErrorStateComponent,
   ],
 })
 export class DocumentListComponent

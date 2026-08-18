@@ -1,0 +1,74 @@
+// Docvera error state — see DOCVERA_DESIGN_SYSTEM section 5.9
+
+.docvera-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--bs-secondary-color);
+
+  &.level-section {
+    padding: 1.5rem 1rem;
+  }
+}
+
+.error-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+  margin-bottom: 1rem;
+  color: var(--bs-danger);
+
+  .level-section & {
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+  }
+}
+
+.error-heading {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--bs-body-color);
+  margin-bottom: 0.5rem;
+
+  .level-section & {
+    font-size: 0.9375rem;
+    margin-bottom: 0.25rem;
+  }
+}
+
+.error-body {
+  font-size: 0.875rem;
+  max-width: 32rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.error-retry {
+  margin-top: 0.25rem;
+}
+
+.error-details {
+  margin-top: 1rem;
+  text-align: left;
+  width: 100%;
+  max-width: 32rem;
+  font-size: 0.8125rem;
+  color: var(--bs-secondary-color);
+
+  summary {
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+    background-color: var(--bs-tertiary-bg);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+  }
+}

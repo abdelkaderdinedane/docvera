@@ -1,6 +1,6 @@
 @if (useDropdown) {
   <div class="btn-group w-100" role="group" ngbDropdown #dropdown="ngbDropdown" (openChange)="onOpenChange($event)" [popperOptions]="popperOptions">
-    <button class="btn btn-sm btn-outline-primary" id="dropdown_toggle" ngbDropdownToggle [disabled]="disabled">
+    <button class="btn btn-sm btn-outline-primary" id="dropdown_toggle" ngbDropdownToggle [disabled]="disabled" [attr.aria-label]="title">
       <i-bs name="{{icon}}"></i-bs>
       <div class="d-none d-sm-inline">&nbsp;{{title}}</div>
       @if (isActive) {
@@ -39,7 +39,7 @@
       ngbDatepicker
       #d="ngbDatepicker"
       [footerTemplate]="datePickerFooterTemplate" />
-    <button class="btn btn-sm btn-outline-secondary rounded-end" (click)="d.toggle()" type="button">
+    <button class="btn btn-sm btn-outline-secondary rounded-end" (click)="d.toggle()" type="button" i18n-aria-label aria-label="Pick date">
       <i-bs name="calendar-event"></i-bs>
     </button>
     <ng-template #datePickerFooterTemplate>
@@ -136,7 +136,7 @@
         <input class="w-25 form-control rounded-end" type="text" [(ngModel)]="atom.value" [disabled]="disabled">
       }
     }
-    <button class="btn btn-link btn-sm text-danger pe-0" type="button" (click)="removeElement(atom)" [disabled]="disabled">
+    <button class="btn btn-link btn-sm text-danger pe-0" type="button" (click)="removeElement(atom)" [disabled]="disabled" i18n-aria-label aria-label="Remove condition">
       <i-bs name="x-circle"></i-bs>
     </button>
   </div>
@@ -178,7 +178,7 @@
         <i-bs name="braces"></i-bs>
       </button>
       @if (expression.depth > 0) {
-        <button type="button" class="btn btn-sm btn-outline-secondary text-danger" (click)="removeElement(expression)" [disabled]="disabled">
+        <button type="button" class="btn btn-sm btn-outline-secondary text-danger" (click)="removeElement(expression)" [disabled]="disabled" i18n-aria-label aria-label="Remove group">
           <i-bs name="x-circle"></i-bs>
         </button>
       }

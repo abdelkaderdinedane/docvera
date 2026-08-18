@@ -278,6 +278,244 @@ locale `.xlf` files (pre-existing pattern from the empty-state increment, not a 
 
 ---
 
+## UI consistency — error states, Increment 1 (pending commit)
+
+Not a branding-identity change — logged here at the user's request as the third piece of "Docvera
+design system Increment 1" (after empty states and skeleton loading states above). Design system
+section 5.9 specifies four severity levels (field, section, page, system) and one absolute rule: never
+show a raw exception, stack trace or HTTP status code to a client — log the detail, show a human
+sentence. Investigating the two symptoms reported (a raw "Error loading settings" toast for a
+no-permission user, and a document list that could show a raw backend error string) surfaced a much
+wider, pre-existing bug: across nearly every list in the admin/manage section, a failed load left
+`loading` stuck `true` forever with no error shown at all — not just an unclear error, but no feedback
+and no way to retry.
+
+- **Files**: `src-ui/src/app/components/common/error-state/error-state.component.ts`, `.html`, `.scss`
+  (new)
+- **Reason**: no shared component existed for section/page-level errors; every list handled (or failed
+  to handle) load failures differently.
+- **Approach**: new standalone `pngx-error-state` component modeled on `pngx-empty-state` and
+  `pngx-skeleton`. Inputs: `level` (`'section' | 'page'`, default `'section'`), `heading`, `body`,
+  `retryLabel` (+ a `retry` output, both optional — omit to render without a button), `showDetails`
+  (boolean — gates whether a technical-details disclosure is offered at all), `details` (the raw
+  technical string itself; added beyond the requested input list because `showDetails` needs content to
+  gate), `icon` (default `exclamation-triangle`). The `<details>`/`<summary>` disclosure is collapsed by
+  default and never auto-opened, matching "never visible by default." Colors use `var(--bs-danger)` /
+  `var(--bs-tertiary-bg)` / `var(--bs-secondary-color)` for light/dark compatibility, no hardcoded hex.
+- **Upgrade impact**: none — brand-new, self-contained file.
+
+- **Files**: `src-ui/src/app/utils/http.ts` (new export `getHttpErrorDetail`)
+- **Reason**: every fixed component below needs to turn an `HttpErrorResponse` into a short,
+  support-useful string for the error-state's collapsed details — without ever surfacing raw HTML (e.g.
+  a Django debug/500 page body), which several backend error paths can return as `error.error`.
+- **Approach**: single shared helper: prefers `error.error.detail`, falls back to `error.error` /
+  `error.message`, discards anything that looks like an HTML document (`<!doctype`/`<html`), and falls
+  back further to the HTTP status line (`"500 Internal Server Error"`) if nothing usable remains.
+- **Upgrade impact**: none — additive utility function.
+
+- **Files**: `src-ui/src/app/components/document-list/document-list.component.html`, `.ts`
+- **Reason**: the reported "raw HTTP error" symptom — `list.error` (from
+  `DocumentListViewService.reload()`, which stores the backend's raw error text/object) was interpolated
+  directly into an `alert-danger` div: `Error while loading documents: {{list.error}}`.
+  `DocumentListViewService` itself was not changed — it's a service, out of this task's
+  `src-ui/src/app/components/` scope, and it already isolates the raw text into one `error: string`
+  field rather than leaking it into markup elsewhere.
+- **Approach**: replaced the alert with `<pngx-error-state level="page" ...>`, `retryLabel` wired to
+  `list.reload()`, `[details]="list.error"` behind `showDetails`.
+- **Upgrade impact**: low — a single, well-isolated `@if` branch in the main document list template.
+
+- **Files**: `src-ui/src/app/components/manage/management-list/management-list.component.ts`, `.html`
+  (shared by `tag-list`, `correspondent-list`, `document-type-list`, `storage-path-list`
+  `.component.ts`, one `ErrorStateComponent` import added to each of the four)
+- **Reason**: worst version of the systemic bug — `reloadData()`'s error handler only special-cased
+  "Invalid page"; any other failure (permission denied, 500, network) left `loading = true` forever with
+  the skeleton spinning indefinitely and nothing else shown.
+- **Approach**: added `error`/`errorDetail` fields; the error branch now sets `loading = false`,
+  `error = true`, and stores `getHttpErrorDetail(error)`. Template shows
+  `<pngx-error-state level="section" ...>` (heading interpolates `typeNamePlural`, e.g. "Couldn't load
+  tags" — the same abstract-class-shared-template pattern already used for the collection-size text
+  elsewhere in this file) inside the existing `<td colspan="5">`, ahead of the skeleton branch, retry
+  wired to `reloadData()`.
+- **Upgrade impact**: moderate — same file already flagged moderate-risk in the skeleton increment,
+  shared by four components; re-check after upstream table changes.
+
+- **Files**: `src-ui/src/app/components/manage/custom-fields/custom-fields.component.ts`, `.html`
+- **Reason**: `reload()`'s `.subscribe(() => {...})` had no error handler at all — an RxJS single-callback
+  subscribe silently drops errors, so `loading` never resets and nothing is shown on failure.
+- **Approach**: split into `next`/`error` callbacks; error path sets `loading = false`, `error = true`,
+  captures detail. Template shows `pngx-error-state` ahead of the skeleton branch inside the existing
+  `<li>`, retry wired to `reload()`; the empty-state condition gained an `&& !error` guard so it can't
+  fire simultaneously.
+- **Upgrade impact**: low — isolated list component.
+
+- **Files**: `src-ui/src/app/components/manage/workflows/workflows.component.ts`, `.html`
+- **Reason**: identical bug to custom-fields — `.subscribe(() => {...})`, no error handler, permanently
+  stuck loading on failure.
+- **Approach**: same fix — `next`/`error` split, `pngx-error-state` ahead of the skeleton branch, retry
+  wired to `reload()`, `&& !error` added to the empty-state guard.
+- **Upgrade impact**: low — isolated list component.
+
+- **Files**: `src-ui/src/app/components/manage/saved-views/saved-views.component.ts`, `.html`
+- **Reason**: same bug, in `ngOnInit()` directly (`.subscribe((r) => {...})`, no error handler, no
+  retry method existed at all since load only ever happened once at init).
+- **Approach**: extracted the load into a new `reload()` method (called from `ngOnInit()`), added
+  `next`/`error` handling, `pngx-error-state` ahead of the skeleton branch inside the existing `<li>`,
+  retry wired to the new `reload()`.
+- **Upgrade impact**: low — isolated list component; the new `reload()` method is additive.
+
+- **Files**: `src-ui/src/app/components/manage/mail/mail.component.ts`, `.html`
+- **Reason**: both the mail-accounts and mail-rules lists had `error:` handlers, but each only called
+  `toastService.showError(...)` — `loadingAccounts`/`loadingRules` were never reset to `false`, so both
+  skeletons spun forever in addition to the toast firing.
+- **Approach**: extracted each load into its own `loadAccounts()`/`loadRules()` method (called from
+  `ngOnInit()`), each now sets `loading = false` and tracks its own `accountsError`/`rulesError` +
+  detail; toasts removed in favor of the inline `pngx-error-state` (ahead of each skeleton branch),
+  retry wired to the respective load method; both empty-state guards gained an error exclusion.
+- **Upgrade impact**: low — isolated component, two independent, non-overlapping fixes. Note: a
+  pre-existing, unrelated dead-code condition — `@if (!mailAccounts || !mailRules)` at the bottom of the
+  template — was left as-is; `mailAccounts`/`mailRules` are initialized to `[]` (truthy), so that branch
+  can never render. Out of scope for this pass (not an error-display bug), flagged here for a future
+  cleanup.
+
+- **Files**: `src-ui/src/app/components/admin/users-groups/users-groups.component.ts`, `.html`
+- **Reason**: same shape of bug as mail — `error:` handlers only toasted, `users`/`groups` stayed
+  `undefined`, so the page-level "loading" skeleton spun forever for either list on failure.
+- **Approach**: extracted into `loadUsers()`/`loadGroups()` methods, added `usersError`/`groupsError` +
+  detail, `pngx-error-state` shown per list ahead of the pre-existing sections, retry wired to the
+  respective load method; the trailing combined skeleton condition gained `&& !usersError` /
+  `&& !groupsError` so it stops once an error is shown instead of running alongside it.
+- **Upgrade impact**: low — isolated component, two independent fixes.
+
+- **Files**: `src-ui/src/app/services/tasks.service.ts`,
+  `src-ui/src/app/components/admin/tasks/tasks.component.ts`, `.html`
+- **Reason**: the worst instance found — `TasksService.reload()` had no error handler, so on failure
+  `loading` stayed `true` forever, and `reload()` itself starts with `if (this.loading) return`: once
+  stuck, every future call — including a user-triggered retry — became a permanent no-op requiring a
+  full page reload to recover.
+- **Approach**: added `error`/`errorDetail` to the service, `next`/`error` split in `reload()`'s
+  subscribe. Template shows `pngx-error-state` ahead of the (pre-existing, separately dead-conditioned —
+  see note below) skeleton branch, retry wired to `tasksService.reload()`.
+- **Upgrade impact**: low-to-moderate — service fix is small and low-risk; `tasks.component.html`/`.ts`
+  themselves are large, frequently-touched files. Note: the skeleton branch's guard,
+  `!tasksService.completedFileTasks && tasksService.loading`, is itself dead code pre-dating this
+  increment (`completedFileTasks` is a getter that always returns an array, so `!` on it is always
+  `false`) — the new `error` branch uses a correct, independent condition instead of reusing it. Left
+  the pre-existing skeleton condition untouched as out of scope for this pass.
+
+- **Files**: `src-ui/src/app/services/settings.service.ts`,
+  `src-ui/src/app/components/app-frame/app-frame.component.ts`, `.html`
+- **Reason**: the reported "settings" symptom — `initializeSettings()` (called once at app bootstrap via
+  `APP_INITIALIZER`, e.g. right after a no-permission user logs in) falls back to default settings on
+  failure and fires `toastService.showError('Error loading settings', error)`, a transient 10-second
+  toast with no persistent indication that the app is now running in a degraded state, and no retry.
+  `settings.service.ts` and `app.module`'s `APP_INITIALIZER` wiring are services, not components — the
+  `APP_INITIALIZER` factory runs before any component template exists, so there is no host template to
+  put an error-state into at that point. The banner is instead rendered by `app-frame.component`, which
+  is already mounted by the time the (500ms-delayed) toast fires.
+  `settings.service.spec.ts` has an existing test asserting the toast fires on a 403
+  ("You do not have permission...") — the exact no-permission scenario reported — so the toast call was
+  kept as-is (not a `.spec.ts` file was touched) and the banner was added alongside it, not as a
+  replacement.
+- **Approach**: added `initializationFailed`/`initializationErrorDetail` to `SettingsService`, set in the
+  same `catchError` block as the existing toast, cleared at the top of `initializeSettings()`; added a
+  `retryInitialization()` method. `app-frame.component.html` renders `<pngx-error-state level="page"
+  icon="gear" ...>` above the `<router-outlet>` when `settingsService.initializationFailed` is true,
+  retry wired to `settingsService.retryInitialization()`.
+- **Upgrade impact**: low — additive service fields/method; `app-frame.component.html` is a core,
+  frequently-touched shell file, so re-verify placement after upstream app-frame changes.
+
+Verified with `pnpm run build` — production build succeeds; only the expected "No translation found"
+warnings appear, for the new English source strings not yet present in the 47 locale `.xlf` files
+(same pre-existing pattern noted in the empty-state and skeleton increments, not a regression).
+
+---
+
+## UI consistency — accessibility (WCAG 2.1 AA), Increment 1 (pending commit)
+
+Not a branding-identity change — logged here at the user's request as the fourth and final piece of
+"Docvera design system Increment 1" (after empty states, skeleton loading states, and error states
+above). Design system section 7 sets WCAG 2.1 AA criteria as acceptance requirements. Full findings,
+including what was *not* fixed and why, are in the new `DOCVERA_ACCESSIBILITY_AUDIT.md` — this entry
+summarizes what changed.
+
+- **Files**: 24 component `.html` files across `manage/`, `admin/`, `app-frame/`, `document-detail/`,
+  `document-list/`, and `common/` (including `common/input/`) — full list in the audit report.
+- **Reason**: 32 icon-only interactive controls (kebab menus, split-toggles, clear/remove/rotate/
+  randomize/date-picker buttons, and a systemic pattern of labels hidden via Bootstrap's `d-none
+  d-sm-inline` below the `sm` breakpoint — which removes the text from the accessibility tree, not just
+  visually) had no accessible name at all.
+- **Approach**: added `aria-label` (static via `i18n-aria-label`, or `[attr.aria-label]`/interpolated
+  where the control repeats per-row and needs a distinguishing name, e.g. "Remove {{field.name}}").
+  1 remaining ambiguous case (a popover-triggering icon whose right label depends on the popover's own
+  copy) intentionally left for a design/copy decision — see audit report.
+- **Upgrade impact**: low — additive attributes only, no markup restructuring.
+
+- **Files**: `src-ui/src/app/components/app-frame/global-search/global-search.component.scss`
+- **Reason**: `* { --pngx-focus-alpha: 0; }` zeroed the app-wide focus-ring variable for every
+  focusable element inside the global search feature (nav search box, bound to the `/` hotkey, and its
+  entire live results dropdown) — the most severe finding in this audit: a keyboard-driven feature with
+  its focus indicator globally suppressed, apparently because the default Navy-colored ring has poor
+  contrast against this same navbar's navy background.
+- **Approach**: removed the blanket suppression (the dropdown results sit on a light background where
+  the default ring works fine) and added a targeted `:focus-visible` outline
+  (`2px solid rgba(255,255,255,0.9)`) on the search `<input>` specifically, since that's the one element
+  actually on the dark navbar.
+- **Upgrade impact**: low — single component-scoped stylesheet.
+
+- **Files**: `src-ui/src/app/components/common/input/{text,number,select,textarea,monetary,entries,
+  file,password,url,date,color}/*.component.html` (11 files)
+- **Reason**: every shared reusable form-input component's `.invalid-feedback` validation-error message
+  had no `role`/`aria-live` — meaning validation errors in essentially every form in the app (all
+  edit dialogs, settings forms) were visible but silent to screen readers. Toasts were checked too and
+  found already correct (`ngb-toast` applies `role="alert"`/`aria-live="polite"` automatically — no fix
+  needed there).
+- **Approach**: added `role="alert"` to each `.invalid-feedback` div. Single highest-leverage fix in
+  this pass — 11 small identical edits cover validation announcements app-wide.
+- **Upgrade impact**: low — one attribute added per file, no markup restructuring.
+
+- **Files**: `src-ui/src/app/components/common/empty-state/empty-state.component.ts`, `.html`;
+  `src-ui/src/app/components/common/error-state/error-state.component.ts`, `.html`
+- **Reason**: both components hard-coded their heading as a literal `<h5>`. As reusable components
+  dropped into pages with varying heading depth, this risked skipping heading levels (WCAG 1.3.1/2.4.6)
+  depending on where a given page landed — something the component can't know about itself.
+- **Approach**: added a `headingLevel` input (default `2`) and switched the heading markup to a generic
+  element with `role="heading"` + `[attr.aria-level]="headingLevel"` — the standard technique for a
+  configurable heading level in a reusable component. Same CSS class retained
+  (`.empty-heading`/`.error-heading`, styled by class not tag), so no visual change. Default `2` is safe
+  in effectively every placement, since going shallower than the surrounding context is never a WCAG
+  skip — only the old hard-coded `5` (going deeper) risked one.
+- **Upgrade impact**: none — additive input with a safe default; existing call sites are unaffected
+  visually and behaviorally.
+
+- **Files**: `DOCVERA_ACCESSIBILITY_AUDIT.md` (new)
+- **Reason**: document color-contrast findings that were investigated and measured but not
+  auto-fixed, per this task's own scoping rule ("only fix if it's a simple token adjustment").
+- **Approach**: computed WCAG relative-luminance contrast ratios by hand for the Docvera Navy primary
+  color. Light mode passes comfortably everywhere (~10.5:1). Dark mode fails on two pairings that both
+  use the same `--pngx-primary-lightness` token and need it to move in *opposite* directions to pass:
+  Navy-as-link-text-on-page-background (~2.76:1, needs lighter) vs. gray-button-text-on-Navy-background
+  (~3.07:1, needs the background to stay dark, gets *worse* if lightened to fix the first pairing —
+  recomputed at a lightness that fixes pairing 1, pairing 2 drops to ~1.81:1). Not a simple token bump;
+  needs either a second distinct color token or a different foreground/background pairing strategy —
+  flagged for a design decision rather than guessed at. Teal/accent blue not checked: confirmed (from a
+  prior pass's branding inventory) not wired into any live UI element yet, so no violation is possible
+  until they are.
+- **Upgrade impact**: none — documentation only, no code change from this item.
+
+Verified with `pnpm run build` — production build succeeds; only the expected "No translation found"
+warnings appear, for the new English source strings (aria-labels included — they're `i18n`-tagged like
+any other UI string) not yet present in the 47 locale `.xlf` files (same pre-existing pattern noted in
+every prior increment in this section, not a regression).
+
+What was investigated but explicitly not fixed in this pass — full keyboard walkthrough, landmark/heading
+audit beyond the one concrete fix above, 200% zoom verification beyond the three new components, and
+app-wide `prefers-reduced-motion` coverage beyond `pngx-skeleton` (six other `.scss` files have
+short hover/UI transitions without the media query — not treated as violations, since WCAG's
+reduced-motion criterion targets sustained/large motion, not brief hover transitions) — is recorded in
+`DOCVERA_ACCESSIBILITY_AUDIT.md` rather than silently dropped.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

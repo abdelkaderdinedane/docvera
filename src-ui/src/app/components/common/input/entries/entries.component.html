@@ -13,7 +13,7 @@
         <div class="input-group mb-3">
           <input type="text" class="form-control" [(ngModel)]="entry[0]" (change)="inputChange()" [disabled]="disabled" autocomplete="off">
           <input type="text" class="form-control" [(ngModel)]="entry[1]" (change)="inputChange()" [disabled]="disabled" autocomplete="off">
-          <button type="button" class="btn btn-outline-secondary" (click)="removeEntry(i)">
+          <button type="button" class="btn btn-outline-secondary" (click)="removeEntry(i)" i18n-aria-label aria-label="Remove entry {{ i + 1 }}">
             <i-bs class="text-danger" name="trash"></i-bs>
           </button>
         </div>
@@ -21,7 +21,7 @@
       @if (hint) {
         <small class="form-text text-muted" [innerHTML]="hint"></small>
       }
-      <div class="invalid-feedback position-absolute top-100">
+      <div class="invalid-feedback position-absolute top-100" role="alert">
         {{error}}
       </div>
     </div>

@@ -20,12 +20,14 @@ import { MailAccountService } from 'src/app/services/rest/mail-account.service'
 import { MailRuleService } from 'src/app/services/rest/mail-rule.service'
 import { SettingsService } from 'src/app/services/settings.service'
 import { ToastService } from 'src/app/services/toast.service'
+import { getHttpErrorDetail } from 'src/app/utils/http'
 import { ConfirmDialogComponent } from '../../common/confirm-dialog/confirm-dialog.component'
 import { EditDialogMode } from '../../common/edit-dialog/edit-dialog.component'
 import { MailAccountEditDialogComponent } from '../../common/edit-dialog/mail-account-edit-dialog/mail-account-edit-dialog.component'
 import { MailRuleEditDialogComponent } from '../../common/edit-dialog/mail-rule-edit-dialog/mail-rule-edit-dialog.component'
-import { PageHeaderComponent } from '../../common/page-header/page-header.component'
 import { EmptyStateComponent } from '../../common/empty-state/empty-state.component'
+import { ErrorStateComponent } from '../../common/error-state/error-state.component'
+import { PageHeaderComponent } from '../../common/page-header/page-header.component'
 import { PermissionsDialogComponent } from '../../common/permissions-dialog/permissions-dialog.component'
 import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { ComponentWithPermissions } from '../../with-permissions/with-permissions.component'
@@ -46,6 +48,7 @@ import { ProcessedMailDialogComponent } from './processed-mail-dialog/processed-
     NgbDropdownModule,
     NgxBootstrapIconsModule,
     SkeletonComponent,
+    ErrorStateComponent,
   ],
 })
 export class MailComponent
@@ -81,7 +84,40 @@ export class MailComponent
   public loadingAccounts: boolean = true
   public showAccounts: boolean = false
 
+  public accountsError: boolean = false
+  public accountsErrorDetail: string = null
+  public rulesError: boolean = false
+  public rulesErrorDetail: string = null
+
   ngOnInit(): void {
+    this.loadAccounts()
+    this.loadRules()
+
+    this.route.queryParamMap.subscribe((params) => {
+      if (params.get('oauth_success')) {
+        const success = params.get('oauth_success') === '1'
+        if (success) {
+          this.toastService.showInfo($localize`OAuth2 authentication success`)
+          this.oAuthAccountId = parseInt(params.get('account_id'))
+          if (this.mailAccounts.length > 0) {
+            this.editMailAccount(
+              this.mailAccounts.find(
+                (account) => account.id === this.oAuthAccountId
+              )
+            )
+          }
+        } else {
+          this.toastService.showError(
+            $localize`OAuth2 authentication failed, see logs for details`
+          )
+        }
+      }
+    })
+  }
+
+  loadAccounts(): void {
+    this.loadingAccounts = true
+    this.accountsError = false
     this.mailAccountService
       .listAll(null, null, { full_perms: true })
       .pipe(
@@ -105,13 +141,16 @@ export class MailComponent
           this.showAccounts = true
         },
         error: (e) => {
-          this.toastService.showError(
-            $localize`Error retrieving mail accounts`,
-            e
-          )
+          this.loadingAccounts = false
+          this.accountsError = true
+          this.accountsErrorDetail = getHttpErrorDetail(e)
         },
       })
+  }
 
+  loadRules(): void {
+    this.loadingRules = true
+    this.rulesError = false
     this.mailRuleService
       .listAll(null, null, { full_perms: true })
       .pipe(
@@ -128,30 +167,11 @@ export class MailComponent
           this.showRules = true
         },
         error: (e) => {
-          this.toastService.showError($localize`Error retrieving mail rules`, e)
+          this.loadingRules = false
+          this.rulesError = true
+          this.rulesErrorDetail = getHttpErrorDetail(e)
         },
       })
-
-    this.route.queryParamMap.subscribe((params) => {
-      if (params.get('oauth_success')) {
-        const success = params.get('oauth_success') === '1'
-        if (success) {
-          this.toastService.showInfo($localize`OAuth2 authentication success`)
-          this.oAuthAccountId = parseInt(params.get('account_id'))
-          if (this.mailAccounts.length > 0) {
-            this.editMailAccount(
-              this.mailAccounts.find(
-                (account) => account.id === this.oAuthAccountId
-              )
-            )
-          }
-        } else {
-          this.toastService.showError(
-            $localize`OAuth2 authentication failed, see logs for details`
-          )
-        }
-      }
-    })
   }
 
   ngOnDestroy() {

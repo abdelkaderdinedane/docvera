@@ -40,7 +40,7 @@
           </ng-template>
         </ng-select>
         @if (allowCreateNew && !hideAddButton) {
-          <button class="btn btn-outline-secondary" type="button" (click)="addItem()" [disabled]="disabled">
+          <button class="btn btn-outline-secondary" type="button" (click)="addItem()" [disabled]="disabled" i18n-aria-label aria-label="Add item">
             <i-bs width="1.2em" height="1.2em" name="plus"></i-bs>
           </button>
         }
@@ -50,7 +50,7 @@
           </button>
         }
       </div>
-      <div class="invalid-feedback">
+      <div class="invalid-feedback" role="alert">
         {{error}}
       </div>
       @if (hint) {

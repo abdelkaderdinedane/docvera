@@ -15,7 +15,9 @@ import { IfPermissionsDirective } from 'src/app/directives/if-permissions.direct
 import { SavedViewService } from 'src/app/services/rest/saved-view.service'
 import { SettingsService } from 'src/app/services/settings.service'
 import { ToastService } from 'src/app/services/toast.service'
+import { getHttpErrorDetail } from 'src/app/utils/http'
 import { ConfirmButtonComponent } from '../../common/confirm-button/confirm-button.component'
+import { ErrorStateComponent } from '../../common/error-state/error-state.component'
 import { DragDropSelectComponent } from '../../common/input/drag-drop-select/drag-drop-select.component'
 import { NumberComponent } from '../../common/input/number/number.component'
 import { TextComponent } from '../../common/input/text/text.component'
@@ -38,6 +40,7 @@ import { LoadingComponentWithPermissions } from '../../loading-component/loading
     AsyncPipe,
     EmptyStateComponent,
     SkeletonComponent,
+    ErrorStateComponent,
   ],
 })
 export class SavedViewsComponent
@@ -51,6 +54,10 @@ export class SavedViewsComponent
   DisplayMode = DisplayMode
 
   public savedViews: SavedView[]
+
+  public error: boolean = false
+  public errorDetail: string = null
+
   private savedViewsGroup = new FormGroup({})
   public savedViewsForm: FormGroup = new FormGroup({
     savedViews: this.savedViewsGroup,
@@ -69,10 +76,22 @@ export class SavedViewsComponent
   }
 
   ngOnInit(): void {
+    this.reload()
+  }
+
+  reload(): void {
     this.loading = true
-    this.savedViewService.listAll().subscribe((r) => {
-      this.savedViews = r.results
-      this.initialize()
+    this.error = false
+    this.savedViewService.listAll().subscribe({
+      next: (r) => {
+        this.savedViews = r.results
+        this.initialize()
+      },
+      error: (e) => {
+        this.loading = false
+        this.error = true
+        this.errorDetail = getHttpErrorDetail(e)
+      },
     })
   }
 

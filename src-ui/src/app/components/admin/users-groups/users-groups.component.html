@@ -7,6 +7,17 @@
   >
 </pngx-page-header>
 
+@if (canViewUsers && usersError) {
+  <pngx-error-state
+    i18n-heading heading="Couldn't load users"
+    i18n-body body="Something went wrong while loading this list. You can try again, or check with your administrator if the problem continues."
+    i18n-retryLabel retryLabel="Retry"
+    [showDetails]="true"
+    [details]="usersErrorDetail"
+    (retry)="loadUsers()">
+  </pngx-error-state>
+}
+
 @if (canViewUsers && users) {
   <h4 class="d-flex">
     <ng-container i18n>Users</ng-container>
@@ -43,6 +54,17 @@
       </li>
     }
   </ul>
+}
+
+@if (canViewGroups && groupsError) {
+  <pngx-error-state
+    i18n-heading heading="Couldn't load groups"
+    i18n-body body="Something went wrong while loading this list. You can try again, or check with your administrator if the problem continues."
+    i18n-retryLabel retryLabel="Retry"
+    [showDetails]="true"
+    [details]="groupsErrorDetail"
+    (retry)="loadGroups()">
+  </pngx-error-state>
 }
 
 @if (canViewGroups && groups) {
@@ -88,7 +110,7 @@
   </ul>
 }
 
-@if ((canViewUsers && !users) || (canViewGroups && !groups)) {
+@if ((canViewUsers && !users && !usersError) || (canViewGroups && !groups && !groupsError)) {
   <div>
     <pngx-skeleton variant="row" [count]="3"></pngx-skeleton>
   </div>

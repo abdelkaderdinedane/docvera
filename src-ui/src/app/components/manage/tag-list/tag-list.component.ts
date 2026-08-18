@@ -14,6 +14,7 @@ import { SortableDirective } from 'src/app/directives/sortable.directive'
 import { PermissionType } from 'src/app/services/permissions.service'
 import { TagService } from 'src/app/services/rest/tag.service'
 import { TagEditDialogComponent } from '../../common/edit-dialog/tag-edit-dialog/tag-edit-dialog.component'
+import { ErrorStateComponent } from '../../common/error-state/error-state.component'
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
 import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { ManagementListComponent } from '../management-list/management-list.component'
@@ -35,6 +36,7 @@ import { ManagementListComponent } from '../management-list/management-list.comp
     NgbPaginationModule,
     NgxBootstrapIconsModule,
     SkeletonComponent,
+    ErrorStateComponent,
   ],
 })
 export class TagListComponent extends ManagementListComponent<Tag> {

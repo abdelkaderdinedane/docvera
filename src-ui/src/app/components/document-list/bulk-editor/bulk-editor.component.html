@@ -82,7 +82,7 @@
   <div class="d-flex align-items-center gap-2 ms-auto">
     <div class="btn-toolbar">
       <div ngbDropdown>
-        <button class="btn btn-sm btn-outline-primary" id="dropdownSelect" [disabled]="!userCanEdit && !userCanAdd" ngbDropdownToggle>
+        <button class="btn btn-sm btn-outline-primary" id="dropdownSelect" [disabled]="!userCanEdit && !userCanAdd" ngbDropdownToggle i18n-aria-label aria-label="Actions">
           <i-bs name="three-dots"></i-bs>
           <div class="d-none d-sm-inline">&nbsp;<ng-container i18n>Actions</ng-container></div>
         </button>
@@ -117,7 +117,7 @@
         <div class="d-none d-sm-inline">&nbsp;<ng-container i18n>Download</ng-container></div>
       </button>
       <div ngbDropdown class="me-2 d-flex btn-group" role="group">
-        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle-split rounded-end" ngbDropdownToggle></button>
+        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle-split rounded-end" ngbDropdownToggle i18n-aria-label aria-label="More download options"></button>
         <div ngbDropdownMenu aria-labelledby="dropdownSelect" class="shadow">
           <form [formGroup]="downloadForm" class="px-3 py-1">
             <p class="mb-1" i18n>Include:</p>

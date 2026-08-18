@@ -44,6 +44,7 @@ import { SettingsService } from 'src/app/services/settings.service'
 import { TasksService } from 'src/app/services/tasks.service'
 import { ToastService } from 'src/app/services/toast.service'
 import { environment } from 'src/environments/environment'
+import { ErrorStateComponent } from '../common/error-state/error-state.component'
 import { ProfileEditDialogComponent } from '../common/profile-edit-dialog/profile-edit-dialog.component'
 import { DocumentDetailComponent } from '../document-detail/document-detail.component'
 import { ComponentWithPermissions } from '../with-permissions/with-permissions.component'
@@ -68,6 +69,7 @@ import { ToastsDropdownComponent } from './toasts-dropdown/toasts-dropdown.compo
     NgxBootstrapIconsModule,
     DragDropModule,
     TourNgBootstrapModule,
+    ErrorStateComponent,
   ],
 })
 export class AppFrameComponent

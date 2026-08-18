@@ -22,7 +22,18 @@
     </div>
   </li>
 
-  @if (loading && workflows.length === 0) {
+  @if (error) {
+    <li class="list-group-item">
+      <pngx-error-state
+        i18n-heading heading="Couldn't load workflows"
+        i18n-body body="Something went wrong while loading this list. You can try again, or check with your administrator if the problem continues."
+        i18n-retryLabel retryLabel="Retry"
+        [showDetails]="true"
+        [details]="errorDetail"
+        (retry)="reload()">
+      </pngx-error-state>
+    </li>
+  } @else if (loading && workflows.length === 0) {
     <li class="list-group-item">
       <pngx-skeleton variant="row" [count]="3"></pngx-skeleton>
     </li>
@@ -46,7 +57,7 @@
 
           <div class="btn-group d-block d-sm-none">
             <div ngbDropdown container="body" class="d-inline-block">
-              <button type="button" class="btn btn-link" id="actionsMenuMobile" (click)="$event.stopPropagation()" ngbDropdownToggle>
+              <button type="button" class="btn btn-link" id="actionsMenuMobile" (click)="$event.stopPropagation()" ngbDropdownToggle i18n-aria-label aria-label="More actions">
                 <i-bs name="three-dots-vertical"></i-bs>
               </button>
               <div ngbDropdownMenu aria-labelledby="actionsMenuMobile">
@@ -75,7 +86,7 @@
       </div>
     </li>
   }
-  @if (!loading && workflows.length === 0) {
+  @if (!loading && !error && workflows.length === 0) {
     <li class="list-group-item" [class.show]="show" i18n>
       <pngx-empty-state icon="boxes" heading="No workflows yet" i18n-heading body="Workflows automatically apply tags, correspondents and other metadata when documents arrive." i18n-body></pngx-empty-state>
     </li>

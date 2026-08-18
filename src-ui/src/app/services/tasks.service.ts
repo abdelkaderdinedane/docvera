@@ -7,6 +7,7 @@ import {
   PaperlessTaskName,
   PaperlessTaskStatus,
 } from 'src/app/data/paperless-task'
+import { getHttpErrorDetail } from 'src/app/utils/http'
 import { environment } from 'src/environments/environment'
 
 @Injectable({
@@ -19,6 +20,8 @@ export class TasksService {
   private endpoint: string = 'tasks'
 
   public loading: boolean
+  public error: boolean = false
+  public errorDetail: string = null
 
   private fileTasks: PaperlessTask[] = []
 
@@ -53,17 +56,25 @@ export class TasksService {
   public reload() {
     if (this.loading) return
     this.loading = true
+    this.error = false
 
     this.http
       .get<PaperlessTask[]>(
         `${this.baseUrl}${this.endpoint}/?task_name=consume_file&acknowledged=false`
       )
       .pipe(takeUntil(this.unsubscribeNotifer), first())
-      .subscribe((r) => {
-        this.fileTasks = r.filter(
-          (t) => t.task_name == PaperlessTaskName.ConsumeFile
-        )
-        this.loading = false
+      .subscribe({
+        next: (r) => {
+          this.fileTasks = r.filter(
+            (t) => t.task_name == PaperlessTaskName.ConsumeFile
+          )
+          this.loading = false
+        },
+        error: (e) => {
+          this.loading = false
+          this.error = true
+          this.errorDetail = getHttpErrorDetail(e)
+        },
       })
   }
 

@@ -16,6 +16,7 @@ import {
   estimateBrightnessForColor,
   hexToHsl,
 } from 'src/app/utils/color'
+import { getHttpErrorDetail } from 'src/app/utils/http'
 import { environment } from 'src/environments/environment'
 import { DEFAULT_DISPLAY_FIELDS, DisplayField } from '../data/document'
 import { SavedView } from '../data/saved-view'
@@ -297,6 +298,10 @@ export class SettingsService {
 
   public dashboardIsEmpty: boolean = false
 
+  /** True when the initial ui_settings/ fetch failed; app runs on defaults */
+  public initializationFailed: boolean = false
+  public initializationErrorDetail: string = null
+
   public globalDropzoneEnabled: boolean = true
   public globalDropzoneActive: boolean = false
   public organizingSidebarSavedViews: boolean = false
@@ -316,9 +321,13 @@ export class SettingsService {
 
   // this is called by the app initializer in app.module
   public initializeSettings(): Observable<UiSettings> {
+    this.initializationFailed = false
+    this.initializationErrorDetail = null
     return this.http.get<UiSettings>(this.baseUrl).pipe(
       first(),
       catchError((error) => {
+        this.initializationFailed = true
+        this.initializationErrorDetail = getHttpErrorDetail(error)
         setTimeout(() => {
           this.toastService.showError('Error loading settings', error)
         }, 500)
@@ -349,6 +358,11 @@ export class SettingsService {
         this.initializeDisplayFields()
       })
     )
+  }
+
+  /** Re-fetches ui_settings/ after a failed initial load, e.g. via a retry button */
+  public retryInitialization(): void {
+    this.initializeSettings().subscribe()
   }
 
   public initializeDisplayFields() {

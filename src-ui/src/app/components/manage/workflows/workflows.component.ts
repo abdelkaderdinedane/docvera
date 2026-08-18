@@ -8,14 +8,16 @@ import { IfPermissionsDirective } from 'src/app/directives/if-permissions.direct
 import { PermissionsService } from 'src/app/services/permissions.service'
 import { WorkflowService } from 'src/app/services/rest/workflow.service'
 import { ToastService } from 'src/app/services/toast.service'
+import { getHttpErrorDetail } from 'src/app/utils/http'
 import { ConfirmDialogComponent } from '../../common/confirm-dialog/confirm-dialog.component'
 import { EditDialogMode } from '../../common/edit-dialog/edit-dialog.component'
 import {
   WORKFLOW_TYPE_OPTIONS,
   WorkflowEditDialogComponent,
 } from '../../common/edit-dialog/workflow-edit-dialog/workflow-edit-dialog.component'
-import { PageHeaderComponent } from '../../common/page-header/page-header.component'
 import { EmptyStateComponent } from '../../common/empty-state/empty-state.component'
+import { ErrorStateComponent } from '../../common/error-state/error-state.component'
+import { PageHeaderComponent } from '../../common/page-header/page-header.component'
 import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { LoadingComponentWithPermissions } from '../../loading-component/loading.component'
 
@@ -32,6 +34,7 @@ import { LoadingComponentWithPermissions } from '../../loading-component/loading
     NgbDropdownModule,
     NgxBootstrapIconsModule,
     SkeletonComponent,
+    ErrorStateComponent,
   ],
 })
 export class WorkflowsComponent
@@ -45,12 +48,16 @@ export class WorkflowsComponent
 
   public workflows: Workflow[] = []
 
+  public error: boolean = false
+  public errorDetail: string = null
+
   ngOnInit() {
     this.reload()
   }
 
   reload() {
     this.loading = true
+    this.error = false
     this.workflowService
       .listAll()
       .pipe(
@@ -58,9 +65,16 @@ export class WorkflowsComponent
         tap((r) => (this.workflows = r.results)),
         delay(100)
       )
-      .subscribe(() => {
-        this.show = true
-        this.loading = false
+      .subscribe({
+        next: () => {
+          this.show = true
+          this.loading = false
+        },
+        error: (e) => {
+          this.loading = false
+          this.error = true
+          this.errorDetail = getHttpErrorDetail(e)
+        },
       })
   }
 

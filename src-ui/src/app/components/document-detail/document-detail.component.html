@@ -36,7 +36,7 @@
 
     @if (metadata?.has_archive_version) {
       <div class="btn-group" ngbDropdown role="group">
-        <button class="btn btn-sm btn-outline-primary dropdown-toggle" [disabled]="downloading" ngbDropdownToggle></button>
+        <button class="btn btn-sm btn-outline-primary dropdown-toggle" [disabled]="downloading" ngbDropdownToggle i18n-aria-label aria-label="More download options"></button>
         <div class="dropdown-menu shadow" ngbDropdownMenu>
           <button ngbDropdownItem (click)="download(true)" [disabled]="downloading" i18n>Download original</button>
         </div>
@@ -45,7 +45,7 @@
   </div>
 
   <div class="ms-auto" ngbDropdown>
-    <button class="btn btn-sm btn-outline-primary" id="actionsDropdown" ngbDropdownToggle>
+    <button class="btn btn-sm btn-outline-primary" id="actionsDropdown" ngbDropdownToggle i18n-aria-label aria-label="Actions">
       <i-bs name="three-dots"></i-bs>
       <div class="d-none d-sm-inline">&nbsp;<ng-container i18n>Actions</ng-container></div>
     </button>
@@ -79,7 +79,7 @@
 
 
   <div class="ms-auto" ngbDropdown>
-    <button class="btn btn-sm btn-outline-primary" id="sendDropdown" ngbDropdownToggle>
+    <button class="btn btn-sm btn-outline-primary" id="sendDropdown" ngbDropdownToggle i18n-aria-label aria-label="Send">
       <i-bs name="send"></i-bs>
       <div class="d-none d-sm-inline">&nbsp;<ng-container i18n>Send</ng-container></div>
     </button>

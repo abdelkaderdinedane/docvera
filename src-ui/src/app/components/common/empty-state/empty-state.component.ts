@@ -31,6 +31,15 @@ export class EmptyStateComponent {
   /** Short heading stating what is absent, in plain language */
   @Input() heading: string = ''
 
+  /**
+   * ARIA heading level (via role="heading" + aria-level, not a real <hN>
+   * element) — this is a reusable component dropped into pages with varying
+   * heading depth, so a hard-coded <h5> risked skipping levels. Default 2 is
+   * safe in effectively every placement: going shallower than the
+   * surrounding context is not a WCAG skip, only going deeper would be.
+   */
+  @Input() headingLevel: number = 2
+
   /** One sentence explaining why it is empty and what to do */
   @Input() body: string = ''
 

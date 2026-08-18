@@ -1,6 +1,6 @@
 <pngx-page-header [title]="getTitle()">
   <div ngbDropdown class="btn-group flex-fill d-sm-none">
-    <button class="btn btn-sm btn-outline-primary" id="dropdownSelectMobile" ngbDropdownToggle>
+    <button class="btn btn-sm btn-outline-primary" id="dropdownSelectMobile" ngbDropdownToggle i18n-aria-label aria-label="Select">
       <i-bs name="text-indent-left"></i-bs>
       <div class="d-none d-sm-inline">&nbsp;<ng-container i18n>Select</ng-container></div>
       @if (list.selected.size > 0) {
@@ -32,7 +32,7 @@
     </div>
   </div>
   <div ngbDropdown class="btn-group flex-fill">
-    <button class="btn btn-sm btn-outline-primary" id="dropdownDisplayFields" ngbDropdownToggle>
+    <button class="btn btn-sm btn-outline-primary" id="dropdownDisplayFields" ngbDropdownToggle i18n-aria-label aria-label="Show">
       <i-bs name="card-heading"></i-bs>
       <div class="d-none d-sm-inline">&nbsp;<ng-container i18n>Show</ng-container></div>
     </button>
@@ -63,7 +63,7 @@
   </div>
 
   <div ngbDropdown class="btn-group flex-fill">
-    <button class="btn btn-outline-primary btn-sm" id="dropdownBasic1" ngbDropdownToggle>
+    <button class="btn btn-outline-primary btn-sm" id="dropdownBasic1" ngbDropdownToggle i18n-aria-label aria-label="Sort">
       <i-bs name="arrow-down-up"></i-bs>
       <div class="d-none d-sm-inline">&nbsp;<ng-container i18n>Sort</ng-container></div>
     </button>
@@ -89,7 +89,7 @@
   </div>
 
   <div class="btn-group flex-fill" *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.SavedView }" ngbDropdown role="group">
-    <button class="btn btn-sm btn-outline-primary dropdown-toggle flex-fill" tourAnchor="tour.documents-views" ngbDropdownToggle>
+    <button class="btn btn-sm btn-outline-primary dropdown-toggle flex-fill" tourAnchor="tour.documents-views" ngbDropdownToggle i18n-aria-label aria-label="Views">
       <i-bs class="me-1" name="window-stack"></i-bs>
       <div class="d-none d-sm-inline">&nbsp;<ng-container i18n>Views</ng-container></div>
       @if (savedViewIsModified) {
@@ -165,7 +165,16 @@
   </div>
 
   @if (list.error ) {
-    <div class="alert alert-danger" role="alert"><ng-container i18n>Error while loading documents</ng-container>: {{list.error}}</div>
+    <pngx-error-state
+      level="page"
+      icon="file-earmark-x"
+      i18n-heading heading="Couldn't load documents"
+      i18n-body body="Something went wrong while loading this list. You can try again, or check with your administrator if the problem continues."
+      i18n-retryLabel retryLabel="Retry"
+      [showDetails]="true"
+      [details]="list.error"
+      (retry)="list.reload()">
+    </pngx-error-state>
   } @else {
     @if (list.displayMode === DisplayMode.LARGE_CARDS) {
       <div>

@@ -69,7 +69,18 @@
       </li>
     }
 
-    @if (loading) {
+    @if (error) {
+      <li class="list-group-item">
+        <pngx-error-state
+          i18n-heading heading="Couldn't load saved views"
+          i18n-body body="Something went wrong while loading this list. You can try again, or check with your administrator if the problem continues."
+          i18n-retryLabel retryLabel="Retry"
+          [showDetails]="true"
+          [details]="errorDetail"
+          (retry)="reload()">
+        </pngx-error-state>
+      </li>
+    } @else if (loading) {
       <li class="list-group-item">
         <pngx-skeleton variant="row" [count]="3"></pngx-skeleton>
       </li>

@@ -27,7 +27,7 @@
           <span class="input-group-text">{{filterTargetName}}</span>
         }
         @if (filterText?.length) {
-          <button class="btn btn-link btn-sm px-2 position-absolute top-0 end-0 z-10" (click)="resetFilter()">
+          <button class="btn btn-link btn-sm px-2 position-absolute top-0 end-0 z-10" (click)="resetFilter()" i18n-aria-label aria-label="Clear filter">
             <i-bs width="1em" height="1em" name="x"></i-bs>
           </button>
         }
@@ -43,7 +43,16 @@
   </div>
 </pngx-page-header>
 
-@if (!tasksService.completedFileTasks && tasksService.loading) {
+@if (tasksService.error) {
+  <pngx-error-state
+    i18n-heading heading="Couldn't load tasks"
+    i18n-body body="Something went wrong while loading tasks. You can try again, or check with your administrator if the problem continues."
+    i18n-retryLabel retryLabel="Retry"
+    [showDetails]="true"
+    [details]="tasksService.errorDetail"
+    (retry)="tasksService.reload()">
+  </pngx-error-state>
+} @else if (!tasksService.completedFileTasks && tasksService.loading) {
   <pngx-skeleton variant="row" [count]="3"></pngx-skeleton>
 }
 
@@ -99,7 +108,7 @@
             </td>
           }
           <td class="d-lg-none">
-            <button class="btn btn-link" (click)="expandTask(task); $event.stopPropagation();">
+            <button class="btn btn-link" (click)="expandTask(task); $event.stopPropagation();" i18n-aria-label aria-label="Task details">
               <i-bs width="1.2em" height="1.2em" name="info-circle"></i-bs>
             </button>
           </td>

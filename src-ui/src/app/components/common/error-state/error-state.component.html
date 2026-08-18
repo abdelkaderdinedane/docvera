@@ -1,0 +1,22 @@
+<div class="docvera-error-state" [class]="'level-' + level" role="alert">
+  <div class="error-icon">
+    <i-bs [name]="icon"></i-bs>
+  </div>
+  @if (heading) {
+    <div class="error-heading" role="heading" [attr.aria-level]="headingLevel">{{ heading }}</div>
+  }
+  @if (body) {
+    <p class="error-body">{{ body }}</p>
+  }
+  @if (retryLabel) {
+    <button type="button" class="btn btn-sm btn-outline-danger error-retry" (click)="retry.emit()">
+      {{ retryLabel }}
+    </button>
+  }
+  @if (showDetails && details) {
+    <details class="error-details">
+      <summary i18n>Technical details</summary>
+      <pre>{{ details }}</pre>
+    </details>
+  }
+</div>

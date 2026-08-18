@@ -26,6 +26,7 @@ import { CustomDatePipe } from 'src/app/pipes/custom-date.pipe'
 import { TasksService } from 'src/app/services/tasks.service'
 import { ToastService } from 'src/app/services/toast.service'
 import { ConfirmDialogComponent } from '../../common/confirm-dialog/confirm-dialog.component'
+import { ErrorStateComponent } from '../../common/error-state/error-state.component'
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
 import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { LoadingComponentWithPermissions } from '../../loading-component/loading.component'
@@ -66,6 +67,7 @@ const FILTER_TARGETS = [
     NgbPopoverModule,
     NgxBootstrapIconsModule,
     SkeletonComponent,
+    ErrorStateComponent,
   ],
 })
 export class TasksComponent

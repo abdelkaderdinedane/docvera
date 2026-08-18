@@ -14,6 +14,7 @@ import { CustomDatePipe } from 'src/app/pipes/custom-date.pipe'
 import { PermissionType } from 'src/app/services/permissions.service'
 import { CorrespondentService } from 'src/app/services/rest/correspondent.service'
 import { CorrespondentEditDialogComponent } from '../../common/edit-dialog/correspondent-edit-dialog/correspondent-edit-dialog.component'
+import { ErrorStateComponent } from '../../common/error-state/error-state.component'
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
 import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { ManagementListComponent } from '../management-list/management-list.component'
@@ -36,6 +37,7 @@ import { ManagementListComponent } from '../management-list/management-list.comp
     NgbPaginationModule,
     NgxBootstrapIconsModule,
     SkeletonComponent,
+    ErrorStateComponent,
   ],
 })
 export class CorrespondentListComponent extends ManagementListComponent<Correspondent> {

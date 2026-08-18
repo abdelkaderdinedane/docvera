@@ -16,7 +16,7 @@
         <input #currencyField class="form-control text-muted mw-60" [(ngModel)]="currency" (input)="currencyChange()" maxlength="3" [class.is-invalid]="error" [disabled]="disabled">
         <input #monetaryValueField type="number" class="form-control text-muted" step=".01" [(ngModel)]="monetaryValue" (input)="monetaryValueChange()" (change)="monetaryValueChange(true)" [class.is-invalid]="error" [disabled]="disabled">
       </div>
-      <div class="invalid-feedback position-absolute top-100">
+      <div class="invalid-feedback position-absolute top-100" role="alert">
         {{error}}
       </div>
       @if (hint) {

@@ -3,7 +3,7 @@
     <i-bs [name]="icon"></i-bs>
   </div>
   @if (heading) {
-    <h5 class="empty-heading">{{ heading }}</h5>
+    <div class="empty-heading" role="heading" [attr.aria-level]="headingLevel">{{ heading }}</div>
   }
   @if (body) {
     <p class="empty-body">{{ body }}</p>

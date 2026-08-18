@@ -14,13 +14,15 @@ import { GroupService } from 'src/app/services/rest/group.service'
 import { UserService } from 'src/app/services/rest/user.service'
 import { SettingsService } from 'src/app/services/settings.service'
 import { ToastService } from 'src/app/services/toast.service'
+import { getHttpErrorDetail } from 'src/app/utils/http'
 import { setLocationHref } from 'src/app/utils/navigation'
 import { ConfirmDialogComponent } from '../../common/confirm-dialog/confirm-dialog.component'
 import { EditDialogMode } from '../../common/edit-dialog/edit-dialog.component'
 import { GroupEditDialogComponent } from '../../common/edit-dialog/group-edit-dialog/group-edit-dialog.component'
 import { UserEditDialogComponent } from '../../common/edit-dialog/user-edit-dialog/user-edit-dialog.component'
-import { PageHeaderComponent } from '../../common/page-header/page-header.component'
 import { EmptyStateComponent } from '../../common/empty-state/empty-state.component'
+import { ErrorStateComponent } from '../../common/error-state/error-state.component'
+import { PageHeaderComponent } from '../../common/page-header/page-header.component'
 import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { ComponentWithPermissions } from '../../with-permissions/with-permissions.component'
 
@@ -34,6 +36,7 @@ import { ComponentWithPermissions } from '../../with-permissions/with-permission
     IfPermissionsDirective,
     NgxBootstrapIconsModule,
     SkeletonComponent,
+    ErrorStateComponent,
   ],
 })
 export class UsersAndGroupsComponent
@@ -49,6 +52,11 @@ export class UsersAndGroupsComponent
 
   users: User[]
   groups: Group[]
+
+  usersError: boolean = false
+  usersErrorDetail: string = null
+  groupsError: boolean = false
+  groupsErrorDetail: string = null
 
   unsubscribeNotifier: Subject<any> = new Subject()
 
@@ -67,33 +75,46 @@ export class UsersAndGroupsComponent
   }
 
   ngOnInit(): void {
-    if (this.canViewUsers) {
-      this.usersService
-        .listAll(null, null, { full_perms: true })
-        .pipe(first(), takeUntil(this.unsubscribeNotifier))
-        .subscribe({
-          next: (r) => {
-            this.users = r.results
-          },
-          error: (e) => {
-            this.toastService.showError($localize`Error retrieving users`, e)
-          },
-        })
-    }
+    this.loadUsers()
+    this.loadGroups()
+  }
 
-    if (this.canViewGroups) {
-      this.groupsService
-        .listAll(null, null, { full_perms: true })
-        .pipe(first(), takeUntil(this.unsubscribeNotifier))
-        .subscribe({
-          next: (r) => {
-            this.groups = r.results
-          },
-          error: (e) => {
-            this.toastService.showError($localize`Error retrieving groups`, e)
-          },
-        })
+  loadUsers(): void {
+    if (!this.canViewUsers) {
+      return
     }
+    this.usersError = false
+    this.usersService
+      .listAll(null, null, { full_perms: true })
+      .pipe(first(), takeUntil(this.unsubscribeNotifier))
+      .subscribe({
+        next: (r) => {
+          this.users = r.results
+        },
+        error: (e) => {
+          this.usersError = true
+          this.usersErrorDetail = getHttpErrorDetail(e)
+        },
+      })
+  }
+
+  loadGroups(): void {
+    if (!this.canViewGroups) {
+      return
+    }
+    this.groupsError = false
+    this.groupsService
+      .listAll(null, null, { full_perms: true })
+      .pipe(first(), takeUntil(this.unsubscribeNotifier))
+      .subscribe({
+        next: (r) => {
+          this.groups = r.results
+        },
+        error: (e) => {
+          this.groupsError = true
+          this.groupsErrorDetail = getHttpErrorDetail(e)
+        },
+      })
   }
 
   ngOnDestroy() {
