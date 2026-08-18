@@ -48,8 +48,7 @@
       @if (loading) {
         <tr>
           <td colspan="5">
-            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-            <ng-container i18n>Loading...</ng-container>
+            <pngx-skeleton variant="row" [count]="3"></pngx-skeleton>
           </td>
         </tr>
       }

@@ -27,6 +27,7 @@ import { MailRuleEditDialogComponent } from '../../common/edit-dialog/mail-rule-
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
 import { EmptyStateComponent } from '../../common/empty-state/empty-state.component'
 import { PermissionsDialogComponent } from '../../common/permissions-dialog/permissions-dialog.component'
+import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { ComponentWithPermissions } from '../../with-permissions/with-permissions.component'
 import { ProcessedMailDialogComponent } from './processed-mail-dialog/processed-mail-dialog.component'
 
@@ -44,6 +45,7 @@ import { ProcessedMailDialogComponent } from './processed-mail-dialog/processed-
     ReactiveFormsModule,
     NgbDropdownModule,
     NgxBootstrapIconsModule,
+    SkeletonComponent,
   ],
 })
 export class MailComponent

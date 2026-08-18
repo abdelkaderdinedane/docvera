@@ -20,6 +20,7 @@ import { DragDropSelectComponent } from '../../common/input/drag-drop-select/dra
 import { NumberComponent } from '../../common/input/number/number.component'
 import { TextComponent } from '../../common/input/text/text.component'
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
+import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { LoadingComponentWithPermissions } from '../../loading-component/loading.component'
 @Component({
   selector: 'pngx-saved-views',
@@ -36,6 +37,7 @@ import { LoadingComponentWithPermissions } from '../../loading-component/loading
     ReactiveFormsModule,
     AsyncPipe,
     EmptyStateComponent,
+    SkeletonComponent,
   ],
 })
 export class SavedViewsComponent

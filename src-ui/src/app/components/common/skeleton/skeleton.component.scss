@@ -1,0 +1,108 @@
+// Docvera skeleton loading state — see DOCVERA_DESIGN_SYSTEM section 5.8
+
+@keyframes docvera-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.docvera-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.skeleton-bar {
+  background-color: var(--bs-secondary-bg);
+  border-radius: 0.25rem;
+  animation: docvera-skeleton-pulse 1.5s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+// text variant — one or more paragraph-like lines
+.variant-text {
+  .skeleton-text {
+    height: 0.85rem;
+    width: 100%;
+    max-width: 20rem;
+
+    &.short {
+      width: 60%;
+    }
+  }
+}
+
+// row variant — a list/table row: leading marker + one line
+.variant-row {
+  gap: 0.75rem;
+
+  .skeleton-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .skeleton-avatar {
+    flex: 0 0 auto;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.25rem;
+    background-color: var(--bs-tertiary-bg);
+  }
+
+  .skeleton-line {
+    flex: 1 1 auto;
+    height: 0.9rem;
+  }
+}
+
+// card variant — a thumbnail block + two lines, wrapped in a row of cards
+.variant-card {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  .skeleton-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 12rem;
+  }
+
+  .skeleton-thumb {
+    height: 8rem;
+    width: 100%;
+    background-color: var(--bs-tertiary-bg);
+  }
+
+  .skeleton-line {
+    height: 0.85rem;
+    width: 100%;
+
+    &.short {
+      width: 65%;
+    }
+  }
+}
+
+// circle variant — avatar-like placeholders
+.variant-circle {
+  flex-direction: row;
+  gap: 0.75rem;
+
+  .skeleton-circle {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background-color: var(--bs-tertiary-bg);
+  }
+}

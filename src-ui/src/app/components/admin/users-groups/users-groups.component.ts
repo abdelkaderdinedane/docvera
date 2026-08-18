@@ -21,6 +21,7 @@ import { GroupEditDialogComponent } from '../../common/edit-dialog/group-edit-di
 import { UserEditDialogComponent } from '../../common/edit-dialog/user-edit-dialog/user-edit-dialog.component'
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
 import { EmptyStateComponent } from '../../common/empty-state/empty-state.component'
+import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { ComponentWithPermissions } from '../../with-permissions/with-permissions.component'
 
 @Component({
@@ -32,6 +33,7 @@ import { ComponentWithPermissions } from '../../with-permissions/with-permission
     EmptyStateComponent,
     IfPermissionsDirective,
     NgxBootstrapIconsModule,
+    SkeletonComponent,
   ],
 })
 export class UsersAndGroupsComponent

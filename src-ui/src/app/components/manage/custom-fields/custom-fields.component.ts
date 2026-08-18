@@ -25,6 +25,7 @@ import { CustomFieldEditDialogComponent } from '../../common/edit-dialog/custom-
 import { EmptyStateComponent } from '../../common/empty-state/empty-state.component'
 import { EditDialogMode } from '../../common/edit-dialog/edit-dialog.component'
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
+import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { LoadingComponentWithPermissions } from '../../loading-component/loading.component'
 
 @Component({
@@ -38,6 +39,7 @@ import { LoadingComponentWithPermissions } from '../../loading-component/loading
     NgbDropdownModule,
     NgbPaginationModule,
     NgxBootstrapIconsModule,
+    SkeletonComponent,
   ],
 })
 export class CustomFieldsComponent

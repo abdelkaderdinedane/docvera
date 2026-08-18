@@ -36,8 +36,7 @@
 
     @if (loadingAccounts) {
       <li class="list-group-item">
-        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-        <ng-container i18n>Loading...</ng-container>
+        <pngx-skeleton variant="row" [count]="3"></pngx-skeleton>
       </li>
     }
 
@@ -121,8 +120,7 @@
 
     @if (loadingRules) {
       <li class="list-group-item">
-        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-        <ng-container i18n>Loading...</ng-container>
+        <pngx-skeleton variant="row" [count]="3"></pngx-skeleton>
       </li>
     }
 
@@ -192,7 +190,6 @@
 
 @if (!mailAccounts || !mailRules) {
   <div>
-    <div class="spinner-border spinner-border-sm fw-normal ms-2 me-auto" role="status"></div>
-    <div class="visually-hidden" i18n>Loading...</div>
+    <pngx-skeleton variant="row" [count]="3"></pngx-skeleton>
   </div>
 }

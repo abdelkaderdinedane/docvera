@@ -15,6 +15,7 @@ import { PermissionType } from 'src/app/services/permissions.service'
 import { TagService } from 'src/app/services/rest/tag.service'
 import { TagEditDialogComponent } from '../../common/edit-dialog/tag-edit-dialog/tag-edit-dialog.component'
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
+import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { ManagementListComponent } from '../management-list/management-list.component'
 
 @Component({
@@ -33,6 +34,7 @@ import { ManagementListComponent } from '../management-list/management-list.comp
     NgbDropdownModule,
     NgbPaginationModule,
     NgxBootstrapIconsModule,
+    SkeletonComponent,
   ],
 })
 export class TagListComponent extends ManagementListComponent<Tag> {

@@ -14,6 +14,7 @@ import { PermissionType } from 'src/app/services/permissions.service'
 import { StoragePathService } from 'src/app/services/rest/storage-path.service'
 import { StoragePathEditDialogComponent } from '../../common/edit-dialog/storage-path-edit-dialog/storage-path-edit-dialog.component'
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
+import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { ManagementListComponent } from '../management-list/management-list.component'
 
 @Component({
@@ -32,6 +33,7 @@ import { ManagementListComponent } from '../management-list/management-list.comp
     NgbDropdownModule,
     NgbPaginationModule,
     NgxBootstrapIconsModule,
+    SkeletonComponent,
   ],
 })
 export class StoragePathListComponent extends ManagementListComponent<StoragePath> {

@@ -130,8 +130,7 @@
   <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-3">
     <div class="d-flex align-items-center">
       @if (list.isReloading) {
-        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-        <ng-container i18n>Loading...</ng-container>
+        <pngx-skeleton variant="text" [count]="1" height="1rem"></pngx-skeleton>
       }
       @if (list.selected.size > 0) {
         <span i18n>{list.collectionSize, plural, =1 {Selected {{list.selected.size}} of one document} other {Selected {{list.selected.size}} of {{list.collectionSize || 0}} documents}}</span>

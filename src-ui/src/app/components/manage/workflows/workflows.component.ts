@@ -16,6 +16,7 @@ import {
 } from '../../common/edit-dialog/workflow-edit-dialog/workflow-edit-dialog.component'
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
 import { EmptyStateComponent } from '../../common/empty-state/empty-state.component'
+import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { LoadingComponentWithPermissions } from '../../loading-component/loading.component'
 
 @Component({
@@ -30,6 +31,7 @@ import { LoadingComponentWithPermissions } from '../../loading-component/loading
     ReactiveFormsModule,
     NgbDropdownModule,
     NgxBootstrapIconsModule,
+    SkeletonComponent,
   ],
 })
 export class WorkflowsComponent

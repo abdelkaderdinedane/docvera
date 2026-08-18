@@ -60,6 +60,7 @@ import { ClearableBadgeComponent } from '../common/clearable-badge/clearable-bad
 import { CustomFieldDisplayComponent } from '../common/custom-field-display/custom-field-display.component'
 import { PageHeaderComponent } from '../common/page-header/page-header.component'
 import { PreviewPopupComponent } from '../common/preview-popup/preview-popup.component'
+import { SkeletonComponent } from '../common/skeleton/skeleton.component'
 import { TagComponent } from '../common/tag/tag.component'
 import { ComponentWithPermissions } from '../with-permissions/with-permissions.component'
 import { BulkEditorComponent } from './bulk-editor/bulk-editor.component'
@@ -100,6 +101,7 @@ import { SaveViewConfigDialogComponent } from './save-view-config-dialog/save-vi
     NgClass,
     RouterModule,
     TourNgBootstrapModule,
+    SkeletonComponent,
   ],
 })
 export class DocumentListComponent

@@ -140,7 +140,7 @@ listed at the bottom for traceability but don't get full entries.
 
 ---
 
-## UI consistency — extend the shared empty-state component (pending commit)
+## `e0fb8c87a` — feat(ui): add shared empty-state component, roll out across app
 
 Not a branding-identity change (no product name/color/logo touched) — logged here at the user's request
 because it continues the design-system work started by the `pngx-empty-state` component
@@ -187,6 +187,94 @@ don't match the "plain-text list empty state" pattern the shared component targe
 `drag-drop-select.component.html`'s inline `{{emptyText}}` badge placeholder (a tiny reusable input
 widget, not a page/panel-level empty state — wrapping it in the full component would look disproportionate
 in its compact badge layout).
+
+---
+
+## UI consistency — skeleton loading states, Increment 1 (pending commit)
+
+Not a branding-identity change — logged here at the user's request as the second piece of "Docvera
+design system Increment 1" (after the empty-state work above). Design system section 5.8 specifies
+skeleton placeholders that reproduce the shape of the content being loaded, replacing spinner +
+"Loading..." text that causes layout shift once real content arrives.
+
+- **Files**: `src-ui/src/app/components/common/skeleton/skeleton.component.ts`, `.html`, `.scss` (new)
+- **Reason**: no shared skeleton component existed; loading states across the app were ad hoc
+  `spinner-border` + "Loading..." text, causing a layout jump when content replaced them.
+- **Approach**: new standalone `pngx-skeleton` component modeled on `pngx-empty-state`. Inputs:
+  `variant` (`'text' | 'card' | 'row' | 'circle'`, default `'text'`), `count` (default `3`), `height`
+  (optional CSS override). Colors use `var(--bs-secondary-bg)` / `var(--bs-tertiary-bg)` so it works in
+  light and dark mode without new custom properties. The pulse animation is disabled under
+  `@media (prefers-reduced-motion: reduce)` (opacity drops to a static 0.6 instead). Rendering is gated
+  behind a 200ms `setTimeout` (`visible` flag, cleared in `ngOnDestroy`) so fast responses never show a
+  skeleton flash. A `role="status"` + visually-hidden "Loading..." span is kept for screen readers,
+  matching the accessibility semantics of the spinners it replaces.
+- **Upgrade impact**: none — brand-new, self-contained file.
+
+- **Files**: `src-ui/src/app/components/manage/management-list/management-list.component.html`
+  (shared template), plus `tag-list`, `correspondent-list`, `document-type-list` and
+  `storage-path-list` `.component.ts` (each has its own standalone `imports`, all four render the same
+  shared HTML)
+- **Reason**: the tags/correspondents/document types/storage paths tables all showed a spinner in a
+  `<tr><td colspan="5">` while the first page loaded.
+- **Approach**: replaced it with `<pngx-skeleton variant="row" [count]="3">` inside the existing
+  `<td colspan="5">`, keeping the table structurally valid. `SkeletonComponent` added to all four
+  concrete list components' `imports` (the abstract `ManagementListComponent` directive has no
+  `imports` of its own to edit).
+- **Upgrade impact**: moderate — `management-list.component.html` is shared by four components and is a
+  file upstream also touches; re-check after upstream table changes. The four `.ts` files are otherwise
+  low risk (isolated `imports` array edits).
+
+- **Files**: `src-ui/src/app/components/document-list/document-list.component.html`, `.ts`
+- **Reason**: the pagination bar shows a spinner + "Loading..." next to the selection count while
+  `list.isReloading`. This is a small inline status indicator, not a full list placeholder.
+- **Approach**: replaced it with a single-line `<pngx-skeleton variant="text" [count]="1" height="1rem">`
+  sized to sit inline in the existing flex row without disrupting the pagination bar layout. The
+  document card/table grid itself has no separate loading indicator in this file, so nothing else
+  changed here.
+- **Upgrade impact**: low — the pagination `<ng-template>` is small and self-contained.
+
+- **Files**: `src-ui/src/app/components/manage/custom-fields/custom-fields.component.html`, `.ts`
+- **Reason**: custom fields list showed a spinner + "Loading..." `<li>` while fetching.
+- **Approach**: replaced it with `<pngx-skeleton variant="row" [count]="3">` inside the existing
+  `<li class="list-group-item">`.
+- **Upgrade impact**: low — isolated list component.
+
+- **Files**: `src-ui/src/app/components/manage/saved-views/saved-views.component.html`, `.ts`
+- **Reason**: saved views list showed a spinner + hidden "Loading..." `<li>` while fetching.
+- **Approach**: same `<pngx-skeleton variant="row" [count]="3">` replacement inside the existing `<li>`.
+- **Upgrade impact**: low — isolated list component.
+
+- **Files**: `src-ui/src/app/components/manage/workflows/workflows.component.html`, `.ts`
+- **Reason**: workflows list showed a spinner + "Loading..." `<li>` while fetching.
+- **Approach**: same `<pngx-skeleton variant="row" [count]="3">` replacement.
+- **Upgrade impact**: low — isolated list component.
+
+- **Files**: `src-ui/src/app/components/manage/mail/mail.component.html`, `.ts`
+- **Reason**: three separate loading spinners — the mail accounts list, the mail rules list, and a
+  page-level fallback shown while neither has loaded yet.
+- **Approach**: all three replaced with `<pngx-skeleton variant="row" [count]="3">`, in place inside
+  their existing `<li>`/`<div>` wrappers.
+- **Upgrade impact**: low — isolated component, three independent, non-overlapping replacements.
+
+- **Files**: `src-ui/src/app/components/admin/users-groups/users-groups.component.html`, `.ts`
+- **Reason**: the combined users/groups page-level spinner shown before either list has loaded.
+- **Approach**: replaced with `<pngx-skeleton variant="row" [count]="3">` inside the existing `<div>`.
+- **Upgrade impact**: low — isolated component.
+
+- **Files**: `src-ui/src/app/components/admin/tasks/tasks.component.html`, `.ts`
+- **Reason**: page-level spinner shown before the first batch of file tasks has loaded.
+- **Approach**: replaced with `<pngx-skeleton variant="row" [count]="3">` in place of the spinner block.
+- **Upgrade impact**: low-to-moderate — `tasks.component.html`/`.ts` are large, frequently-touched files;
+  re-check after upstream task-list changes.
+
+Note: `custom-fields`, `saved-views`, `workflows`, `mail` and `users-groups` also carry empty-state
+changes from the previous commit (`e0fb8c87a`) — the two features touch the same files but were kept as
+separate commits by temporarily reverting the skeleton hunks, committing the empty-state ones, then
+reapplying the skeleton hunks for this commit.
+
+Verified with `pnpm run build` after each pass — production build succeeds; only the expected
+"No translation found" warnings appear, for the new English source strings not yet present in the 47
+locale `.xlf` files (pre-existing pattern from the empty-state increment, not a regression).
 
 ---
 

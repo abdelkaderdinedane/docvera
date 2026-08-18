@@ -90,7 +90,6 @@
 
 @if ((canViewUsers && !users) || (canViewGroups && !groups)) {
   <div>
-    <div class="spinner-border spinner-border-sm fw-normal ms-2 me-auto" role="status"></div>
-    <div class="visually-hidden" i18n>Loading...</div>
+    <pngx-skeleton variant="row" [count]="3"></pngx-skeleton>
   </div>
 }

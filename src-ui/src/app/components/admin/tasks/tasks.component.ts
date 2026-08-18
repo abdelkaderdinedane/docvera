@@ -27,6 +27,7 @@ import { TasksService } from 'src/app/services/tasks.service'
 import { ToastService } from 'src/app/services/toast.service'
 import { ConfirmDialogComponent } from '../../common/confirm-dialog/confirm-dialog.component'
 import { PageHeaderComponent } from '../../common/page-header/page-header.component'
+import { SkeletonComponent } from '../../common/skeleton/skeleton.component'
 import { LoadingComponentWithPermissions } from '../../loading-component/loading.component'
 
 export enum TaskTab {
@@ -64,6 +65,7 @@ const FILTER_TARGETS = [
     NgbPaginationModule,
     NgbPopoverModule,
     NgxBootstrapIconsModule,
+    SkeletonComponent,
   ],
 })
 export class TasksComponent
