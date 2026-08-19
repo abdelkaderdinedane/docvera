@@ -1,0 +1,16 @@
+{% extends "paperless-ngx/base.html" %}
+{% load i18n %}
+
+{% block head_title %}
+    {% trans "Docvera sign up closed" %}
+{% endblock head_title %}
+
+{% block form_title %}{% translate "Sign up closed" %}{% endblock form_title %}
+
+{% block form_content %}
+    {% url 'account_login' as login_url %}
+    <p>{% translate "We are sorry, but sign up is currently closed." %}</p>
+    <div class="d-grid mt-3">
+        <a class="btn btn-lg btn-primary" href="{{ login_url }}">{% translate "Return to login" %}</a>
+    </div>
+{% endblock form_content %}

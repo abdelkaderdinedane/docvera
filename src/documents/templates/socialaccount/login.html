@@ -2,8 +2,10 @@
 {% load i18n allauth %}
 
 {% block head_title %}
-    {% trans "Paperless-ngx social account sign in" %}
+    {% trans "Docvera social account sign in" %}
 {% endblock head_title %}
+
+{% block form_title %}{% translate "Connect account" %}{% endblock form_title %}
 
 {% block form_content %}
     <p>

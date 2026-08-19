@@ -5,6 +5,9 @@ body {
   --pngx-primary: #1A3D7C;
   --pngx-primary-hover: #132D5C;
   --pngx-primary-active: #0E2447;
+  --pngx-surface: #ffffff;
+  --pngx-surface-border: #e2e5ea;
+  --pngx-text-muted: #5b6472;
 }
 
 .logo {
@@ -39,37 +42,263 @@ body {
   --bs-btn-active-color: var(--pngx-primary-active);
 }
 
+/* ---------------------------------------------------------------------- *
+ * Auth pages — two-column layout (Docvera design system, Phase 2 Increment 2)
+ * Left: brand panel (Navy). Right: form, on the standard page surface.
+ * ---------------------------------------------------------------------- */
+
+html, body {
+  height: 100%;
+}
+
+.auth-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  min-height: 100vh;
+}
+
+/* Brand panel ------------------------------------------------------------ */
+
+.auth-brand {
+  background: var(--pngx-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 3rem 3.5rem;
+}
+
+.auth-brand-inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2.5rem;
+  min-height: min(44rem, calc(100vh - 6rem));
+  max-width: 28rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.auth-brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.auth-brand-mark {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.auth-brand-wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.auth-brand-name {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.auth-brand .byline {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.auth-brand-title {
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-bottom: 0.75rem;
+}
+
+.auth-brand-subtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 0;
+  max-width: 26rem;
+}
+
+.auth-brand-features {
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+  margin: 0;
+  padding: 0;
+}
+
+.auth-brand-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.auth-brand-feature-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.auth-brand-copyright {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+}
+
+/* Form column -------------------------------------------------------------- */
+
+.auth-form-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  background: var(--bs-body-bg);
+}
+
+.auth-form-col-inner {
+  width: 100%;
+  max-width: 24rem;
+}
+
+.auth-form-col-header {
+  margin-bottom: 1.5rem;
+}
+
+.auth-form-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.375rem;
+}
+
+.auth-form-subtitle {
+  color: var(--pngx-text-muted);
+  font-size: 0.9375rem;
+  margin-bottom: 1.5rem;
+}
+
 .form-accounts {
-  max-width: 330px;
-  min-width: 300px;
+  width: 100%;
 }
 
-.form-stacked-top input {
-  margin-bottom: -1px;
-  border-bottom-right-radius: 0;
-  border-bottom-left-radius: 0;
+.auth-form-footer {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--pngx-text-muted);
 }
 
-.form-stacked-middle input {
-  margin-bottom: -1px;
-  border-top-right-radius: 0;
-  border-top-left-radius: 0;
-  border-bottom-right-radius: 0;
-  border-bottom-left-radius: 0;
+/* Form fields — persistent visible labels, no placeholder-as-label ------ */
+
+.auth-field {
+  margin-bottom: 1.25rem;
 }
 
-.form-stacked-bottom input {
-  border-top-right-radius: 0;
-  border-top-left-radius: 0;
+.auth-field label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.375rem;
 }
 
-.form-accounts .form-floating input:focus {
-  position: relative;
-  z-index: 100;
+.auth-field .form-control {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
 }
 
-.form-accounts .form-floating input:focus~label {
-  z-index: 101;
+.auth-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.auth-field-row .form-check {
+  margin-bottom: 0;
+}
+
+.auth-forgot-link {
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+/* "or" divider ------------------------------------------------------------ */
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  color: var(--pngx-text-muted);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--pngx-surface-border);
+}
+
+/* Disabled SSO placeholder (Phase 5) --------------------------------------- */
+
+.auth-sso-group {
+  text-align: center;
+}
+
+.auth-sso-note {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--pngx-text-muted);
+}
+
+/* Focus — never remove without a visible replacement ----------------------- */
+
+.auth-layout a:focus-visible,
+.auth-layout button:focus-visible,
+.auth-layout input:focus-visible,
+.auth-layout .form-check-input:focus-visible {
+  outline: 2px solid var(--pngx-primary);
+  outline-offset: 2px;
+}
+
+.auth-brand a:focus-visible {
+  outline-color: #fff;
+}
+
+/* Responsive: below 768px the brand panel steps aside, form stays primary - */
+
+@media (max-width: 767.98px) {
+  .auth-layout {
+    display: block;
+    min-height: 0;
+  }
+
+  .auth-brand {
+    display: none;
+  }
+
+  .auth-form-col {
+    min-height: 100vh;
+    padding: 2.5rem 1.25rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .auth-form-col-header {
+    display: none;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -79,9 +308,12 @@ body {
     --bs-body-color: #abb2bf;
     --bs-body-color-rgb: 171, 178, 191;
     --bs-border-color: #47494f;
+    --pngx-surface: #1c1c1f;
+    --pngx-surface-border: #33353b;
+    --pngx-text-muted: #9aa1ac;
   }
 
-  .form-control, .form-floating {
+  .form-control {
     --bs-body-bg: #1c1c1f;
   }
 

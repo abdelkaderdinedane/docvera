@@ -13,61 +13,104 @@
             {% endblock head_title %}
         </title>
         <link href="{% static 'bootstrap.min.css' %}" rel="stylesheet">
+        <link href="{% static 'base.css' %}" rel="stylesheet">
         <link rel="icon" type="image/x-icon" href="{% static 'frontend/en-US/favicon.ico' %}">
     </head>
 
-    <body class="text-center">
-        <div class="position-absolute top-50 start-50 translate-middle">
-            <form class="form-accounts" id="form-account" method="post">
-                {% csrf_token %}
-                {% if not APP_LOGO and not APP_TITLE %}
-                    {% include "paperless-ngx/snippets/svg_logo.html" with extra_attrs="width='300' class='logo mb-4'" %}
-                {% else %}
-                    {% if APP_LOGO %}
-                        <img src="{{APP_LOGO}}" width="300" class="logo mb-1" />
-                        <div class="d-flex flex-column align-items-end mb-4">
-                            <span class="byline text-uppercase font-monospace">by Veltrix AI</span>
-                        </div>
-                    {% else %}
-                        <h1 class="font-weight-normal text-primary mb-1 d-flex justify-content-center align-items-start">
-                            {% include "paperless-ngx/snippets/svg_leaf.html" with extra_attrs="width='30' class='mt-2'" %}
-                            <div class="d-flex flex-column align-items-end mb-4">
-                                <span class="ms-2">{{ APP_TITLE }}</span>
-                                <span class="byline text-uppercase font-monospace">by Veltrix AI</span>
+    <body>
+        <div class="auth-layout">
+            <aside class="auth-brand" aria-label="{% translate 'About Docvera' %}">
+                <div class="auth-brand-inner">
+                    <div class="auth-brand-header">
+                        <div class="auth-brand-logo">
+                            <img src="{% static 'frontend/en-US/assets/logo-white-notext.svg' %}" alt="" class="auth-brand-mark">
+                            <div class="auth-brand-wordmark">
+                                <span class="auth-brand-name">Docvera</span>
+                                <span class="byline text-uppercase font-monospace">{% translate "by Veltrix AI" %}</span>
                             </div>
-                        </h1>
-                    {% endif %}
-                {% endif %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.level_tag }}" role="alert">
-                    {{ message }}
+                        </div>
+                        <p class="auth-brand-title">{% translate "Intelligent document management" %}</p>
+                        <p class="auth-brand-subtitle">{% translate "Centralize, search and automate your documents in English and Arabic." %}</p>
                     </div>
-                {% endfor %}
-                {% block form_top_content %}
-                {% endblock form_top_content %}
-                {% if form.errors %}
-                    <div class="alert alert-danger" role="alert">
-                        {% for field, errors in form.errors.items %}
-                            {% for error in errors %}
-                                {{ error }}
-                            {% endfor %}
-                        {% endfor %}
-                    </div>
-                {% elif request.GET.sharelink_notfound %}
-                    <div class="alert alert-danger" role="alert">
-                    {% translate "Share link was not found." %}
-                    </div>
-                {% elif request.GET.sharelink_expired %}
-                    <div class="alert alert-danger" role="alert">
-                    {% translate "Share link has expired." %}
-                    </div>
-                {% endif %}
 
-                {% block form_content %}
-                {% endblock form_content %}
-            </form>
-            {% block after_form_content %}
-            {% endblock after_form_content %}
+                    <ul class="auth-brand-features list-unstyled">
+                        <li>
+                            <span class="auth-brand-feature-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h8l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 3v6h6"/><path d="M8 13h3M13 13h3M8 17h8"/></svg>
+                            </span>
+                            <span>{% translate "Bilingual OCR — English &amp; Arabic" %}</span>
+                        </li>
+                        <li>
+                            <span class="auth-brand-feature-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                            </span>
+                            <span>{% translate "Full-text search across every document" %}</span>
+                        </li>
+                        <li>
+                            <span class="auth-brand-feature-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 2.5 21 11l-9 9-8.5-8.5V3h8Z"/><circle cx="7.5" cy="7.5" r="1.25" fill="currentColor" stroke="none"/></svg>
+                            </span>
+                            <span>{% translate "Automated tagging &amp; classification" %}</span>
+                        </li>
+                        <li>
+                            <span class="auth-brand-feature-icon" aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4.5 6v6c0 4.4 3.2 7.7 7.5 9 4.3-1.3 7.5-4.6 7.5-9V6L12 3Z"/><path d="m9.25 12 2 2 3.5-3.5"/></svg>
+                            </span>
+                            <span>{% translate "Isolated data per customer" %}</span>
+                        </li>
+                    </ul>
+
+                    <p class="auth-brand-copyright">&copy; {% now "Y" %} Veltrix AI. {% translate "All rights reserved." %}</p>
+                </div>
+            </aside>
+
+            <main class="auth-form-col">
+                <div class="auth-form-col-inner">
+                    <div class="auth-form-col-header d-flex flex-column align-items-center d-lg-none">
+                        {% include "paperless-ngx/snippets/svg_logo.html" with extra_attrs="width='160' class='logo mb-3'" %}
+                    </div>
+
+                    <h1 class="auth-form-title">{% block form_title %}{% endblock form_title %}</h1>
+                    {% block form_subtitle %}{% endblock form_subtitle %}
+
+                    <form class="form-accounts" id="form-account" method="post">
+                        {% csrf_token %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.level_tag }}" role="alert">
+                            {{ message }}
+                            </div>
+                        {% endfor %}
+                        {% block form_top_content %}
+                        {% endblock form_top_content %}
+                        {% if form.errors %}
+                            <div class="alert alert-danger" role="alert">
+                                {% for field, errors in form.errors.items %}
+                                    {% for error in errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                        {% elif request.GET.sharelink_notfound %}
+                            <div class="alert alert-danger" role="alert">
+                            {% translate "Share link was not found." %}
+                            </div>
+                        {% elif request.GET.sharelink_expired %}
+                            <div class="alert alert-danger" role="alert">
+                            {% translate "Share link has expired." %}
+                            </div>
+                        {% endif %}
+
+                        {% block form_content %}
+                        {% endblock form_content %}
+                    </form>
+                    {% block after_form_content %}
+                    {% endblock after_form_content %}
+
+                    <p class="auth-form-footer">
+                        {% blocktranslate %}Need help? <a href="https://docvera.io/support" target="_blank" rel="noopener">Contact support</a>{% endblocktranslate %}
+                    </p>
+                </div>
+            </main>
         </div>
     </body>
 </html>

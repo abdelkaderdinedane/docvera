@@ -559,6 +559,117 @@ Verified with `pnpm run build` after the `theme.scss` change — production buil
 
 ---
 
+## Phase 2 Increment 2 — two-column auth pages (pending commit)
+
+Approved plan increment (Mahmoud), distinct from "Increment 1" (empty/loading/error states +
+accessibility) above. Scope, per the request: redesign the login page and every page it shares a base
+template with into a two-column layout — Navy brand panel + form — without touching authentication
+logic. These are Django-rendered pages (`src/documents/templates/`), not Angular.
+
+- **Files**: `src/documents/templates/paperless-ngx/base.html`
+- **Reason**: this one file is the shared shell for every account-flow page in the app (confirmed by
+  grepping for `extends "paperless-ngx/base.html"` — 11 templates, covering `account/`, `mfa/`, and
+  `socialaccount/`), so redesigning it once reskins the whole flow consistently rather than duplicating
+  layout markup per page.
+- **Approach**: replaced the single centered-form body with a two-column grid: a `<aside class="auth-brand">`
+  (Navy `#1A3D7C` background, logo + "by Veltrix AI" byline, "Intelligent document management"
+  title, bilingual-search-automation-isolation subtitle, four value points with inline SVG icons, a
+  copyright line) and a `<main class="auth-form-col">` (the existing `form-account` form, now preceded
+  by new `form_title`/`form_subtitle` blocks, followed by a new support-link footer pointing at the
+  existing `DOCVERA_BRAND.supportUrl` rather than a made-up address). The brand panel is a genuine
+  `<aside>` landmark (not `aria-hidden`) since its copy has real informational value, not just
+  decoration — screen reader users can still reach it, and since it contains no interactive controls,
+  including it doesn't disturb tab order either way.
+- **Upgrade impact**: high blast radius by design (every account-flow page inherits it) but low
+  mechanical risk — no field names, `name=`/`action=`/`method=` attributes, URL tags, or view logic
+  were touched, only the surrounding chrome and block structure.
+
+- **Files**: `src/documents/templates/account/{login,signup,password_reset,password_reset_done,
+  password_reset_from_key,password_reset_from_key_done,account_inactive}.html`,
+  `src/documents/templates/mfa/authenticate.html`,
+  `src/documents/templates/socialaccount/{login,signup,authentication_error}.html` (10 files)
+- **Reason**: (a) fill in the new `form_title`/`form_subtitle` blocks per page so none render an empty
+  `<h1>`; (b) replace Bootstrap's `.form-floating` pattern (a real `<label>`, but one that overlaps the
+  input until focused/filled — closer in spirit to a placeholder than a persistently visible label)
+  with a standard always-visible label-above-input pattern, per design system §5.2's "visible
+  persistent labels, not placeholder-as-label."
+- **Approach**: every `<input>` kept its exact `name`/`id`/`type`/`required`/`autocomplete` attributes;
+  only the wrapping markup changed (`.form-floating` divs → `.auth-field` divs, `<label>` moved above
+  the input, `placeholder=` attributes dropped since the label already states the purpose). The
+  now-unused `.form-stacked-{top,middle,bottom}` CSS (previously used to visually merge floating inputs
+  into one seamless bordered stack) was removed from `base.css` along with the classes' last usages.
+  Login gained a "Remember me" checkbox + "Forgot password?" link in one row, and an "or" divider
+  followed by a disabled "Single sign-on (SSO)" button (native `title="Coming soon"` tooltip — no JS
+  tooltip library is loaded on these pages — plus a small always-visible caption below it, so the
+  "coming soon" information isn't hover-only and therefore isn't lost on touch devices or to
+  screen-reader users who don't trigger `title`). Signup gained an `alert-info`/`role="status"` treatment
+  for the first-install notice.
+- **"Remember me" is conditionally rendered, not always shown**: the app's `LoginForm` only exposes a
+  `remember` field when `ACCOUNT_SESSION_REMEMBER` is unset (`None`) at the Django settings level; this
+  instance hardcodes it to a fixed `True`/`False` via `PAPERLESS_ACCOUNT_SESSION_REMEMBER`, so the field
+  doesn't exist on the form today and the checkbox correctly doesn't render (`{% if form.remember %}`).
+  Rendering a checkbox with a bogus `name="remember"` regardless would have been non-functional,
+  misleading UI — out of scope to fix, since enabling it requires a `settings.py` change, which is
+  authentication *configuration*, not presentation, and wasn't asked for.
+- **Upgrade impact**: low per file — same auth logic, same URL names, same form field names throughout.
+
+- **Files**: `src/documents/templates/account/signup_closed.html` (new)
+- **Reason**: found while verifying the deployment, not part of the original request — this instance
+  currently has signups closed, and `/accounts/signup/` was rendering allauth's own unbranded default
+  template (`account/signup_closed.html`), never previously overridden by this app. Real, currently-live
+  gap, not hypothetical.
+- **Approach**: added the same `extends "paperless-ngx/base.html"` override used everywhere else. Purely
+  static informational text, no form, no auth-logic risk.
+- **Upgrade impact**: none — new file, no existing behavior changed.
+
+- **Files**: `src/documents/static/base.css`
+- **Reason**: implement the two-column grid, brand panel, feature list, field/label styling, "or"
+  divider, disabled-SSO treatment, and the required breakpoint behavior.
+- **Approach**: `.auth-layout` is a two-column CSS grid (`5fr`/`6fr`, brand panel slightly narrower than
+  the form column) at ≥768px. Below 768px, per the request's own stated options ("passe au-dessus...,
+  réduit, ou disparaît"), the brand panel is hidden entirely (`display: none`) rather than shown
+  stacked-and-shrunk above the form — chosen for robustness on a page with zero JavaScript to help
+  layout decisions, and because the instruction explicitly allowed it; a compact Docvera logotype
+  (reusing the existing `svg_logo.html` snippet) appears above the form on narrow viewports instead, so
+  brand identity isn't lost outright, only the marketing panel. Colors reuse the existing
+  `--pngx-primary`/`--bs-body-bg`/dark-mode custom properties already defined in this file rather than
+  introducing new ones; new `--pngx-surface`, `--pngx-surface-border`, `--pngx-text-muted` tokens were
+  added (with dark-mode overrides in the existing `prefers-color-scheme: dark` block) for the divider
+  line, muted subtitle/footer text, and field spacing that the previous single-column form didn't need.
+  Focus indicators use an explicit `:focus-visible` outline (Navy on the light form column, white on the
+  off-chance something focusable ever lands in the brand panel) *in addition to* Bootstrap's existing
+  focus box-shadow, not instead of it.
+- **Contrast verified by computation, not eyeballed**: white brand-panel text at the lowest opacity used
+  (`rgba(255,255,255,0.65)`, the copyright line) blends to ≈`rgb(175,187,209)` against the Navy
+  background, ≈5.4:1 — passes 4.5:1 with margin. Navy-on-white (labels, body text, the form column
+  generally) inherits the ≈10.5:1 ratio already established in `DOCVERA_ACCESSIBILITY_AUDIT.md` §4.
+- **Upgrade impact**: low — additive rules plus removal of the now-dead `.form-stacked-*` rules; no
+  existing selector used elsewhere in the app was renamed or removed.
+
+**Architecture finding, not fixed — flagged rather than silently worked around**: this app's `mfa/`
+override (`mfa/authenticate.html`) and every `account/`/`socialaccount/` template use an older,
+straightforward extension of `paperless-ngx/base.html`. This is *not* how allauth's own MFA subsystem
+works internally, though — its other MFA pages (recovery codes, WebAuthn add/edit, TOTP setup, trust-
+device, etc.) are not overridden by this app at all, and use a completely different, newer allauth
+template architecture (`{% element %}`/`{% slot %}` tags rendering against `allauth/layouts/base.html`,
+a deliberately bare, unstyled layout meant to be overridden by the consuming app). Only the one MFA page
+in the actual login path (`mfa/authenticate.html`) was already overridden and is covered by this
+increment. The rest of the MFA management UI (reached from account settings, not from login) remains
+completely unstyled/unbranded. Fixing that properly means overriding `allauth/layouts/base.html` (and
+possibly `allauth/elements/*.html` to restyle its buttons/fields/forms) — files outside
+`src/documents/templates/paperless-ngx/` and `account/`, the two directories this task was explicitly
+scoped to, and a distinct enough undertaking (a second template architecture, not a copy-paste of the
+pattern used here) that it deserves its own explicitly-scoped follow-up rather than being extended to
+silently now.
+
+Deployed and manually verified via `docker exec curl` against the running container (not just a build
+check, since these are server-rendered pages with no separate frontend build step): `/accounts/login/`,
+`/accounts/signup/` (currently renders the new `signup_closed.html`, since signups are closed on this
+instance), and `/accounts/password/reset/` all return HTTP 200 with the new two-column markup present;
+`/static/base.css` returns HTTP 200; no errors in the webserver logs since the restart.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
