@@ -8,3 +8,21 @@
         width: 0.6rem;
     }
 }
+
+// Deliberately discrete/secondary — see DOCVERA_CHANGELOG.md: consolidates
+// tag/correspondent/document-type/storage-path counts below the primary
+// metrics list rather than repeating them at the same visual weight.
+.secondary-stats {
+    font-size: 0.8125rem;
+}
+
+.secondary-stat-link {
+    color: var(--bs-secondary-color);
+    text-decoration: none;
+
+    &:hover,
+    &:focus-visible {
+        color: var(--bs-body-color);
+        text-decoration: underline;
+    }
+}

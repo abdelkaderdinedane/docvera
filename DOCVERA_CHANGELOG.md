@@ -670,6 +670,274 @@ instance), and `/accounts/password/reset/` all return HTTP 200 with the new two-
 
 ---
 
+## Dashboard redesign — onboarding checklist + useful metrics, Increment 2 (pending commit)
+
+Second piece of "Increment 2" (after the auth-pages redesign above). Approved plan: Mahmoud requested a
+hybrid dashboard — a dismissible onboarding checklist for the admin, plus content useful to the everyday
+user — to replace the permanent welcome alert and a statistics panel whose only headline number
+("Total characters") has no business value. Not a branding-identity change; logged here at the user's
+request, same as the empty-state/skeleton/error-state entries above.
+
+- **Files**: `src/documents/views.py` (`StatisticsView`), `src/documents/tests/test_api_documents.py`
+- **Reason**: the dashboard needed two numbers the `/api/statistics/` endpoint didn't expose yet:
+  how many documents are currently being consumed/reprocessed, and how much storage is in use.
+- **Approach**: added `documents_in_workflow` (count of `PaperlessTask` rows with
+  `task_name=consume_file` and `status` in `PENDING`/`STARTED` — covers both first-time consumption and
+  a document sent through "Redo OCR"/reprocess, since that re-runs the same task against an
+  already-existing `Document` row) and `storage_used_bytes` (`os.statvfs(settings.MEDIA_ROOT)`, same
+  technique already used by `SystemStatusView` for its disk stats, but exposed here to every
+  `/api/statistics/` caller rather than staff-only, since the dashboard metrics widget is gated by
+  `UISettings` view permission, not `is_staff`). Added matching assertions to the existing
+  `test_statistics` test rather than a new test method, plus one `assertIn`/`assertGreaterEqual` pair for
+  the storage field (an exact byte count isn't meaningfully assertable in a test environment).
+- **Upgrade impact**: low — two additive keys on an existing response dict; no existing key changed
+  shape or meaning.
+
+- **Files**: `src-ui/src/app/data/ui-settings.ts`, `src-ui/src/app/services/settings.service.ts`
+- **Reason**: the onboarding checklist's dismissal (manual, or automatic once all 5 steps are done) has
+  to persist server-side per user, the same way `TOUR_COMPLETE` already does — a client-only flag would
+  reappear on every new device/browser and defeat "ne doit pas réapparaître une fois écartée."
+- **Approach**: added `SETTINGS_KEYS.ONBOARDING_CHECKLIST_DISMISSED`
+  (`general-settings:dashboard:onboarding-checklist-dismissed`, boolean, default `false`) following the
+  exact `TOUR_COMPLETE` pattern, plus `SettingsService.onboardingChecklistDismissed` (getter) and
+  `dismissOnboardingChecklist()` (setter + `storeSettings()`), mirroring `completeTour()`.
+- **Upgrade impact**: none — new setting key, additive.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/onboarding-checklist/*` (new)
+- **Reason**: give a new admin a guided path to first value instead of an empty dashboard.
+- **Approach**: a dismissible card, visible only to admins (`PermissionsService.isAdmin()`, checked by
+  the parent `DashboardComponent`, not inside the widget), showing "Initial setup — X of 5" with a
+  progress bar and five steps derived from real system state, not a hand-maintained flag: import a
+  document (`statistics.documents_total > 0`), create a tag (`tag_count > 0`), set up a correspondent
+  (`correspondent_count > 0`), connect a mailbox (`MailAccountService.listAll().length > 0`, only
+  queried if the user can view `MailAccount`), and invite a collaborator
+  (`UserService.listAll().length > 1`, only queried if the user can view `User`). Each incomplete step
+  with an accessible target links to that page (`/tags`, `/correspondents`, `/mail`, `/usersgroups`); the
+  "import a document" step instead emits a `triggerUpload` output, since there's no dedicated upload
+  route — `DashboardComponent` wires that to a new `openFilePicker()` method on
+  `UploadFileWidgetComponent` (a `@ViewChild('fileUpload')` on its existing hidden file input) via a
+  `@ViewChild` reference, so it opens the same file picker the sidebar upload widget already uses rather
+  than duplicating upload logic. When all 5 steps are complete, or the user clicks the close button, the
+  card calls `dismissOnboardingChecklist()` and never renders again for that user. Uses
+  `pngx-skeleton`/`pngx-error-state` for its own loading/error states per the design system.
+- **Upgrade impact**: none — new component, only referenced from `dashboard.component.html`.
+
+- **Files**: `src-ui/src/app/components/dashboard/dashboard.component.html`,
+  `src-ui/src/app/components/dashboard/dashboard.component.ts`
+- **Reason**: wire in the new checklist and the two new widgets below, and resolve the overlap between
+  the new checklist and the pre-existing "welcome" alert (`pngx-welcome-widget`), which served a similar
+  first-run purpose.
+- **Approach**: admins now see the onboarding checklist instead of the welcome alert (the welcome
+  alert's own `offerTour()` condition — dashboard empty, tour not completed — is unchanged and still
+  governs it for non-admins, who can't act on most checklist steps anyway and still need a path to the
+  tour). The tour itself isn't lost for admins: it's already reachable from Settings (existing
+  "restart the tour" toast copy), unchanged. Added a `@ViewChild(UploadFileWidgetComponent)` and
+  `triggerUpload()` method to route both the checklist's and the new quick-actions widget's upload
+  requests to the sidebar upload widget's file picker.
+- **Upgrade impact**: moderate — `dashboard.component.html`/`.ts` are shared upstream files touched
+  directly; future `git merge tags/vX.Y.Z` that reworks the dashboard layout or the welcome-widget
+  condition will need manual reconciliation here.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/statistics-widget/*`
+- **Reason**: replace the old "peu utile" panel (led with total character count, a number with no
+  business meaning) with the four metrics Mahmoud asked for, and bring the widget's loading/error
+  handling up to the design system (it previously had no error handling at all — a failed
+  `/api/statistics/` request just left the widget stuck on its loading placeholder forever).
+- **Approach**: kept the component/selector (`pngx-statistics-widget`) since this is a redesign of the
+  existing panel, not a new one — only its template and the `Statistics` interface changed. Now shows,
+  in order: documents in inbox (unchanged position — kept first so the existing
+  `should display inbox link with count` test, which asserts the *first* `<a>` in the widget is the inbox
+  link, still passes unmodified), total documents, documents processing
+  (`documents_in_workflow`, only shown when non-zero), storage used (`storage_used_bytes`, formatted via
+  a new small `formatBytes()` utility in `src-ui/src/app/utils/bytes.ts`), and current ASN (unchanged).
+  "Total characters" is gone entirely — not hidden, removed. The file-type distribution bar is
+  unchanged in structure (it was already a single compact progress bar plus a wrapped legend inside this
+  same card, not a separate block) but gained a small "File types" label so it doesn't read as an
+  unlabeled continuation of the metrics list above it. Replaced the hand-rolled `placeholder-glow`
+  loading markup with `pngx-skeleton`, and added a `pngx-error-state` branch with retry — the widget can
+  now actually recover from a failed request instead of spinning forever.
+- **Upgrade impact**: low — same component/selector, no other component references its removed
+  `character_count` display (nothing else in the app reads that field off this widget).
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/recent-documents-widget/*` (new)
+- **Reason**: give the dashboard a live view of recent activity, per the request's "5 derniers
+  documents" requirement.
+- **Approach**: fetches the 5 most recently added documents (`DocumentService.list(1, 5, 'added', true)`)
+  alongside the inbox tag IDs and any active `consume_file` tasks, then derives a status badge per
+  document: "Processing" if an active task's `task_file_name` matches the document's
+  `original_file_name` (the reprocess/redo-OCR case — a `Document` row only exists once first-time
+  consumption has already finished, so this is the only real "still processing" state an existing row
+  can be in), else "Needs review" if it carries the inbox tag, else "Processed". Each row shows a
+  mime-type icon, title, correspondent (`correspondentName` pipe), and a relative date via the existing
+  `customDate:'relative'` pipe format (no new date-formatting logic was written). Uses
+  `pngx-empty-state`/`pngx-skeleton`/`pngx-error-state` for its three non-happy-path states, and is
+  gated by `Document` view permission like the rest of the document UI.
+- **Upgrade impact**: none — new component.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/quick-actions-widget/*` (new)
+- **Reason**: the three shortcuts Mahmoud asked for (upload, search, manage tags).
+- **Approach**: three permission-gated buttons/links: "Upload a document" (same `triggerUpload` output
+  as the checklist, same underlying file picker — intentionally duplicates the sidebar upload widget's
+  entry point rather than routing elsewhere, since upload has no dedicated page), "Search" (routes to
+  `/documents`, the app's actual filter/search surface — a synthetic `/` keypress to focus the top-bar
+  global search input was considered and rejected as more fragile than a plain route for a "quick
+  action" button), "Manage tags" (routes to `/tags`).
+- **Upgrade impact**: none — new component.
+
+- **Files**: `src-ui/src/main.ts`
+- **Reason**: `ngx-bootstrap-icons` only registers a curated subset of icons app-wide (a tree-shaking
+  choice already established before this change); the new widgets needed icon names outside that
+  existing set.
+- **Approach**: added `circle`, `graphUp`, `inbox`, `fileEarmarkImage`, `fileEarmarkPdf`,
+  `fileEarmarkSpreadsheet`, `fileEarmarkText`, `fileEarmarkWord` to both the import list and the `icons`
+  object, in the same alphabetical position convention already used for the existing ~120 icons. Verified
+  each export actually exists in the installed `ngx-bootstrap-icons` package before adding it.
+- **Upgrade impact**: none — additive only; no existing icon entry touched.
+
+**Not covered by this increment**: no new automated tests were added for the four new/rewritten
+components beyond the backend `test_statistics` additions and the `dashboard.component.spec.ts`
+`PermissionsService` mock fix (added a missing `isAdmin` stub the new template-level `isAdmin()` call
+now requires — without it every existing dashboard test would have failed on `fixture.detectChanges()`).
+Verified instead via `ng build --configuration production` (clean compile, all templates type-check) and
+the full existing `dashboard`-scoped Jest suite (`npx jest --testPathPatterns=dashboard`), which passed
+except one pre-existing, unrelated failure (`should show a welcome message` still asserts the string
+"Paperless-ngx" instead of "Docvera" — a leftover from the branding rebrand, not touched or introduced by
+this change).
+
+### Bug-fix pass, same increment (post-review)
+
+A first deploy of the above was reviewed live and seven issues were reported. Investigated each against
+the running instance (via browser devtools/network — not just re-reading the code) before changing
+anything, since two of the seven turned out not to be code bugs at all.
+
+1. **Checklist never visible** — not a gating bug. `permissionsService.isAdmin()` was true and the
+   checklist's own network calls (`/api/statistics/`, `/api/mail_accounts/`, `/api/users/`) were
+   succeeding; confirmed via the browser's network panel. The real cause: this review instance
+   genuinely has all 5 steps already satisfied (10 documents, 1 tag, 1 correspondent, 1 mail account, 2
+   users), so `allComplete` was true on the very first load and `dismissOnboardingChecklist()` fired
+   synchronously inside the same `reload()` callback that computed the steps — by the time Angular
+   painted, `settingsService.onboardingChecklistDismissed` already read `true`, so the card never
+   rendered even once. That's a real gap even though the dismiss-on-complete behavior itself is exactly
+   what "Disparaît définitivement une fois les 5 étapes faites" asked for: an admin who finishes the last
+   step gets zero visual confirmation before it vanishes.
+   - **Files**: `onboarding-checklist.component.ts`, `onboarding-checklist.component.html`
+   - **Approach**: added a `visible` flag captured once at `ngOnInit` from
+     `!settingsService.onboardingChecklistDismissed`, instead of the template reading that getter live on
+     every change-detection pass. Reaching 5/5 still calls `dismissOnboardingChecklist()` immediately (so
+     a *future* load won't show it), but `visible` stays `true` for the remainder of *this* component's
+     lifetime, and the template gained a distinct "Setup complete — all 5 steps are done" branch (green
+     check, no progress bar) so completing the checklist is an event the admin actually sees, not a
+     silent disappearance. Only the manual close button sets `visible = false` immediately.
+   - For review purposes the test account's already-persisted `onboarding_checklist_dismissed: true` was
+     reset via an authenticated `POST /api/ui_settings/` call so the fix could be verified end to end.
+
+2. **Mixed English/French text** — real gap: `messages.fr_FR.xlf` had no entries for any of the new
+   dashboard strings (and, discovered while fixing this, none for the shared `pngx-empty-state`/
+   `pngx-error-state`/`pngx-skeleton` strings from Increment 1 either — that broader gap is pre-existing,
+   not introduced here, and is flagged below rather than fixed, since it touches components this task
+   didn't scope).
+   - **Files**: `src-ui/messages.xlf`, `src-ui/src/locale/messages.fr_FR.xlf`
+   - **Approach**: ran `ng extract-i18n` to refresh the tracked source-language `messages.xlf` (1844
+     messages), then added 34 `<trans-unit>` entries to `messages.fr_FR.xlf` — every new/changed string
+     introduced by this increment's four dashboard components, plus the two shared `error-state` strings
+     they use ("Retry", "Technical details", which fixes those two app-wide as a side effect since
+     translation lookup is by message content hash, not by which component renders it). IDs and exact
+     `<source>` markup (including the `<x id="INTERPOLATION".../>` placeholders in "Initial setup — X of
+     Y") were copied verbatim from the regenerated `messages.xlf`, not retyped, to guarantee exact
+     matches. Verified with `ng build --configuration production --localize=fr-FR`: zero "No translation
+     found" warnings for any of the 34 strings.
+   - **Not fixed, flagged**: the pre-existing Increment 1 gap (empty-state/error-state/skeleton default
+     strings across the rest of the app — settings, mail, workflows, etc. — never had French entries
+     added when those components were built). Same root cause, much larger surface; left for its own pass.
+
+3. **Recent-documents titles: dark gray on dark background** — real bug, and turned out to share a root
+   cause with part of #2. Bootstrap 5.3's `.text-body`/`.text-muted` utility classes render via
+   `color: rgba(var(--bs-body-color-rgb), ...)`, but this app's `@mixin dark-mode` in `theme.scss` only
+   ever overrode the hex variables `--bs-body-color`/`--bs-secondary-color` — never their `-rgb`
+   companions (unlike `--bs-light-rgb`, `--bs-danger-rgb`, `--bs-info-rgb`, `--bs-body-bg-rgb`, which
+   **were** all paired correctly in the same mixin). So `.text-body`/`.text-muted` silently fell back to
+   Bootstrap's light-mode RGB defaults in dark mode — dark gray text — while `color: var(--bs-body-color)`
+   used directly (not through those utility classes) worked correctly. That's a real, previously-unknown,
+   app-wide dark-mode contrast bug, not unique to this widget.
+   - **Files**: `src-ui/src/theme.scss` (root cause), `recent-documents-widget.component.html`/`.scss`
+     (the widget this was reported on)
+   - **Approach**: added `--bs-body-color-rgb`/`--bs-secondary-color-rgb` to `@mixin dark-mode`, computed
+     from the same `$text-color-dark-bg`/`#6c757d` values already driving the hex variables (via
+     `color.channel()`, not the deprecated `color.red/green/blue()`) — fixes `.text-body`/`.text-muted`
+     app-wide in dark mode as a side effect, not just this widget. Also, as instructed, stopped relying on
+     the utility classes here specifically: the title and metadata line now use dedicated
+     `.recent-document-title { color: var(--bs-body-color) }` / `.recent-document-meta { color:
+     var(--bs-secondary-color) }` rules in the widget's own stylesheet, so this widget is correct
+     independent of the shared-utility fix too.
+   - **Not fixed, flagged**: `--bs-secondary-color: #6c757d` against the dark body background
+     (`#161618`) measures ≈3.75:1 — below the 4.5:1 AA threshold for normal text, a pre-existing token
+     *value* issue distinct from the `-rgb` wiring bug just fixed. Not changed here since it's a
+     brand/token-value tradeoff (like the primary-lightness decision in
+     `DOCVERA_ACCESSIBILITY_AUDIT.md` §4), not a wiring bug, and touching it would affect every
+     `.text-muted`/`.text-secondary` usage app-wide — out of this task's scope.
+
+4. **Storage: "93.5 GB" for ~2 MB of documents** — real bug. `StatisticsView.storage_used_bytes` was
+   computed from `os.statvfs(settings.MEDIA_ROOT)` — total *disk/volume* usage, not document storage —
+   inherited from copying `SystemStatusView`'s existing pattern without adjusting it for what this metric
+   is supposed to represent.
+   - **Files**: `src/documents/views.py`
+   - **Approach**: replaced the `statvfs` call with a sum of `Path.stat().st_size` over each visible
+     document's original file (`source_path`) and, if present, its archive file (`archive_path`), reusing
+     the same permission-scoped `documents` queryset already built earlier in the view (re-`.only()`'d to
+     just the fields `source_path`/`archive_path` need, since Django's `only()` replaces rather than
+     unions the previous field list). Wrapped each `.stat()` in `try/except OSError` rather than an
+     `.is_file()` pre-check, avoiding a TOCTOU gap. No test change needed — the existing
+     `assertGreaterEqual(..., 0)` assertion already covers this correctly (test documents have no real
+     files on disk, so the sum is legitimately 0).
+   - **Upgrade impact**: low — same response key, corrected computation only.
+
+5. **Duplicate statistics panel** — the sidebar's tag/correspondent/document-type/storage-path counts
+   were a deliberate keep from the pre-redesign widget (not removed in the first pass), not an oversight,
+   but the review is right that showing them at the same visual weight as the four new primary metrics
+   reads as two competing panels.
+   - **Files**: `statistics-widget.component.html`/`.scss`
+   - **Approach**: replaced the four `list-group-item` rows (full-width, badge-pill styled, one skeleton
+     placeholder each) with a single `d-flex flex-wrap` row of small, muted, un-bordered links
+     (`.secondary-stats`/`.secondary-stat-link`, `0.8125rem`, `--bs-secondary-color`) below a `border-top`
+     separator — same four counts, same links, clearly subordinate to the primary metrics list above
+     instead of duplicating its weight. Loading/error states no longer render a separate placeholder for
+     this row; it simply doesn't render until the primary content has successfully loaded.
+
+6. **Correspondent metadata missing on recent documents** — not a code bug: checked via
+   `GET /api/documents/?page=1&page_size=5&ordering=-added` directly and all 5 of this instance's most
+   recent documents genuinely have `correspondent: null`. The widget's existing
+   `@if (document.correspondent) { ... }` guard (already present before this fix-round) is exactly the
+   "show it when it exists" behavior asked for — there's simply no correspondent on this instance's
+   current 5 most recent documents to show. No change made.
+
+7. **Quick actions / Recent documents lacking visual weight** — real, and traced to a pre-existing
+   dark-mode characteristic: `widget-frame`'s default (non-cardless) card uses Bootstrap's `bg-light`,
+   which in this app's dark mode resolves to `#1c1c1f` — very close to the page background `#161618` —
+   with a barely-visible default card border. That's true of every widget using `widget-frame` in dark
+   mode (including the pre-existing Statistics card), but reads as most noticeable on the two thinnest,
+   content-sparsest new widgets. Rather than touching `widget-frame` itself (shared by every widget
+   app-wide — out of this task's stated scope), gave these two specific widgets their own explicit
+   surface.
+   - **Files**: `src-ui/src/styles.scss` (new shared tokens/classes), `quick-actions-widget.component.html`,
+     `recent-documents-widget.component.html`
+   - **Approach**: introduced a small 4px-based spacing/radius scale (`--dv-space-1`..`--dv-space-4`,
+     `--dv-radius-sm`/`--dv-radius-md`) and two reusable classes, `.docvera-section-card` (explicit
+     `1px solid var(--bs-border-color)` border, `var(--dv-radius-md)` = 8px radius,
+     `padding: var(--dv-space-4)`) and `.docvera-section-title` (the accessible `role="heading"
+     aria-level="2"` pattern already used by `empty-state`/`error-state`/the onboarding checklist, sized
+     as a real section heading rather than `widget-frame`'s generic `<h6 class="card-title">`). Both new
+     widgets now render `<pngx-widget-frame [cardless]="true">` inside their own `.docvera-section-card`
+     wrapper instead of using the frame's built-in card. Documented as design system §5.10 (see below) so
+     these tokens have one definition, not one per component that needs them.
+   - **Upgrade impact**: none — new global classes/tokens, `widget-frame` itself untouched.
+
+**Verification**: `ng build --configuration production` (clean, all locales including the new fr-FR
+strings), `npx jest --testPathPatterns=dashboard` (same 39 passing / 1 pre-existing unrelated failure as
+before this fix round), manual check of both the checklist's incomplete and 5/5-complete states, and
+visual review in both light and dark mode via the running container.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

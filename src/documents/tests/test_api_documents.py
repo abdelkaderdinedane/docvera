@@ -37,6 +37,7 @@ from documents.models import Document
 from documents.models import DocumentType
 from documents.models import MatchingModel
 from documents.models import Note
+from documents.models import PaperlessTask
 from documents.models import SavedView
 from documents.models import ShareLink
 from documents.models import StoragePath
@@ -1155,10 +1156,27 @@ class TestDocumentApi(DirectoriesMixin, DocumentConsumeDelayMixin, APITestCase):
 
         doc1.tags.add(tag_inbox)
 
+        PaperlessTask.objects.create(
+            task_id="pending-1",
+            task_name=PaperlessTask.TaskName.CONSUME_FILE,
+            status=celery.states.PENDING,
+        )
+        PaperlessTask.objects.create(
+            task_id="started-1",
+            task_name=PaperlessTask.TaskName.CONSUME_FILE,
+            status=celery.states.STARTED,
+        )
+        PaperlessTask.objects.create(
+            task_id="success-1",
+            task_name=PaperlessTask.TaskName.CONSUME_FILE,
+            status=celery.states.SUCCESS,
+        )
+
         response = self.client.get("/api/statistics/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["documents_total"], 3)
         self.assertEqual(response.data["documents_inbox"], 1)
+        self.assertEqual(response.data["documents_in_workflow"], 2)
         self.assertEqual(response.data["inbox_tags"], [tag_inbox.pk])
         self.assertEqual(
             response.data["document_file_type_counts"][0]["mime_type_count"],
@@ -1173,6 +1191,8 @@ class TestDocumentApi(DirectoriesMixin, DocumentConsumeDelayMixin, APITestCase):
         self.assertEqual(response.data["correspondent_count"], 2)
         self.assertEqual(response.data["document_type_count"], 1)
         self.assertEqual(response.data["storage_path_count"], 2)
+        self.assertIn("storage_used_bytes", response.data)
+        self.assertGreaterEqual(response.data["storage_used_bytes"], 0)
 
     def test_statistics_no_inbox_tag(self):
         Document.objects.create(title="none1", checksum="A")

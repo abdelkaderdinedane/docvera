@@ -13,12 +13,17 @@ import {
 import { IfPermissionsDirective } from 'src/app/directives/if-permissions.directive'
 import { DocumentListViewService } from 'src/app/services/document-list-view.service'
 import { WebsocketStatusService } from 'src/app/services/websocket-status.service'
+import { formatBytes } from 'src/app/utils/bytes'
+import { getHttpErrorDetail } from 'src/app/utils/http'
 import { environment } from 'src/environments/environment'
+import { ErrorStateComponent } from '../../../common/error-state/error-state.component'
+import { SkeletonComponent } from '../../../common/skeleton/skeleton.component'
 import { WidgetFrameComponent } from '../widget-frame/widget-frame.component'
 
 export interface Statistics {
   documents_total?: number
   documents_inbox?: number
+  documents_in_workflow?: number
   inbox_tags?: number[]
   document_file_type_counts?: DocumentFileType[]
   character_count?: number
@@ -26,6 +31,7 @@ export interface Statistics {
   correspondent_count?: number
   document_type_count?: number
   storage_path_count?: number
+  storage_used_bytes?: number
   current_asn?: number
 }
 
@@ -45,6 +51,8 @@ interface DocumentFileType {
     NgbPopoverModule,
     DecimalPipe,
     RouterModule,
+    SkeletonComponent,
+    ErrorStateComponent,
   ],
 })
 export class StatisticsWidgetComponent
@@ -56,36 +64,51 @@ export class StatisticsWidgetComponent
   private documentListViewService = inject(DocumentListViewService)
 
   loading: boolean = false
+  error: boolean = false
+  errorDetail: string = null
 
   statistics: Statistics = {}
 
   subscription: Subscription
   private unsubscribeNotifer: Subject<any> = new Subject()
 
+  get storageUsedDisplay(): string {
+    return formatBytes(this.statistics?.storage_used_bytes)
+  }
+
   reload() {
     if (this.loading) return
     this.loading = true
+    this.error = false
     this.http
       .get<Statistics>(`${environment.apiBaseUrl}statistics/`)
       .pipe(takeUntil(this.unsubscribeNotifer), first())
-      .subscribe((statistics) => {
-        this.loading = false
-        const fileTypeMax = 5
-        if (statistics.document_file_type_counts?.length > fileTypeMax) {
-          const others = statistics.document_file_type_counts.slice(fileTypeMax)
-          statistics.document_file_type_counts =
-            statistics.document_file_type_counts.slice(0, fileTypeMax)
-          statistics.document_file_type_counts.push({
-            mime_type: $localize`Other`,
-            is_other: true,
-            mime_type_count: others.reduce(
-              (currentValue, documentFileType) =>
-                documentFileType.mime_type_count + currentValue,
-              0
-            ),
-          })
-        }
-        this.statistics = statistics
+      .subscribe({
+        next: (statistics) => {
+          this.loading = false
+          const fileTypeMax = 5
+          if (statistics.document_file_type_counts?.length > fileTypeMax) {
+            const others =
+              statistics.document_file_type_counts.slice(fileTypeMax)
+            statistics.document_file_type_counts =
+              statistics.document_file_type_counts.slice(0, fileTypeMax)
+            statistics.document_file_type_counts.push({
+              mime_type: $localize`Other`,
+              is_other: true,
+              mime_type_count: others.reduce(
+                (currentValue, documentFileType) =>
+                  documentFileType.mime_type_count + currentValue,
+                0
+              ),
+            })
+          }
+          this.statistics = statistics
+        },
+        error: (e) => {
+          this.loading = false
+          this.error = true
+          this.errorDetail = getHttpErrorDetail(e)
+        },
       })
   }
 

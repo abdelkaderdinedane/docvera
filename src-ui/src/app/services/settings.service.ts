@@ -694,6 +694,16 @@ export class SettingsService {
     }
   }
 
+  get onboardingChecklistDismissed(): boolean {
+    return this.get(SETTINGS_KEYS.ONBOARDING_CHECKLIST_DISMISSED)
+  }
+
+  dismissOnboardingChecklist() {
+    if (this.onboardingChecklistDismissed) return
+    this.set(SETTINGS_KEYS.ONBOARDING_CHECKLIST_DISMISSED, true)
+    this.storeSettings().pipe(first()).subscribe()
+  }
+
   updateDashboardViewsSort(dashboardViews: SavedView[]): Observable<any> {
     this.set(SETTINGS_KEYS.DASHBOARD_VIEWS_SORT_ORDER, [
       ...new Set(dashboardViews.map((v) => v.id)),

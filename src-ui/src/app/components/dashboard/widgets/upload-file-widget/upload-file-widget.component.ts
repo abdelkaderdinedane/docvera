@@ -1,5 +1,12 @@
 import { NgClass, NgTemplateOutlet } from '@angular/common'
-import { Component, QueryList, ViewChildren, inject } from '@angular/core'
+import {
+  Component,
+  ElementRef,
+  QueryList,
+  ViewChild,
+  ViewChildren,
+  inject,
+} from '@angular/core'
 import { RouterModule } from '@angular/router'
 import {
   NgbAlert,
@@ -42,6 +49,11 @@ export class UploadFileWidgetComponent extends ComponentWithPermissions {
   settingsService = inject(SettingsService)
 
   @ViewChildren(NgbAlert) alerts: QueryList<NgbAlert>
+  @ViewChild('fileUpload') fileUploadInput: ElementRef<HTMLInputElement>
+
+  openFilePicker(): void {
+    this.fileUploadInput?.nativeElement.click()
+  }
 
   getStatus() {
     return this.websocketStatusService.getConsumerStatus()

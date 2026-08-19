@@ -2,8 +2,24 @@
   <pngx-logo extra_classes="d-none d-md-block mt-n2" height="3.5rem"></pngx-logo>
 </pngx-page-header>
 
+@if (permissionsService.isAdmin()) {
+  <div class="row mb-4">
+    <div class="col-12">
+      <pngx-onboarding-checklist (triggerUpload)="triggerUpload()"></pngx-onboarding-checklist>
+    </div>
+  </div>
+}
+
 <div class="row">
   <div class="col-12 col-lg-8 col-xl-9 mb-4">
+    <div class="row row-cols-1 g-4 mb-4">
+      <div class="col">
+        <pngx-quick-actions-widget (triggerUpload)="triggerUpload()"></pngx-quick-actions-widget>
+      </div>
+      <div class="col">
+        <pngx-recent-documents-widget></pngx-recent-documents-widget>
+      </div>
+    </div>
     <div class="row row-cols-1 g-4"
       cdkDropList
       [cdkDropListDisabled]="settingsService.globalDropzoneActive"
@@ -27,7 +43,7 @@
         </div>
       }
 
-      @if (settingsService.offerTour()) {
+      @if (!permissionsService.isAdmin() && settingsService.offerTour()) {
         <div class="col">
           <pngx-welcome-widget (dismiss)="completeTour()"></pngx-welcome-widget>
         </div>

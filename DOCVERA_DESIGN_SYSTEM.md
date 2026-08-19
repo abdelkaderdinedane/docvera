@@ -131,6 +131,56 @@ fine as a toast; a list/page that *can't currently load at all* is not.
 
 ---
 
+## 5.10 Dashboard section cards
+
+**Tokens**: `src-ui/src/styles.scss`, `:root` block.
+
+A small 4px-based spacing/radius scale, introduced for the dashboard redesign (Increment 2) and reusable
+anywhere a similar bordered content block is needed:
+
+| Token | Value | Token | Value |
+|---|---|---|---|
+| `--dv-space-1` | `0.25rem` (4px) | `--dv-radius-sm` | `0.25rem` (4px) |
+| `--dv-space-2` | `0.5rem` (8px) | `--dv-radius-md` | `0.5rem` (8px) |
+| `--dv-space-3` | `0.75rem` (12px) | | |
+| `--dv-space-4` | `1rem` (16px) | | |
+
+Not color, so no dark-mode variant is needed — same values in both themes.
+
+**Classes**: `.docvera-section-card` / `.docvera-section-title` (also in `styles.scss`).
+
+**Problem it replaces**: `pngx-widget-frame`'s default (non-cardless) card uses Bootstrap's `bg-light`,
+which in this app's dark mode resolves to a color very close to the page background with a barely-visible
+border — every widget using it is affected, but it reads as most noticeable on small, content-sparse
+widgets (see `DOCVERA_CHANGELOG.md`, dashboard bug-fix pass, item 7). `widget-frame` itself wasn't changed
+(shared by every widget app-wide), so this is an opt-in alternative surface for widgets that need clearer
+definition.
+
+**Pattern**: wrap `<pngx-widget-frame [cardless]="true">` in a `.docvera-section-card` div, with a
+`.docvera-section-title` for the section's own heading:
+
+```html
+<div class="docvera-section-card">
+  <span class="docvera-section-title" role="heading" aria-level="2">Section title</span>
+  <pngx-widget-frame [cardless]="true">
+    <ng-container content> ... </ng-container>
+  </pngx-widget-frame>
+</div>
+```
+
+`.docvera-section-card` is `1px solid var(--bs-border-color)`, `border-radius: var(--dv-radius-md)`
+(8px), `padding: var(--dv-space-4)`. `.docvera-section-title` uses the same accessible-heading technique
+as `empty-state`/`error-state`/the onboarding checklist — `role="heading"` + `aria-level="2"` on a plain
+element, not a hard-coded `<h2>` — for the same reason: these are reusable pieces placed at a fixed page
+depth today, but a hard-coded level risks a skip if reused elsewhere later.
+
+**Usage rule**: not a replacement for `widget-frame`'s normal card mode everywhere — use it specifically
+when a widget needs a clearly-defined, bordered surface (the dashboard's "Quick actions" and "Recent
+documents" sections are the first two examples). Most widgets should keep using `widget-frame`'s default
+card.
+
+---
+
 ## 7. Accessibility (WCAG 2.1 AA)
 
 Acceptance criteria for all Docvera UI work:

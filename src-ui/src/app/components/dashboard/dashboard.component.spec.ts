@@ -93,6 +93,7 @@ describe('DashboardComponent', () => {
           provide: PermissionsService,
           useValue: {
             currentUserCan: () => true,
+            isAdmin: () => true,
           },
         },
         {

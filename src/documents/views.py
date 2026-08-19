@@ -2340,10 +2340,28 @@ class StatisticsView(GenericAPIView):
             "archive_serial_number__max",
         )
 
+        documents_in_workflow = PaperlessTask.objects.filter(
+            task_name=PaperlessTask.TaskName.CONSUME_FILE,
+            status__in=[states.PENDING, states.STARTED],
+        ).count()
+
+        storage_used_bytes = 0
+        for doc in documents.only("id", "filename", "storage_type", "archive_filename"):
+            try:
+                storage_used_bytes += doc.source_path.stat().st_size
+            except OSError:
+                pass
+            if doc.has_archive_version:
+                try:
+                    storage_used_bytes += doc.archive_path.stat().st_size
+                except OSError:
+                    pass
+
         return Response(
             {
                 "documents_total": documents_total,
                 "documents_inbox": documents_inbox,
+                "documents_in_workflow": documents_in_workflow,
                 "inbox_tag": (
                     inbox_tags.first().pk if inbox_tags.exists() else None
                 ),  # backwards compatibility
@@ -2356,6 +2374,7 @@ class StatisticsView(GenericAPIView):
                 "correspondent_count": correspondent_count,
                 "document_type_count": document_type_count,
                 "storage_path_count": storage_path_count,
+                "storage_used_bytes": storage_used_bytes,
                 "current_asn": current_asn,
             },
         )

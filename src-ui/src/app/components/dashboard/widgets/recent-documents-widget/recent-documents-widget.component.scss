@@ -1,0 +1,23 @@
+.recent-document-row {
+  border-radius: 0.25rem;
+
+  &:hover,
+  &:focus-visible {
+    background-color: var(--bs-tertiary-bg);
+  }
+}
+
+// Explicit tokens rather than the .text-body/.text-muted utility classes —
+// see DOCVERA_CHANGELOG.md for why those utilities render stale (light-mode)
+// colors in dark mode on this app.
+.recent-document-title {
+  color: var(--bs-body-color);
+}
+
+.recent-document-meta {
+  color: var(--bs-secondary-color);
+}
+
+.recent-document-icon {
+  color: var(--bs-secondary-color);
+}

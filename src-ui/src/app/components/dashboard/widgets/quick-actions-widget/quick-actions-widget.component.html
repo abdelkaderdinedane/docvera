@@ -1,0 +1,31 @@
+<div class="docvera-section-card">
+  <span class="docvera-section-title" role="heading" aria-level="2" i18n>Quick actions</span>
+  <pngx-widget-frame [cardless]="true">
+    <ng-container content>
+      <div class="d-flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="btn btn-sm btn-outline-primary"
+          *pngxIfPermissions="{ action: PermissionAction.Add, type: PermissionType.Document }"
+          (click)="onUploadClick()">
+          <i-bs name="plus-circle" class="me-1" aria-hidden="true"></i-bs>
+          <ng-container i18n>Upload a document</ng-container>
+        </button>
+        <a
+          class="btn btn-sm btn-outline-secondary"
+          *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.Document }"
+          routerLink="/documents">
+          <i-bs name="search" class="me-1" aria-hidden="true"></i-bs>
+          <ng-container i18n>Search</ng-container>
+        </a>
+        <a
+          class="btn btn-sm btn-outline-secondary"
+          *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.Tag }"
+          routerLink="/tags">
+          <i-bs name="tags" class="me-1" aria-hidden="true"></i-bs>
+          <ng-container i18n>Manage tags</ng-container>
+        </a>
+      </div>
+    </ng-container>
+  </pngx-widget-frame>
+</div>

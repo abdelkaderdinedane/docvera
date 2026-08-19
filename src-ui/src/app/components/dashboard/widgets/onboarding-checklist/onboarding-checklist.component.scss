@@ -1,0 +1,14 @@
+.docvera-onboarding-checklist {
+  .progress {
+    height: 0.5rem;
+  }
+
+  .step-icon {
+    color: var(--bs-secondary-color);
+    display: inline-flex;
+
+    &.done {
+      color: var(--bs-success);
+    }
+  }
+}
