@@ -670,7 +670,7 @@ instance), and `/accounts/password/reset/` all return HTTP 200 with the new two-
 
 ---
 
-## Dashboard redesign — onboarding checklist + useful metrics, Increment 2 (pending commit)
+## `23d0da4b9` — feat(ui): redesign dashboard with onboarding checklist and useful metrics
 
 Second piece of "Increment 2" (after the auth-pages redesign above). Approved plan: Mahmoud requested a
 hybrid dashboard — a dismissible onboarding checklist for the admin, plus content useful to the everyday
