@@ -1,14 +1,86 @@
 .docvera-onboarding-checklist {
-  .progress {
+  .docvera-onboarding-header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--dv-space-3);
+    margin-block-end: var(--dv-space-3);
+  }
+
+  .docvera-onboarding-header-text {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+  }
+
+  .docvera-onboarding-progress-text {
+    margin-block-end: var(--dv-space-2);
+    color: var(--bs-secondary-color);
+    font-size: 0.875rem;
+  }
+
+  .docvera-onboarding-progress-bar {
     height: 0.5rem;
   }
 
-  .step-icon {
-    color: var(--bs-secondary-color);
+  .docvera-onboarding-steps {
+    display: flex;
+    flex-direction: column;
+    gap: var(--dv-space-2);
+    margin: 0;
+    padding: 0;
+  }
+
+  .docvera-onboarding-step {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--dv-space-3);
+    padding-block: var(--dv-space-2);
+    border-block-start: 1px solid var(--bs-border-color);
+
+    &:first-child {
+      border-block-start: none;
+      padding-block-start: 0;
+    }
+  }
+
+  .docvera-onboarding-step-status {
     display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    margin-block-start: 0.125rem;
+    color: var(--bs-secondary-color);
 
     &.done {
       color: var(--bs-success);
+    }
+  }
+
+  .docvera-onboarding-step-text {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-inline-size: 0;
+  }
+
+  .docvera-onboarding-step-label {
+    font-weight: 500;
+  }
+
+  .docvera-onboarding-step-description {
+    font-size: 0.8125rem;
+    color: var(--bs-secondary-color);
+  }
+
+  .docvera-onboarding-optional-badge {
+    margin-inline-start: var(--dv-space-2);
+    font-weight: 500;
+    vertical-align: middle;
+  }
+
+  .docvera-onboarding-step.done {
+    .docvera-onboarding-step-label {
+      text-decoration: line-through;
+      color: var(--bs-secondary-color);
+      font-weight: 400;
     }
   }
 }

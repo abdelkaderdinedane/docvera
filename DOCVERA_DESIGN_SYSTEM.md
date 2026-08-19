@@ -176,8 +176,41 @@ depth today, but a hard-coded level risks a skip if reused elsewhere later.
 
 **Usage rule**: not a replacement for `widget-frame`'s normal card mode everywhere — use it specifically
 when a widget needs a clearly-defined, bordered surface (the dashboard's "Quick actions" and "Recent
-documents" sections are the first two examples). Most widgets should keep using `widget-frame`'s default
-card.
+documents" sections were the first two examples; the onboarding checklist below is a third — it doesn't
+use `pngx-widget-frame` at all, since it isn't a draggable dashboard-grid widget, but applies
+`.docvera-section-card` directly to its own root element for the same border/contrast reason). Most
+widgets should keep using `widget-frame`'s default card.
+
+---
+
+## 5.11 Onboarding checklist i18n and derived-state pattern
+
+**Component**: `pngx-onboarding-checklist` — `src-ui/src/app/components/dashboard/widgets/onboarding-checklist/`
+
+**Pattern**: for a component whose job is to guide a user through first-time setup, don't persist
+per-step completion. Derive each step's `done` state at read time from a real, cheap count of the
+relevant resource (`SomeService.list(1, 1)`, reading only `Results.count`) instead of a hand-maintained
+flag. The only thing actually persisted is a single dismissal boolean (manual dismiss, or automatic once
+every *required* step is derived as complete) — see `DOCVERA_CHANGELOG.md`'s "Onboarding checklist
+rebuild" entry for the full rationale (a persisted per-step flag goes stale the moment data changes
+outside the component's own action, and doesn't survive multi-tenant provisioning without its own
+migration; derived state can't go stale and needs none).
+
+A checklist step can be marked `optional`: it's still displayed and can still be completed, but it's
+excluded from both the completion fraction shown to the user (`X of N`, where `N` counts only the
+required steps) and from the check that triggers automatic dismissal.
+
+**i18n convention**: every user-visible string in a Docvera-specific (non-upstream-derived) component gets
+an explicit custom message id, not the framework's auto-generated hash id, so the string is easy to find
+in a locale `.xlf` file by name rather than by a 19-digit number. The onboarding checklist establishes the
+convention for this: `i18n="@@docvera.<feature>.<element>[.<field>]"` — e.g.
+`docvera.onboarding.step.upload.label` / `.description` / `.action`. Apply the same
+`docvera.<feature>.*` prefix pattern to future Docvera-specific (not upstream-shared) components that
+carry several related strings, so they stay grouped and greppable in the `.xlf` files the same way.
+
+**Usage rule**: any new "guide the user through setup" surface (this checklist, or a future equivalent
+elsewhere in the app) should derive its steps the same way — cheap per-resource count reads, no
+persisted step state, only a dismissal flag if the surface is dismissible at all.
 
 ---
 

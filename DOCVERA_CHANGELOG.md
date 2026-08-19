@@ -938,6 +938,135 @@ visual review in both light and dark mode via the running container.
 
 ---
 
+## Onboarding checklist rebuild against the architect's finalized spec
+
+The onboarding checklist built in `23d0da4b9` above (and patched in that entry's post-review bug-fix
+pass) was an earlier draft. The project architect has since finalized the checklist's exact spec, which
+differs from that draft in several concrete ways, so this is a rebuild of the same component against the
+finalized behavior rather than an incremental patch. Scoped strictly to the checklist itself — the
+dashboard's other known issues (mixed-language strings, dark-mode contrast, the storage/duplicate-stats/
+missing-correspondent items from the prior bug-fix pass) are unrelated and untouched here.
+
+What changed relative to the `23d0da4b9` draft, and why:
+
+- **Step set and order.** Spec: upload a document → create/confirm a tag *or document type* →
+  add a correspondent → invite a team member → configure email ingestion (optional). The draft checked
+  only tags (never document types) for step 2, and ordered mail ahead of the invite step.
+- **The email-ingestion step is optional and excluded from completion.** The draft treated all 5 steps as
+  equally required (`X of 5`, auto-dismiss only at 5/5). The spec requires a visible "Optional" step that
+  can still be completed but never blocks and never counts toward the `X of 4` progress figure or the
+  auto-dismiss trigger.
+- **No error state on a failed count request.** The draft rendered `pngx-error-state` on failure. The
+  spec is explicit that onboarding is non-critical and must never surface an error on the dashboard — a
+  failed request now hides the whole checklist silently instead.
+- **Cheap, per-service counts instead of a bespoke statistics endpoint.** The draft called
+  `${apiBaseUrl}statistics/` (a bespoke aggregate endpoint extended with `documents_in_workflow`/
+  `storage_used_bytes` in `23d0da4b9`, for the *separate* metrics widget) plus two `listAll()` calls
+  (`MailAccountService`, `UserService`) that page through full result sets. The spec calls for reusing the
+  existing per-resource Angular services directly, one `page_size=1` request per resource, reading only
+  the `count` field off `Results<T>` — cheaper, and doesn't depend on an endpoint shaped for a different
+  widget.
+- **Dismissal flag is Docvera-namespaced.** The draft's persisted key,
+  `general-settings:dashboard:onboarding-checklist-dismissed`, followed the pre-existing
+  `general-settings:*` convention used for unrelated upstream-style settings; the spec asks for a
+  Docvera-namespaced key specifically. Renamed to `docvera:onboarding-checklist:dismissed`. This is a
+  breaking rename of the persisted value for any user who had already dismissed the old key — acceptable
+  and intentional per the "derived state, no migration" rationale below: the checklist re-evaluates real
+  object counts on next load, so a user with real setup progress will see it as already complete (and
+  re-dismiss automatically) rather than getting a stale checklist back.
+- **Every step always shows an action link/button, even once done** (draft hid the control once a step
+  was marked complete); **i18n custom message ids** added under a `docvera.onboarding.*` prefix for every
+  string (the draft used plain `$localize`/`i18n` with auto-generated hash ids); moved off the `card
+  bg-light` wrapper (the exact dark-mode low-contrast pattern documented in §5.10/item 7 of the
+  `23d0da4b9` bug-fix pass) onto the `.docvera-section-card` pattern instead, and onto CSS logical
+  properties (`margin-inline-start`, `border-block-start`, …) in the component's own stylesheet.
+
+**Alternatives considered — persisted per-step progress vs. derived state**: persisting each step's
+completion (e.g. a JSON blob of booleans alongside the existing dismissal flag) was considered and
+rejected, per the spec's explicit architectural constraint. Persisted flags can only be set at the moment
+a step's action happens in *this* UI; they go stale the instant an object is deleted, or created through
+the API/CLI/import rather than the checklist's own flow, and — for a multi-tenant product — persisting
+per-step state means every new tenant needs that state initialized and every future step needs a
+migration. Deriving each step from a live, cheap read of the real resource counts avoids all of that: the
+checklist is always truthful, needs no backend model or migration, and the only genuinely stateful fact
+(has this admin dismissed it) is exactly the one fact that *can't* be derived from data — so it's the only
+thing persisted.
+
+- **Files**: `src-ui/src/app/data/ui-settings.ts`
+- **Approach**: changed `SETTINGS_KEYS.ONBOARDING_CHECKLIST_DISMISSED`'s value to
+  `docvera:onboarding-checklist:dismissed`. The constant name, the `SettingsService` getter/setter
+  (`onboardingChecklistDismissed` / `dismissOnboardingChecklist()`), and the `SETTINGS` default-value
+  entry were already correctly shaped from `23d0da4b9` and needed no further change — only the persisted
+  key string itself was non-compliant with the "Docvera-namespaced key" requirement.
+- **Upgrade impact**: none — value-only change to an additive, Docvera-only settings key; no upstream file
+  touched.
+
+- **Files**:
+  `src-ui/src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.ts`,
+  `.html`, `.scss` (rewritten), `.spec.ts` (new — the `23d0da4b9` draft had none)
+- **Approach**: `OnboardingChecklistComponent` now injects `DocumentService`, `TagService`,
+  `DocumentTypeService`, `CorrespondentService`, `UserService`, and `MailAccountService` directly (instead
+  of `HttpClient` + the statistics endpoint), firing `forkJoin({ documents: ..., tags: ..., documentTypes:
+  ..., correspondents: ..., users: ..., mailAccounts: ... })` with every call as `.list(1, 1)` — one row
+  per resource, only `Results.count` read off each. A `catchError` on the joined observable maps any
+  failure to `null`; the subscribe handler treats `null` as "hide silently" (`visible = false`, no error
+  state). Each `OnboardingStep` carries `id`, `done`, `optional`, and an optional `routerLink`; five
+  named getters (`uploadStep`/`taxonomyStep`/`correspondentStep`/`inviteStep`/`mailStep`) expose them to
+  the template by name instead of array index, since the template now needs to reference each step
+  individually to give it its own custom-id'd label/description/action text.
+  `requiredSteps`/`completedRequiredCount`/`requiredTotal`/`progressPercent` all filter out
+  `optional: true` steps, so the mail step never affects the `X of 4` figure or the auto-dismiss check.
+  `visible` is still captured once at `ngOnInit()` from `!settingsService.onboardingChecklistDismissed`
+  (unchanged from `23d0da4b9`'s bug-fix-pass behavior, still correct under the new spec) so a
+  same-session admin who finishes the fourth required step isn't cut off mid-render; reaching
+  `allRequiredComplete` sets `visible = false` and calls `dismissOnboardingChecklist()` in the same tick
+  — the spec's "hide automatically" language, read literally, doesn't call for the draft's separate
+  "5/5 complete" confirmation panel, so that branch was dropped as unneeded complexity relative to what
+  was actually specified. Template uses semantic `<ul>`/`<li>` markup, a status icon with
+  `aria-hidden="true"` paired with a `.visually-hidden` "Completed"/"Not completed" span per step (so
+  completion is never conveyed by icon/colour alone), a real `<button>` for dismiss with an
+  `i18n-aria-label`, and every user-facing string tagged `i18n="@@docvera.onboarding.<step>.<field>"`.
+  Root wrapper switched from `card shadow-sm bg-light` to `.docvera-section-card` (§5.10) to avoid the
+  dark-mode low-contrast pattern already documented and fixed for the two sibling dashboard widgets in
+  `23d0da4b9`'s bug-fix pass; the component's own stylesheet uses only `var(--bs-*)`/`var(--dv-*)` tokens
+  and logical properties (`margin-inline-start`, `border-block-start`), no physical `left`/`right`/hex
+  values, matching the RTL-readiness requirement for this phase.
+  New `.spec.ts` covers: no fetch when already dismissed, tag-OR-document-type derivation, auto-dismiss
+  triggering only on the four required steps, staying visible when only the optional step is incomplete,
+  silent hide on a failed request (verified via `HttpTestingController`, including that `forkJoin`
+  correctly cancels the sibling in-flight requests rather than leaving them open), and manual dismiss.
+- **Upgrade impact**: none beyond what `23d0da4b9` already flagged — same component, same call site in
+  `dashboard.component.html` (selector `pngx-onboarding-checklist` and the `(triggerUpload)` output are
+  unchanged, so no edit was needed there or in `dashboard.component.ts`).
+
+**New i18n source strings** (all under the `docvera.onboarding` prefix; not yet present in any of the 47
+locale `.xlf` files — same pre-existing pattern as every prior increment, not a regression): `title`,
+`progressText`, `progressAriaLabel`, `dismissLabel`, `step.status.done`, `step.status.pending`,
+`step.upload.label`, `step.upload.description`, `step.upload.action`, `step.taxonomy.label`,
+`step.taxonomy.description`, `step.taxonomy.action`, `step.correspondent.label`,
+`step.correspondent.description`, `step.correspondent.action`, `step.invite.label`,
+`step.invite.description`, `step.invite.action`, `step.mail.label`, `step.mail.description`,
+`step.mail.action`, `step.optionalBadge`.
+
+**Assumptions made, flagged rather than silently guessed past**: the spec's step 2 says "the relevant
+screen" (singular) for a step that can be satisfied by either a tag or a document type; the action link
+routes to `/tags` specifically (matching the `23d0da4b9` draft's choice) rather than to whichever of the
+two is still empty, since the spec didn't call for that extra branching and it isn't a difference that
+changes step completion. The upload step has no dedicated route to link to (same gap the `23d0da4b9`
+draft found), so it keeps that draft's solution of emitting `triggerUpload` to reuse the sidebar upload
+widget's file picker via `DashboardComponent`'s existing `@ViewChild`/`triggerUpload()` wiring, rather
+than introducing a new upload surface.
+
+**Verification**: `npx jest --testPathPatterns=onboarding-checklist` (6/6 passing, new suite) and
+`npx jest --testPathPatterns=dashboard` (45/46 passing — the one failure is the same pre-existing
+"Paperless-ngx" vs "Docvera" welcome-message string mismatch flagged as unrelated in `23d0da4b9`, not a
+regression from this change). `ng build --configuration production` succeeds across all 47 locales;
+confirmed the new strings compile into the `en-US` bundle and fall back to English source text in
+untranslated locales (e.g. `fr-FR`), the same pattern already established for every prior increment's new
+strings.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

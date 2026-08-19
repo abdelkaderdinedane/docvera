@@ -1,62 +1,268 @@
 @if (visible) {
-  <div class="card shadow-sm bg-light docvera-onboarding-checklist">
-    @if (error) {
-      <div class="card-body">
-        <pngx-error-state
-          level="section"
-          heading="Couldn't load your setup checklist"
-          i18n-heading
-          body="Something went wrong while checking your setup progress. Try again in a moment."
-          i18n-body
-          retryLabel="Retry"
-          i18n-retryLabel
-          [showDetails]="true"
-          [details]="errorDetail"
-          (retry)="reload()">
-        </pngx-error-state>
-      </div>
-    } @else if (loading) {
-      <div class="card-body">
-        <pngx-skeleton variant="row" [count]="5"></pngx-skeleton>
-      </div>
-    } @else if (allComplete) {
-      <div class="card-body d-flex align-items-center gap-2 py-3">
-        <i-bs name="check-circle-fill" class="text-success flex-shrink-0" aria-hidden="true"></i-bs>
-        <p class="mb-0 flex-grow-1" i18n>Setup complete — all 5 steps are done. This checklist won't be shown again.</p>
-        <button type="button" class="btn-close flex-shrink-0" aria-label="Dismiss setup checklist" i18n-aria-label (click)="dismiss()"></button>
-      </div>
-    } @else {
-      <div class="card-header">
-        <div class="d-flex justify-content-between align-items-start">
-          <div class="flex-grow-1 me-3">
-            <h2 class="h6 mb-2" role="heading" aria-level="2" i18n>Initial setup — {{ completedCount }} of {{ steps.length }}</h2>
-            <div class="progress" role="progressbar" [attr.aria-valuenow]="completedCount" aria-valuemin="0" [attr.aria-valuemax]="steps.length" aria-label="Setup progress" i18n-aria-label>
-              <div class="progress-bar bg-primary" [style.width]="progressPercent + '%'"></div>
-            </div>
+  <div class="docvera-section-card docvera-onboarding-checklist">
+    <div class="docvera-onboarding-header">
+      <div class="docvera-onboarding-header-text">
+        <span
+          class="docvera-section-title"
+          role="heading"
+          aria-level="2"
+          i18n="@@docvera.onboarding.title"
+          >Get started with your setup</span
+        >
+        @if (!loading) {
+          <p
+            class="docvera-onboarding-progress-text"
+            i18n="@@docvera.onboarding.progressText"
+          >
+            {{ completedRequiredCount }} of {{ requiredTotal }} steps complete
+          </p>
+          <div
+            class="progress docvera-onboarding-progress-bar"
+            role="progressbar"
+            [attr.aria-valuenow]="completedRequiredCount"
+            aria-valuemin="0"
+            [attr.aria-valuemax]="requiredTotal"
+            aria-label="Setup progress"
+            i18n-aria-label="@@docvera.onboarding.progressAriaLabel"
+          >
+            <div
+              class="progress-bar bg-primary"
+              [style.width]="progressPercent + '%'"
+            ></div>
           </div>
-          <button type="button" class="btn-close flex-shrink-0" aria-label="Dismiss setup checklist" i18n-aria-label (click)="dismiss()"></button>
-        </div>
-      </div>
-      <ul class="list-group list-group-flush">
-        @for (step of steps; track step.id) {
-          <li class="list-group-item d-flex align-items-center gap-2">
-            <span class="step-icon flex-shrink-0" [class.done]="step.done">
-              @if (step.done) {
-                <i-bs name="check-circle-fill" aria-hidden="true"></i-bs>
-              } @else {
-                <i-bs name="circle" aria-hidden="true"></i-bs>
-              }
-            </span>
-            <span class="flex-grow-1" [class.text-decoration-line-through]="step.done" [class.text-muted]="step.done">{{ step.label }}</span>
-            @if (!step.done && step.canLink) {
-              @if (step.id === 'upload') {
-                <button type="button" class="btn btn-sm btn-outline-primary flex-shrink-0" (click)="onUploadStepClick()" i18n>Upload</button>
-              } @else {
-                <a class="btn btn-sm btn-outline-primary flex-shrink-0" [routerLink]="step.routerLink" i18n>Go</a>
-              }
-            }
-          </li>
         }
+      </div>
+      <button
+        type="button"
+        class="btn-close flex-shrink-0"
+        aria-label="Dismiss setup checklist"
+        i18n-aria-label="@@docvera.onboarding.dismissLabel"
+        (click)="dismiss()"
+      ></button>
+    </div>
+
+    @if (loading) {
+      <pngx-skeleton variant="row" [count]="5"></pngx-skeleton>
+    } @else {
+      <ul class="list-unstyled docvera-onboarding-steps">
+        <li class="docvera-onboarding-step" [class.done]="uploadStep.done">
+          <span
+            class="docvera-onboarding-step-status"
+            [class.done]="uploadStep.done"
+          >
+            @if (uploadStep.done) {
+              <i-bs name="check-circle-fill" aria-hidden="true"></i-bs>
+              <span
+                class="visually-hidden"
+                i18n="@@docvera.onboarding.step.status.done"
+                >Completed</span
+              >
+            } @else {
+              <i-bs name="circle" aria-hidden="true"></i-bs>
+              <span
+                class="visually-hidden"
+                i18n="@@docvera.onboarding.step.status.pending"
+                >Not completed</span
+              >
+            }
+          </span>
+          <span class="docvera-onboarding-step-text">
+            <span
+              class="docvera-onboarding-step-label"
+              i18n="@@docvera.onboarding.step.upload.label"
+              >Upload first document</span
+            >
+            <span
+              class="docvera-onboarding-step-description"
+              i18n="@@docvera.onboarding.step.upload.description"
+              >Add a file so there's something to organize, tag and
+              search.</span
+            >
+          </span>
+          <button
+            type="button"
+            class="btn btn-sm btn-outline-primary flex-shrink-0"
+            (click)="onUploadStepClick()"
+            i18n="@@docvera.onboarding.step.upload.action"
+          >
+            Upload
+          </button>
+        </li>
+
+        <li class="docvera-onboarding-step" [class.done]="taxonomyStep.done">
+          <span
+            class="docvera-onboarding-step-status"
+            [class.done]="taxonomyStep.done"
+          >
+            @if (taxonomyStep.done) {
+              <i-bs name="check-circle-fill" aria-hidden="true"></i-bs>
+              <span
+                class="visually-hidden"
+                i18n="@@docvera.onboarding.step.status.done"
+                >Completed</span
+              >
+            } @else {
+              <i-bs name="circle" aria-hidden="true"></i-bs>
+              <span
+                class="visually-hidden"
+                i18n="@@docvera.onboarding.step.status.pending"
+                >Not completed</span
+              >
+            }
+          </span>
+          <span class="docvera-onboarding-step-text">
+            <span
+              class="docvera-onboarding-step-label"
+              i18n="@@docvera.onboarding.step.taxonomy.label"
+              >Create or confirm a document type or tag</span
+            >
+            <span
+              class="docvera-onboarding-step-description"
+              i18n="@@docvera.onboarding.step.taxonomy.description"
+              >Tags and document types are how documents get sorted and found
+              later.</span
+            >
+          </span>
+          <a
+            class="btn btn-sm btn-outline-primary flex-shrink-0"
+            [routerLink]="taxonomyStep.routerLink"
+            i18n="@@docvera.onboarding.step.taxonomy.action"
+            >Go to tags</a
+          >
+        </li>
+
+        <li
+          class="docvera-onboarding-step"
+          [class.done]="correspondentStep.done"
+        >
+          <span
+            class="docvera-onboarding-step-status"
+            [class.done]="correspondentStep.done"
+          >
+            @if (correspondentStep.done) {
+              <i-bs name="check-circle-fill" aria-hidden="true"></i-bs>
+              <span
+                class="visually-hidden"
+                i18n="@@docvera.onboarding.step.status.done"
+                >Completed</span
+              >
+            } @else {
+              <i-bs name="circle" aria-hidden="true"></i-bs>
+              <span
+                class="visually-hidden"
+                i18n="@@docvera.onboarding.step.status.pending"
+                >Not completed</span
+              >
+            }
+          </span>
+          <span class="docvera-onboarding-step-text">
+            <span
+              class="docvera-onboarding-step-label"
+              i18n="@@docvera.onboarding.step.correspondent.label"
+              >Add first correspondent</span
+            >
+            <span
+              class="docvera-onboarding-step-description"
+              i18n="@@docvera.onboarding.step.correspondent.description"
+              >Correspondents track who a document was sent by or to.</span
+            >
+          </span>
+          <a
+            class="btn btn-sm btn-outline-primary flex-shrink-0"
+            [routerLink]="correspondentStep.routerLink"
+            i18n="@@docvera.onboarding.step.correspondent.action"
+            >Go to correspondents</a
+          >
+        </li>
+
+        <li class="docvera-onboarding-step" [class.done]="inviteStep.done">
+          <span
+            class="docvera-onboarding-step-status"
+            [class.done]="inviteStep.done"
+          >
+            @if (inviteStep.done) {
+              <i-bs name="check-circle-fill" aria-hidden="true"></i-bs>
+              <span
+                class="visually-hidden"
+                i18n="@@docvera.onboarding.step.status.done"
+                >Completed</span
+              >
+            } @else {
+              <i-bs name="circle" aria-hidden="true"></i-bs>
+              <span
+                class="visually-hidden"
+                i18n="@@docvera.onboarding.step.status.pending"
+                >Not completed</span
+              >
+            }
+          </span>
+          <span class="docvera-onboarding-step-text">
+            <span
+              class="docvera-onboarding-step-label"
+              i18n="@@docvera.onboarding.step.invite.label"
+              >Invite a team member</span
+            >
+            <span
+              class="docvera-onboarding-step-description"
+              i18n="@@docvera.onboarding.step.invite.description"
+              >Give a colleague their own account instead of sharing
+              yours.</span
+            >
+          </span>
+          <a
+            class="btn btn-sm btn-outline-primary flex-shrink-0"
+            [routerLink]="inviteStep.routerLink"
+            i18n="@@docvera.onboarding.step.invite.action"
+            >Manage users</a
+          >
+        </li>
+
+        <li class="docvera-onboarding-step" [class.done]="mailStep.done">
+          <span
+            class="docvera-onboarding-step-status"
+            [class.done]="mailStep.done"
+          >
+            @if (mailStep.done) {
+              <i-bs name="check-circle-fill" aria-hidden="true"></i-bs>
+              <span
+                class="visually-hidden"
+                i18n="@@docvera.onboarding.step.status.done"
+                >Completed</span
+              >
+            } @else {
+              <i-bs name="circle" aria-hidden="true"></i-bs>
+              <span
+                class="visually-hidden"
+                i18n="@@docvera.onboarding.step.status.pending"
+                >Not completed</span
+              >
+            }
+          </span>
+          <span class="docvera-onboarding-step-text">
+            <span class="docvera-onboarding-step-label">
+              <ng-container i18n="@@docvera.onboarding.step.mail.label"
+                >Configure email ingestion</ng-container
+              >
+              <span
+                class="badge bg-secondary docvera-onboarding-optional-badge"
+                i18n="@@docvera.onboarding.step.optionalBadge"
+                >Optional</span
+              >
+            </span>
+            <span
+              class="docvera-onboarding-step-description"
+              i18n="@@docvera.onboarding.step.mail.description"
+              >Automatically import documents sent to a mailbox. Not required to
+              finish setup.</span
+            >
+          </span>
+          <a
+            class="btn btn-sm btn-outline-primary flex-shrink-0"
+            [routerLink]="mailStep.routerLink"
+            i18n="@@docvera.onboarding.step.mail.action"
+            >Configure email</a
+          >
+        </li>
       </ul>
     }
   </div>
