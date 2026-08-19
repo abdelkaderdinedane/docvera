@@ -559,7 +559,7 @@ Verified with `pnpm run build` after the `theme.scss` change — production buil
 
 ---
 
-## Phase 2 Increment 2 — two-column auth pages (pending commit)
+## `07acdcf24` — feat(ui): redesign auth pages as two-column layout, Increment 2
 
 Approved plan increment (Mahmoud), distinct from "Increment 1" (empty/loading/error states +
 accessibility) above. Scope, per the request: redesign the login page and every page it shares a base
