@@ -1425,6 +1425,48 @@ cost nothing left in place and the request that returns them isn't going away.
 
 ---
 
+## Defect #6 — investigated, not reproduced; no code change
+
+Docs-only entry, no code touched. The reported symptom — recent-documents rows showing title and date
+but not correspondent — does not reproduce against current source. Checked all three layers named in the
+fix request before concluding this, rather than trusting the report at face value:
+
+1. **`CorrespondentNamePipe` usage**: not unused. `recent-documents-widget.component.html` already has
+   `@if (document.correspondent) { <span>{{ document.correspondent | correspondentName | async }}</span>
+   <span aria-hidden="true"> &middot; </span> }` immediately before the relative-date span, and
+   `CorrespondentNamePipe` is present in the component's standalone `imports` array — it's wired and
+   active, not dangling.
+2. **`documents/` response shape**: `src/documents/serialisers.py`'s `DocumentSerializer` declares
+   `correspondent = CorrespondentField(allow_null=True)` and includes `"correspondent"` in its `fields`
+   list — confirmed by reading the serializer directly, not assumed from the frontend type alone.
+   `src-ui/src/app/data/document.ts`'s `Document.correspondent?: number` matches this (a plain nullable
+   ID, not a nested object needing different handling).
+3. **Supplementary-lookup handling (§5.12)**: `correspondentName` resolves through `ObjectNamePipe`
+   (`src-ui/src/app/pipes/object-name.pipe.ts`), which already does exactly what the fix request asks
+   for — checks `PermissionsService.currentUserCan(View, Correspondent)` before attempting the lookup
+   (falling back to a localized "Private" string if the permission is absent, the same convention used
+   everywhere else in the app this pipe is used, e.g. the document list's correspondent column — not
+   something to special-case for one widget), and wraps the actual `listAll()` call in
+   `catchError(() => of(''))` so a genuine lookup failure degrades silently rather than propagating. This
+   is a per-document, per-pipe-instance failure (via `| async`) — it cannot take down the widget's own
+   `documents`/`loading`/`error` state, which is already fully resolved by the time these pipes run.
+4. **Clean rendering when absent**: the `@if (document.correspondent)` guard means a document with no
+   correspondent renders neither the name nor the middle-dot separator — no placeholder text, matching
+   the requirement exactly.
+
+This exact scenario was already investigated once before, in `23d0da4b9`'s own post-review bug-fix pass
+(item 6): "checked via `GET /api/documents/?page=1&page_size=5&ordering=-added` directly and all 5 of
+this instance's most recent documents genuinely have `correspondent: null`... No change made." The
+architect's report appears to be re-raising that same already-closed investigation — possibly against a
+dataset where the most recent documents still happen to have no correspondent set (a data fact, not a
+code defect), or against an environment not reflecting this commit history. No code change follows from
+this entry; flagging it back rather than guessing at a change to make, per this project's own established
+"verify before fixing" convention (see the Lot B entry above, which found the same pattern — a reported
+symptom that didn't reproduce against current source, alongside a real but different defect found while
+checking).
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
