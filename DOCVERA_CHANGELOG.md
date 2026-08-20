@@ -1350,6 +1350,81 @@ both English-only and all 47 locales; confirmed no compile errors from the templ
 
 ---
 
+## Defect #4 status note — storage calculation ("93.5 GB" for ~2 MB of documents)
+
+Not a code change — a status note for the architect's report, requested alongside the defect #5 fix
+below rather than as its own commit. Re-verified against the running instance: the statistics panel now
+reads a correct, small figure (e.g. 2.3 MB for 11 documents) instead of the previously-reported
+`os.statvfs`-derived whole-volume figure. This was already fixed, in `23d0da4b9`'s own post-review
+bug-fix pass (item 4 in that entry): `StatisticsView.storage_used_bytes` was changed from
+`os.statvfs(settings.MEDIA_ROOT)` (total disk/volume usage) to a sum of `Path.stat().st_size` over each
+visible document's `source_path`/`archive_path`. No further change made here, per instruction — storage
+logic is untouched by this pass.
+
+---
+
+## Defect #5 fix — legacy secondary-stats row removed from the statistics widget
+
+**Symptom**: below the redesigned primary metrics (document count, storage used, file-type breakdown),
+`StatisticsWidgetComponent` still rendered a `.secondary-stats` row — "Tags N · Correspondents N ·
+Document Types N · Storage Paths N" — carried over unchanged from the pre-redesign widget (`23d0da4b9`'s
+bug-fix pass, item 5, deliberately kept it at the time, "not an oversight," reduced to a lighter visual
+weight rather than removed). The architect has now asked for it to be removed outright as redundant.
+
+**Data source checked before touching the request**: `tag_count`, `correspondent_count`,
+`document_type_count` and `storage_path_count` are all fields on the single `/api/statistics/` response
+object also used for `documents_total`, `documents_inbox`, `documents_in_workflow` and
+`storage_used_bytes` — the metrics that stay. `reload()` issues exactly one `http.get()` for the whole
+object; there's no separate request to stop making. Confirmed by reading the whole component that these
+four fields are referenced nowhere else in the file. Per the instruction ("if the same request also
+feeds something that is still displayed, leave the request and only remove the rendering"), the
+`http.get<Statistics>()` call and the `Statistics` interface (which still accurately types the full
+backend response shape) are both unchanged — only the rendering block was removed.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/statistics-widget/statistics-widget.component.html`
+- **Reason**: see above.
+- **Approach**: deleted the `.secondary-stats` `@if` block (four `*pngxIfPermissions`-gated links) in
+  full.
+- **Upgrade impact**: none — isolated widget template.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/statistics-widget/statistics-widget.component.ts`
+- **Reason**: `IfPermissionsDirective` was only ever used by the now-removed block; every other template
+  usage in this file (`routerLink`, the file-type popover, etc.) doesn't need it.
+- **Approach**: removed the now-dead import and its entry in the standalone `imports` array. Left
+  `extends ComponentWithPermissions` and the `Statistics` interface's four now-unrendered fields alone —
+  the former costs nothing to keep and the latter is still an accurate description of the real API
+  response, not dead code.
+- **Upgrade impact**: none.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/statistics-widget/statistics-widget.component.scss`
+- **Reason**: `.secondary-stats`/`.secondary-stat-link` styled only the removed markup.
+- **Approach**: deleted both rules.
+- **Upgrade impact**: none.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/statistics-widget/statistics-widget.component.spec.ts`
+- **Reason**: no existing test referenced this row at all (checked by grep before writing a new one), so
+  its removal had no existing coverage to update — add coverage for the new state instead of leaving it
+  implicit.
+- **Approach**: one new test flushes a response carrying all four legacy counts and asserts (a) no
+  `.secondary-stats` element and no "Tags"/"Correspondents"/"Document Types"/"Storage Paths" text in the
+  rendered output, and (b) the `statistics/` request itself was still made with `GET`, directly verifying
+  the "leave the request, remove only the rendering" requirement rather than just asserting the negative.
+- **Upgrade impact**: none — test-only addition.
+
+**Alternatives considered**: stripping `tag_count`/`correspondent_count`/`document_type_count`/
+`storage_path_count` out of the `Statistics` TypeScript interface, as a stricter "no dead code" cleanup,
+was considered and rejected — that interface's job is to describe the actual `/api/statistics/` response
+shape (a backend contract), not just the subset this one widget currently renders; removing fields that
+the backend still genuinely returns would make the type less accurate for no benefit, since the fields
+cost nothing left in place and the request that returns them isn't going away.
+
+**Verification**: `npx jest --testPathPatterns=statistics-widget` (10/10 passing, one new).
+`npx jest --testPathPatterns=dashboard` (55/56 passing — the one failure is the same pre-existing
+"Paperless-ngx" vs "Docvera" welcome-message mismatch noted in every prior entry, not a regression).
+`ng build --configuration production` succeeds.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

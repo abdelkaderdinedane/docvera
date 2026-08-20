@@ -202,6 +202,27 @@ describe('StatisticsWidgetComponent', () => {
     )
   })
 
+  it('no longer renders legacy tag/correspondent/document-type/storage-path counts, though the shared statistics/ request is still made', () => {
+    const req = httpTestingController.expectOne(
+      `${environment.apiBaseUrl}statistics/`
+    )
+    expect(req.request.method).toEqual('GET')
+    req.flush({
+      documents_total: 11,
+      tag_count: 3,
+      correspondent_count: 2,
+      document_type_count: 1,
+      storage_path_count: 1,
+    })
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('.secondary-stats')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('Tags')
+    expect(fixture.nativeElement.textContent).not.toContain('Correspondents')
+    expect(fixture.nativeElement.textContent).not.toContain('Document Types')
+    expect(fixture.nativeElement.textContent).not.toContain('Storage Paths')
+  })
+
   it('should display the current ASN', () => {
     const mockStats = {
       current_asn: 122,

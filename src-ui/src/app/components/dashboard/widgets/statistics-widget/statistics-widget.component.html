@@ -12,36 +12,71 @@
         i18n-retryLabel
         [showDetails]="true"
         [details]="errorDetail"
-        (retry)="reload()">
+        (retry)="reload()"
+      >
       </pngx-error-state>
     } @else if (loading) {
       <pngx-skeleton variant="row" [count]="4"></pngx-skeleton>
     } @else {
       <div class="list-group border-light">
         @if (statistics?.documents_inbox !== null) {
-          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" title="Go to inbox" i18n-title href="javascript:void(0)" (click)="goToInbox()">
+          <a
+            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+            title="Go to inbox"
+            i18n-title
+            href="javascript:void(0)"
+            (click)="goToInbox()"
+          >
             <ng-container i18n>Documents in inbox</ng-container>:
-            <span class="badge rounded-pill" [class.bg-primary]="statistics?.documents_inbox > 0" [class.bg-muted]="statistics?.documents_inbox === 0">{{statistics?.documents_inbox}}</span>
+            <span
+              class="badge rounded-pill"
+              [class.bg-primary]="statistics?.documents_inbox > 0"
+              [class.bg-muted]="statistics?.documents_inbox === 0"
+              >{{ statistics?.documents_inbox }}</span
+            >
           </a>
         }
-        <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" title="Go to documents" i18n-title routerLink="/documents/">
+        <a
+          class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+          title="Go to documents"
+          i18n-title
+          routerLink="/documents/"
+        >
           <ng-container i18n>Total documents</ng-container>:
-          <span class="badge bg-primary rounded-pill">{{statistics?.documents_total}}</span>
+          <span class="badge bg-primary rounded-pill">{{
+            statistics?.documents_total
+          }}</span>
         </a>
         @if (statistics?.documents_in_workflow) {
-          <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" title="Go to tasks" i18n-title routerLink="/tasks/">
+          <a
+            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+            title="Go to tasks"
+            i18n-title
+            routerLink="/tasks/"
+          >
             <ng-container i18n>Documents processing</ng-container>:
-            <span class="badge bg-info text-dark rounded-pill">{{statistics?.documents_in_workflow}}</span>
+            <span class="badge bg-info text-dark rounded-pill">{{
+              statistics?.documents_in_workflow
+            }}</span>
           </a>
         }
-        <div class="list-group-item d-flex justify-content-between align-items-center">
+        <div
+          class="list-group-item d-flex justify-content-between align-items-center"
+        >
           <ng-container i18n>Storage used</ng-container>:
-          <span class="badge bg-secondary text-light rounded-pill">{{storageUsedDisplay}}</span>
+          <span class="badge bg-secondary text-light rounded-pill">{{
+            storageUsedDisplay
+          }}</span>
         </div>
         @if (statistics?.current_asn) {
-          <div class="list-group-item d-flex justify-content-between align-items-center" routerLink="/documents/">
+          <div
+            class="list-group-item d-flex justify-content-between align-items-center"
+            routerLink="/documents/"
+          >
             <ng-container i18n>Current ASN</ng-container>:
-            <span class="badge bg-secondary text-light rounded-pill">{{statistics?.current_asn}}</span>
+            <span class="badge bg-secondary text-light rounded-pill">{{
+              statistics?.current_asn
+            }}</span>
           </div>
         }
       </div>
@@ -50,7 +85,12 @@
           <h6 class="small text-uppercase text-muted mb-2" i18n>File types</h6>
           <div class="d-flex justify-content-between align-items-center my-2">
             <div class="progress flex-grow-1">
-              @for (filetype of statistics?.document_file_type_counts; track filetype; let i = $index; let last = $last) {
+              @for (
+                filetype of statistics?.document_file_type_counts;
+                track filetype;
+                let i = $index;
+                let last = $last
+              ) {
                 <div
                   class="progress-bar bg-primary"
                   role="progressbar"
@@ -64,56 +104,43 @@
                   [style.opacity]="getItemOpacity(i)"
                   [attr.aria-valuenow]="getFileTypePercent(filetype)"
                   aria-valuemin="0"
-                  aria-valuemax="100">
-                </div>
+                  aria-valuemax="100"
+                ></div>
               }
             </div>
           </div>
           <div class="d-flex flex-wrap align-items-start">
-            @for (filetype of statistics?.document_file_type_counts; track filetype; let i = $index) {
+            @for (
+              filetype of statistics?.document_file_type_counts;
+              track filetype;
+              let i = $index
+            ) {
               <div class="d-flex">
-                <div class="text-nowrap me-2" [class.cursor-pointer]="!filetype.is_other" (click)="filterByFileType(filetype)">
-                  <span class="badge rounded-pill bg-primary d-inline-block p-0 me-1" [style.opacity]="getItemOpacity(i)"></span>
-                  <small class="text-nowrap"><span class="fw-bold">{{ getFileTypeExtension(filetype) }}</span>&nbsp;<span class="text-muted">({{getFileTypePercent(filetype) | number: '1.0-1'}}%)</span></small>
+                <div
+                  class="text-nowrap me-2"
+                  [class.cursor-pointer]="!filetype.is_other"
+                  (click)="filterByFileType(filetype)"
+                >
+                  <span
+                    class="badge rounded-pill bg-primary d-inline-block p-0 me-1"
+                    [style.opacity]="getItemOpacity(i)"
+                  ></span>
+                  <small class="text-nowrap"
+                    ><span class="fw-bold">{{
+                      getFileTypeExtension(filetype)
+                    }}</span
+                    >&nbsp;<span class="text-muted"
+                      >({{
+                        getFileTypePercent(filetype) | number: '1.0-1'
+                      }}%)</span
+                    ></small
+                  >
                 </div>
               </div>
             }
           </div>
         </div>
       }
-    }
-
-    @if (!loading && !error) {
-      <div class="secondary-stats mt-3 pt-2 border-top d-flex flex-wrap column-gap-3 row-gap-1">
-        <ng-container *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.Tag }">
-          @if (statistics?.tag_count > 0) {
-            <a class="secondary-stat-link" routerLink="/tags/">
-              <ng-container i18n>Tags</ng-container> {{statistics?.tag_count | number}}
-            </a>
-          }
-        </ng-container>
-        <ng-container *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.Correspondent }">
-          @if (statistics?.correspondent_count > 0) {
-            <a class="secondary-stat-link" routerLink="/correspondents/">
-              <ng-container i18n>Correspondents</ng-container> {{statistics?.correspondent_count | number}}
-            </a>
-          }
-        </ng-container>
-        <ng-container *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.DocumentType }">
-          @if (statistics?.document_type_count > 0) {
-            <a class="secondary-stat-link" routerLink="/documenttypes/">
-              <ng-container i18n>Document Types</ng-container> {{statistics?.document_type_count | number}}
-            </a>
-          }
-        </ng-container>
-        <ng-container *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.StoragePath }">
-          @if (statistics?.storage_path_count > 0) {
-            <a class="secondary-stat-link" routerLink="/storagepaths/">
-              <ng-container i18n>Storage Paths</ng-container> {{statistics?.storage_path_count | number}}
-            </a>
-          }
-        </ng-container>
-      </div>
     }
   </ng-container>
 </pngx-widget-frame>

@@ -10,7 +10,6 @@ import {
   FILTER_HAS_TAGS_ANY,
   FILTER_MIME_TYPE,
 } from 'src/app/data/filter-rule-type'
-import { IfPermissionsDirective } from 'src/app/directives/if-permissions.directive'
 import { DocumentListViewService } from 'src/app/services/document-list-view.service'
 import { WebsocketStatusService } from 'src/app/services/websocket-status.service'
 import { formatBytes } from 'src/app/utils/bytes'
@@ -47,7 +46,6 @@ interface DocumentFileType {
   styleUrls: ['./statistics-widget.component.scss'],
   imports: [
     WidgetFrameComponent,
-    IfPermissionsDirective,
     NgbPopoverModule,
     DecimalPipe,
     RouterModule,
