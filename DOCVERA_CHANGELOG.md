@@ -1130,6 +1130,68 @@ locale) succeeds.
 
 ---
 
+## Dashboard permission-adaptivity fixes — Lot A: recent-documents widget fails on a non-critical 403
+
+Real-world permission testing found three related dashboard defects sharing one root cause: parts of the
+dashboard fired requests or rendered controls without accounting for what the current user is actually
+allowed to do. Lot A, B and C (below) are each their own commit; this is Lot A.
+
+**Symptom**: `RecentDocumentsWidgetComponent.reload()` joined three requests —
+`documents/` (the widget's actual content), `tags/` (only used to derive the "Needs review" badge), and
+`tasks/?task_name=consume_file&acknowledged=false` (only used to derive the "Processing" badge) — with a
+plain `forkJoin`. A user without the `PaperlessTask` view permission gets a 403 on the `tasks/` call;
+`forkJoin` treats any one inner error as fatal to the whole join, so `documents/` and `tags/` succeeding
+didn't matter — the widget rendered `pngx-error-state` with a "Retry" button that could never succeed,
+even though the user could read their own recent documents perfectly well. Diagnosed against the running
+instance's network tab, not just by re-reading the code, per the pattern established for prior bug-fix
+passes in this file.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/recent-documents-widget/recent-documents-widget.component.ts`
+- **Reason**: see above.
+- **Approach**: split `tags/` and `tasks/` out of the single `forkJoin` object literal into two
+  independent observables (`inboxTags$`, `activeTasks$`), each: (1) guarded by
+  `PermissionsService.currentUserCan(View, Tag|PaperlessTask)` — skipped entirely (`of(...)` an empty
+  result) rather than issued at all when the permission is known to be absent; (2) piped through
+  `catchError(() => of(<empty result>))` regardless, so a failure for any *other* reason (a stale
+  permission cache, an object-level restriction the flat check can't see) still degrades to "no badge
+  data" instead of failing the join. The two are deliberately not redundant — see design system §5.12.
+  With both supplementary calls now guaranteed to never error, the outer `subscribe`'s `error` handler
+  can only still fire from `documents/` itself; it now branches on `e.status === 403` into a new
+  `permissionDenied` flag (distinct from the existing generic `error` flag) instead of always setting
+  `error`.
+- **Upgrade impact**: none — isolated widget component, no shared file touched.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/recent-documents-widget/recent-documents-widget.component.html`
+- **Reason**: render the new `permissionDenied` state distinctly from `error`.
+- **Approach**: added a `pngx-empty-state` branch (icon `lock`, no action/retry) ahead of the existing
+  `pngx-error-state` branch, per the new §5.12 rule this lot establishes: a 403 is a permission boundary,
+  not a broken widget, and must never get a "Retry" button that can't work.
+- **Upgrade impact**: none.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/recent-documents-widget/recent-documents-widget.component.spec.ts` (new)
+- **Reason**: this component had no test coverage at all before this fix (introduced without tests in
+  `23d0da4b9`, same gap already noted for the onboarding checklist and quick-actions widgets from that
+  same commit).
+- **Approach**: four cases — `tasks/` is never requested for a user lacking that view permission (and
+  the widget still loads documents normally); a `tasks/` failure (403) degrades to no processing badge
+  rather than failing the widget; a `documents/` 403 sets `permissionDenied` (not `error`); a
+  `documents/` 500 sets `error` (not `permissionDenied`). `httpTestingController.verify({ ignoreCancelled:
+  true })` in `afterEach`, matching the pattern already established for the onboarding-checklist spec
+  (`forkJoin` cancels sibling in-flight requests on the first error).
+- **Upgrade impact**: none — new test file only.
+
+**Alternatives considered**: keeping a single `forkJoin` and wrapping the *whole thing* in one
+`catchError` was considered and rejected — it would silently swallow a genuine `documents/` failure
+(the widget's actual content) the same way it swallows a supplementary-data failure, losing the
+distinction between "nothing to show you" and "something is broken" that §5.12 exists to preserve.
+Splitting the supplementary calls out and handling `documents/`'s error explicitly keeps that
+distinction while still letting the widget render with partial data when only the decorations fail.
+
+**Verification**: `npx jest --testPathPatterns=recent-documents-widget` (4/4 passing, new suite).
+`ng build --configuration production` succeeds (both English-only and all 47 locales).
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

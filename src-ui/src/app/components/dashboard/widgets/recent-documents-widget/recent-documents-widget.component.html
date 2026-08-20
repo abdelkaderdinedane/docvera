@@ -1,8 +1,26 @@
-<div class="docvera-section-card" *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.Document }">
-  <span class="docvera-section-title" role="heading" aria-level="2" i18n>Recent documents</span>
+<div
+  class="docvera-section-card"
+  *pngxIfPermissions="{
+    action: PermissionAction.View,
+    type: PermissionType.Document,
+  }"
+>
+  <span class="docvera-section-title" role="heading" aria-level="2" i18n
+    >Recent documents</span
+  >
   <pngx-widget-frame [cardless]="true">
     <ng-container content>
-      @if (error) {
+      @if (permissionDenied) {
+        <pngx-empty-state
+          icon="lock"
+          heading="You don't have access to documents"
+          i18n-heading="@@docvera.recentDocuments.permissionDenied.heading"
+          body="Your account doesn't have permission to view documents. Ask an administrator to grant access."
+          i18n-body="@@docvera.recentDocuments.permissionDenied.body"
+          [compact]="true"
+        >
+        </pngx-empty-state>
+      } @else if (error) {
         <pngx-error-state
           level="section"
           heading="Couldn't load recent documents"
@@ -13,7 +31,8 @@
           i18n-retryLabel
           [showDetails]="true"
           [details]="errorDetail"
-          (retry)="reload()">
+          (retry)="reload()"
+        >
         </pngx-error-state>
       } @else if (loading) {
         <pngx-skeleton variant="row" [count]="5"></pngx-skeleton>
@@ -24,29 +43,45 @@
           i18n-heading
           body="Documents you upload will show up here, with their type, correspondent and status."
           i18n-body
-          [compact]="true">
+          [compact]="true"
+        >
         </pngx-empty-state>
       } @else {
         <ul class="list-group list-group-flush">
           @for (document of documents; track document.id) {
             <li class="list-group-item p-0">
-              <a class="d-flex align-items-center gap-2 p-2 text-decoration-none recent-document-row" [routerLink]="['/documents', document.id]">
-                <i-bs [name]="getTypeIcon(document)" class="recent-document-icon flex-shrink-0" aria-hidden="true"></i-bs>
+              <a
+                class="d-flex align-items-center gap-2 p-2 text-decoration-none recent-document-row"
+                [routerLink]="['/documents', document.id]"
+              >
+                <i-bs
+                  [name]="getTypeIcon(document)"
+                  class="recent-document-icon flex-shrink-0"
+                  aria-hidden="true"
+                ></i-bs>
                 <div class="flex-grow-1 overflow-hidden">
-                  <div class="text-truncate recent-document-title">{{ document.title }}</div>
+                  <div class="text-truncate recent-document-title">
+                    {{ document.title }}
+                  </div>
                   <div class="small text-truncate recent-document-meta">
                     @if (document.correspondent) {
-                      <span>{{ document.correspondent | correspondentName | async }}</span>
+                      <span>{{
+                        document.correspondent | correspondentName | async
+                      }}</span>
                       <span aria-hidden="true"> &middot; </span>
                     }
                     <span>{{ document.added | customDate: 'relative' }}</span>
                   </div>
                 </div>
-                <span class="badge rounded-pill flex-shrink-0" [ngClass]="{
+                <span
+                  class="badge rounded-pill flex-shrink-0"
+                  [ngClass]="{
                     'text-bg-success': getStatus(document) === 'processed',
                     'text-bg-info': getStatus(document) === 'processing',
-                    'text-bg-warning': getStatus(document) === 'review'
-                  }">{{ getStatusLabel(document) }}</span>
+                    'text-bg-warning': getStatus(document) === 'review',
+                  }"
+                  >{{ getStatusLabel(document) }}</span
+                >
               </a>
             </li>
           }

@@ -127,7 +127,9 @@ input value.
 just the happy path — and (b) show `pngx-error-state` with a retry wired to the same reload method used
 on init, instead of a raw error string, a silent failure, or a toast-only notification for a persistent
 failure state. A transient, successfully-retriable background action (e.g. "delete failed") is still
-fine as a toast; a list/page that *can't currently load at all* is not.
+fine as a toast; a list/page that *can't currently load at all* is not. **Exception**: a request that
+fails specifically because the user lacks permission (HTTP 403) is not an error in this sense — see
+§5.12, which takes precedence over this rule for that one status code.
 
 ---
 
@@ -211,6 +213,53 @@ carry several related strings, so they stay grouped and greppable in the `.xlf` 
 **Usage rule**: any new "guide the user through setup" surface (this checklist, or a future equivalent
 elsewhere in the app) should derive its steps the same way — cheap per-resource count reads, no
 persisted step state, only a dismissal flag if the surface is dismissible at all.
+
+---
+
+## 5.12 Permission boundaries vs. errors
+
+**Rule**: an HTTP 403 is not an error. It's the backend correctly enforcing a permission the frontend's
+own gating either can't predict (a request fired before checking, or a case the local permission cache
+doesn't cover) or got right — either way, the user did nothing wrong and nothing is *broken*. Rendering
+it through the same path as a 500 or a network failure — `pngx-error-state`, a red/alert-toned surface,
+a "Retry" button — is actively misleading: retry cannot ever succeed for a permission problem, and
+alarming copy implies a fault that isn't there. A 403 gets a plain, calm explanation instead — reuse
+`pngx-empty-state` for it, never invent a new component or visual pattern for "you can't see this."
+
+**What differs from a genuine error**:
+
+| | Genuine error (500, network) | Permission boundary (403) |
+|---|---|---|
+| Component | `pngx-error-state` | `pngx-empty-state` |
+| Tone | Alert-level, `role="alert"` | Calm, informational |
+| Retry button | Yes — wired to the same reload method | **Never** — retrying the identical request cannot change the outcome |
+| Copy | "Something went wrong... try again" | States plainly what's missing and who can fix it (an administrator) — never assumes the reader isn't that administrator themselves; a permission can be missing from an otherwise-admin account |
+
+**Implementation pattern**: don't guess a request's outcome from the frontend's own permission cache
+alone and stop there — that cache can be wrong, stale, or (for a request fired before any check, e.g. a
+service constructor) not consulted at all. Catch the actual response and branch on `error.status === 403`
+specifically, setting a distinct boolean (e.g. `permissionDenied`) rather than reusing the generic
+`error` flag, so the template can render the right component. Where a request is genuinely optional to
+the view (it only decorates primary content, doesn't gate it — see the recent-documents widget's
+`tasks/`/`tags/` calls, which only add status badges to a documents list the user can already read).
+Two things need to happen together in that case, not one or the other:
+1. **Guard it with a permission check first** so it's never even issued for a user known not to have
+   the right — see `PermissionsService.currentUserCan()`, used the same way `*pngxIfPermissions` uses it
+   in templates.
+2. **Independently, wrap it in `catchError` to degrade to an empty result** rather than propagating —
+   permission checks aren't the only way such a request can fail (a stale cache, an object-level
+   restriction the flat permission check can't see), and an optional decoration failing must never take
+   the primary content down with it. `forkJoin` treats any unhandled inner error as fatal to the whole
+   join, so an un-caught supplementary observable can silently break a widget that has nothing wrong
+   with its actual primary data — this is not a hypothetical, it's the exact bug this pattern was
+   introduced to fix (see `DOCVERA_CHANGELOG.md`).
+
+A card/section whose *entire* content is permission-gated (not just one supplementary call within it)
+should hide itself outright rather than render a `pngx-empty-state` explaining the obvious — see §5.10's
+`.docvera-section-card` usage note on the Quick Actions card hiding completely when zero of its actions
+survive gating, versus a widget like Recent Documents (gated as a whole by `*pngxIfPermissions` on
+`Document` view, but whose *own* primary request can still independently 403 in the defensive case above)
+showing the calm explanation instead.
 
 ---
 
