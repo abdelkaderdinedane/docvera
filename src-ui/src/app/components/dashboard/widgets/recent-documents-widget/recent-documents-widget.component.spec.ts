@@ -40,7 +40,9 @@ describe('RecentDocumentsWidgetComponent', () => {
         {
           provide: PermissionsService,
           useValue: {
-            currentUserCan: jest.fn().mockImplementation(canViewExceptCustomFields),
+            currentUserCan: jest
+              .fn()
+              .mockImplementation(canViewExceptCustomFields),
           },
         },
         DatePipe,
@@ -139,6 +141,92 @@ describe('RecentDocumentsWidgetComponent', () => {
 
     expect(component.permissionDenied).toBeTruthy()
     expect(component.error).toBeFalsy()
+  })
+
+  it('renders the correspondent name for a document with a non-null correspondent id', () => {
+    // Reproduces the real-world case reported against this widget: a
+    // document whose correspondent id is genuinely set. Every other test in
+    // this file uses correspondent: null/undefined, which never exercised
+    // the `| async` pipe in the template and so never caught that AsyncPipe
+    // was missing from this component's standalone `imports` (NG0302 at
+    // render time) — this test would have failed loudly against that bug.
+    fixture.detectChanges()
+    const docsReq = httpTestingController.expectOne(
+      (r) => r.url === `${environment.apiBaseUrl}documents/`
+    )
+    docsReq.flush({
+      count: 1,
+      results: [
+        {
+          id: 13,
+          title: 'autorisation_de_travail',
+          added: '2024-03-05T00:00:00Z',
+          correspondent: 5,
+        },
+      ],
+      all: [13],
+    })
+    const tagsReq = httpTestingController.expectOne(
+      (r) => r.url === `${environment.apiBaseUrl}tags/`
+    )
+    tagsReq.flush({ count: 0, results: [], all: [] })
+    const tasksReq = httpTestingController.expectOne((r) =>
+      r.url.startsWith(`${environment.apiBaseUrl}tasks/`)
+    )
+    tasksReq.flush([])
+    fixture.detectChanges()
+
+    const correspondentsReq = httpTestingController.expectOne((r) =>
+      r.url.startsWith(`${environment.apiBaseUrl}correspondents/`)
+    )
+    correspondentsReq.flush({
+      count: 1,
+      results: [{ id: 5, name: 'veltrix' }],
+      all: [5],
+    })
+    fixture.detectChanges()
+
+    const row = fixture.nativeElement.querySelector(
+      '.recent-document-meta'
+    ) as HTMLElement
+    expect(row.textContent).toContain('veltrix')
+    expect(row.textContent).toContain('·')
+  })
+
+  it('renders no correspondent name and no separator for a document with no correspondent', () => {
+    fixture.detectChanges()
+    const docsReq = httpTestingController.expectOne(
+      (r) => r.url === `${environment.apiBaseUrl}documents/`
+    )
+    docsReq.flush({
+      count: 1,
+      results: [
+        {
+          id: 1,
+          title: 'Doc',
+          added: '2024-01-01T00:00:00Z',
+          correspondent: null,
+        },
+      ],
+      all: [1],
+    })
+    const tagsReq = httpTestingController.expectOne(
+      (r) => r.url === `${environment.apiBaseUrl}tags/`
+    )
+    tagsReq.flush({ count: 0, results: [], all: [] })
+    const tasksReq = httpTestingController.expectOne((r) =>
+      r.url.startsWith(`${environment.apiBaseUrl}tasks/`)
+    )
+    tasksReq.flush([])
+    fixture.detectChanges()
+
+    httpTestingController.expectNone((r) =>
+      r.url.startsWith(`${environment.apiBaseUrl}correspondents/`)
+    )
+    const row = fixture.nativeElement.querySelector(
+      '.recent-document-meta'
+    ) as HTMLElement
+    expect(row.textContent).not.toContain('·')
   })
 
   it('shows the generic error state (with retry) for a non-permission documents/ failure', () => {

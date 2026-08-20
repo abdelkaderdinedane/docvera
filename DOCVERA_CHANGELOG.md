@@ -1467,6 +1467,78 @@ checking).
 
 ---
 
+## Defect #6, corrected — AsyncPipe missing from recent-documents-widget's standalone imports
+
+The "not reproduced" conclusion in the entry above was wrong, and the architect's follow-up correctly
+called out why: it was based on reading the template and reasoning about the pipe chain, not on
+rendering a document that actually has a correspondent. Every document used in that investigation (and
+in every existing spec test for this widget) had `correspondent: null`, which never executes the `@if
+(document.correspondent)` branch at all — so the bug was invisible to inspection and to every prior test,
+by construction.
+
+**Reproduction, per the request's own instructions — build the counter-example, don't reason about it**:
+added a temporary test rendering a document with `correspondent: 5` and a flushed `correspondents/`
+response containing `{ id: 5, name: 'veltrix' }`. It failed immediately, not on the `expect`, but on
+`fixture.detectChanges()` itself:
+
+```
+NG0302: The pipe 'async' could not be found in the 'RecentDocumentsWidgetComponent' component.
+```
+
+**Root cause**: `recent-documents-widget.component.html` uses `document.correspondent | correspondentName
+| async` — but `recent-documents-widget.component.ts`'s standalone `@Component({ imports: [...] })` array
+never included Angular's `AsyncPipe` (from `@angular/common`). Standalone components must explicitly
+import every pipe/directive they use, including framework-provided ones — `NgClass` was imported, but
+`AsyncPipe` was not. The `@if (document.correspondent)` guard meant this instruction only executes for a
+row that actually has a correspondent, so the missing import only throws for exactly the case that was
+never tested. Angular's default `ErrorHandler` logs the thrown error to the console rather than crashing
+the app, and the surrounding row's other bindings (title, date) had already rendered by the time the
+correspondent binding's pipe lookup failed — which is exactly why the browser evidence showed a clean
+row with a silent gap instead of a visible crash: title and date present, correspondent absent, no error
+banner, easy to read as "the feature doesn't show this" rather than "this throws."
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/recent-documents-widget/recent-documents-widget.component.ts`
+- **Reason**: see above.
+- **Approach**: added `AsyncPipe` to the existing `import { NgClass } from '@angular/common'` statement
+  and to the component's `imports` array.
+- **Upgrade impact**: none — one-line additive import in an isolated widget.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/recent-documents-widget/recent-documents-widget.component.spec.ts`
+- **Reason**: close the coverage gap that let this ship unnoticed — every existing test used a
+  correspondent-less document.
+- **Approach**: two new tests. The first is the reproduction case itself, kept permanently rather than
+  discarded once it passed: a document with `correspondent: 5`, a flushed `correspondents/` response
+  naming it, asserting the rendered `.recent-document-meta` row contains both the resolved name and the
+  `·` separator — this is the test that would have caught the bug before it shipped, and will catch a
+  regression of the same shape (a future standalone `imports` array missing a pipe/directive the template
+  actually uses) the moment a document with a real correspondent is involved. The second documents the
+  complementary "must render cleanly" requirement explicitly: a `correspondent: null` document renders no
+  `·` and issues no `correspondents/` request at all (the `@if` guard skips the pipe call entirely, so
+  there's nothing to look up).
+- **Upgrade impact**: none — test-only.
+
+**A systemic check, not just a local patch**: before concluding this was an isolated mistake, audited
+every other `.html` template under `src-ui/src/app/components/` for `| async` usage and cross-checked
+each corresponding standalone component's `imports` array. Fourteen files use the `async` pipe; the
+other thirteen (document-list, document-detail, mail, saved-views, document-history, settings, both
+document-card variants, saved-view-widget, document-link, storage-path-edit-dialog, config) all already
+import `AsyncPipe` correctly. This gap was isolated to `recent-documents-widget`, not a repo-wide pattern.
+
+**Alternatives considered**: routing `document.correspondent` through a synchronous lookup instead (e.g.
+resolving the name eagerly in the component and storing a `Map<documentId, correspondentName>`, avoiding
+`| async` entirely) was considered and rejected — it would duplicate logic `ObjectNamePipe` already
+provides consistently across the app (permission-gating, graceful degradation on failure, the shared
+"Private" fallback convention) for no benefit; the actual bug was a missing import, not a design flaw in
+using the shared pipe.
+
+**Verification**: `npx jest --testPathPatterns=recent-documents-widget` (6/6 passing, two new — confirmed
+the reproduction test fails against the pre-fix code with `NG0302` and passes after adding `AsyncPipe`).
+`npx jest --testPathPatterns=dashboard` (57/58 passing — the one failure is the same pre-existing
+"Paperless-ngx" vs "Docvera" mismatch noted in every prior entry, not a regression). `ng build
+--configuration production` succeeds.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

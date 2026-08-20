@@ -1,4 +1,4 @@
-import { NgClass } from '@angular/common'
+import { AsyncPipe, NgClass } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { Component, inject, OnInit } from '@angular/core'
 import { RouterModule } from '@angular/router'
@@ -35,6 +35,7 @@ const RECENT_DOCUMENTS_COUNT = 5
   templateUrl: './recent-documents-widget.component.html',
   styleUrls: ['./recent-documents-widget.component.scss'],
   imports: [
+    AsyncPipe,
     NgClass,
     WidgetFrameComponent,
     IfPermissionsDirective,
