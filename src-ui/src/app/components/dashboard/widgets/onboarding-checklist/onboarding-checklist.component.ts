@@ -2,6 +2,11 @@ import { Component, EventEmitter, inject, OnInit, Output } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import { NgxBootstrapIconsModule } from 'ngx-bootstrap-icons'
 import { catchError, first, forkJoin, of } from 'rxjs'
+import {
+  PermissionAction,
+  PermissionsService,
+  PermissionType,
+} from 'src/app/services/permissions.service'
 import { CorrespondentService } from 'src/app/services/rest/correspondent.service'
 import { DocumentTypeService } from 'src/app/services/rest/document-type.service'
 import { DocumentService } from 'src/app/services/rest/document.service'
@@ -39,6 +44,7 @@ export class OnboardingChecklistComponent implements OnInit {
   private correspondentService = inject(CorrespondentService)
   private userService = inject(UserService)
   private mailAccountService = inject(MailAccountService)
+  private permissionsService = inject(PermissionsService)
   settingsService = inject(SettingsService)
 
   @Output() triggerUpload = new EventEmitter<void>()
@@ -93,10 +99,51 @@ export class OnboardingChecklistComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.visible = !this.settingsService.onboardingChecklistDismissed
-    if (this.visible) {
-      this.load()
+    if (this.settingsService.onboardingChecklistDismissed) {
+      this.visible = false
+      return
     }
+
+    // Explicit visibility rule, not a side effect of a 403: only show the
+    // checklist to someone who can actually act on it. Without this check,
+    // a non-admin was previously only hidden because their /users/ or
+    // /mail_accounts/ request failed and catchError hid everything — which
+    // also meant a genuine admin lost the checklist on any transient
+    // network failure, not just a permission failure. The catchError silent
+    // hide below stays as a separate, unrelated safety net for that case.
+    if (!this.canPerformSetupSteps()) {
+      this.visible = false
+      return
+    }
+
+    this.visible = true
+    this.load()
+  }
+
+  private canPerformSetupSteps(): boolean {
+    return (
+      this.permissionsService.isSuperUser() ||
+      (this.permissionsService.currentUserCan(
+        PermissionAction.Add,
+        PermissionType.Document
+      ) &&
+        (this.permissionsService.currentUserCan(
+          PermissionAction.Add,
+          PermissionType.Tag
+        ) ||
+          this.permissionsService.currentUserCan(
+            PermissionAction.Add,
+            PermissionType.DocumentType
+          )) &&
+        this.permissionsService.currentUserCan(
+          PermissionAction.Add,
+          PermissionType.Correspondent
+        ) &&
+        this.permissionsService.currentUserCan(
+          PermissionAction.Add,
+          PermissionType.User
+        ))
+    )
   }
 
   private load(): void {

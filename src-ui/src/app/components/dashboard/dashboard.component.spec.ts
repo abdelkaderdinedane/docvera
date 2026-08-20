@@ -94,6 +94,7 @@ describe('DashboardComponent', () => {
           useValue: {
             currentUserCan: () => true,
             isAdmin: () => true,
+            isSuperUser: () => true,
           },
         },
         {

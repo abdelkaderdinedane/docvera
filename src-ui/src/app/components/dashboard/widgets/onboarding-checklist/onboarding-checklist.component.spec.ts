@@ -6,6 +6,10 @@ import {
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { RouterTestingModule } from '@angular/router/testing'
 import { NgxBootstrapIconsModule, allIcons } from 'ngx-bootstrap-icons'
+import {
+  PermissionAction,
+  PermissionsService,
+} from 'src/app/services/permissions.service'
 import { SettingsService } from 'src/app/services/settings.service'
 import { environment } from 'src/environments/environment'
 import { OnboardingChecklistComponent } from './onboarding-checklist.component'
@@ -24,6 +28,7 @@ describe('OnboardingChecklistComponent', () => {
   let fixture: ComponentFixture<OnboardingChecklistComponent>
   let httpTestingController: HttpTestingController
   let settingsService: SettingsService
+  let permissionsService: PermissionsService
 
   const flushCounts = (counts: Counts) => {
     const flushOne = (resource: string, count: number) => {
@@ -56,6 +61,17 @@ describe('OnboardingChecklistComponent', () => {
             get: jest.fn().mockReturnValue(true),
           },
         },
+        {
+          provide: PermissionsService,
+          useValue: {
+            isSuperUser: jest.fn().mockReturnValue(true),
+            // Defaults to false (not true) so DocumentService's own
+            // constructor-time custom-fields fetch (gated on View+CustomField)
+            // doesn't fire unasked-for in every test — isSuperUser() alone
+            // already satisfies the checklist's own gating below.
+            currentUserCan: jest.fn().mockReturnValue(false),
+          },
+        },
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting(),
       ],
@@ -63,6 +79,7 @@ describe('OnboardingChecklistComponent', () => {
 
     httpTestingController = TestBed.inject(HttpTestingController)
     settingsService = TestBed.inject(SettingsService)
+    permissionsService = TestBed.inject(PermissionsService)
     fixture = TestBed.createComponent(OnboardingChecklistComponent)
     component = fixture.componentInstance
   })
@@ -78,6 +95,33 @@ describe('OnboardingChecklistComponent', () => {
     fixture.detectChanges()
     expect(component.visible).toBeFalsy()
     httpTestingController.expectNone(`${environment.apiBaseUrl}documents/`)
+  })
+
+  it('hides the checklist and issues no requests for a user without setup permissions', () => {
+    jest.spyOn(permissionsService, 'isSuperUser').mockReturnValue(false)
+    jest.spyOn(permissionsService, 'currentUserCan').mockReturnValue(false)
+    fixture.detectChanges()
+
+    expect(component.visible).toBeFalsy()
+    httpTestingController.expectNone(`${environment.apiBaseUrl}documents/`)
+    httpTestingController.expectNone(`${environment.apiBaseUrl}tags/`)
+    httpTestingController.expectNone(`${environment.apiBaseUrl}document_types/`)
+    httpTestingController.expectNone(`${environment.apiBaseUrl}correspondents/`)
+    httpTestingController.expectNone(`${environment.apiBaseUrl}users/`)
+    httpTestingController.expectNone(`${environment.apiBaseUrl}mail_accounts/`)
+  })
+
+  it('shows the checklist for a non-superuser who holds the required add permissions', () => {
+    jest.spyOn(permissionsService, 'isSuperUser').mockReturnValue(false)
+    jest
+      .spyOn(permissionsService, 'currentUserCan')
+      .mockImplementation((action) => action === PermissionAction.Add)
+    fixture.detectChanges()
+
+    expect(component.visible).toBeTruthy()
+    // flushCounts() itself asserts (via expectOne) that all six count
+    // requests were actually issued.
+    flushCounts({ documents: 0 })
   })
 
   it('derives step completion from object counts, taxonomy satisfied by tag OR document type', () => {

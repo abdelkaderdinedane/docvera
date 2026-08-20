@@ -1067,6 +1067,69 @@ strings.
 
 ---
 
+## Onboarding checklist follow-up — restore explicit permission gating (post-review, `b9900a218`)
+
+Post-review fix on the rebuild above. The rebuild's `Write`-based rewrite of the component dropped the
+`PermissionsService` import and every permission check that used to live in the pre-rebuild draft, without
+a deliberate decision to remove them — an oversight, not a spec change. In the rebuilt code, a non-admin
+was hidden from the checklist only as a side effect: their `/users/` or `/mail_accounts/` request comes
+back 403, `catchError` maps that to `null`, and the "hide silently on any failed request" branch (the
+correct behavior for transient failures) fired for the wrong reason. Two problems follow from that: (1)
+visibility was never an explicit, auditable rule in the code — for a multi-tenant product, "only admins
+see the setup checklist" has to be a decision that a reviewer can point at, not an emergent property of
+which REST calls happen to fail for which roles; (2) a genuine admin hit by a transient network failure
+on any of the six count requests was indistinguishable from a non-admin and lost the checklist the same
+way.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.ts`
+- **Reason**: see above — restore an explicit, intentional visibility rule instead of relying on request
+  failure as a proxy for it.
+- **Approach**: re-added `PermissionsService` (`isSuperUser`, `currentUserCan` with `PermissionAction`/
+  `PermissionType`) as an injected dependency. `ngOnInit()` now checks, in order: (1) already dismissed →
+  hide, no requests; (2) `canPerformSetupSteps()` false → hide, no requests; (3) otherwise, show and load.
+  `canPerformSetupSteps()` returns true for a superuser, or for a non-superuser who holds the `add`
+  permission for every resource behind a *required* step: `Document` (upload), `Tag` **or**
+  `DocumentType` (taxonomy — matches the step's own "tag or document type" OR logic), `Correspondent`,
+  and `User` (invite). The optional mail step is deliberately excluded from this gate: a user who can
+  perform the four required steps but not configure mail should still see the checklist — mail is
+  optional precisely because it's not a blocker. The pre-existing `catchError`-based silent hide in
+  `load()` is unchanged and kept as a separate concern: it now only ever fires for an actual failure
+  (permission or otherwise) on a request that was already deliberately made, not as the primary
+  admin/non-admin gate.
+- **Upgrade impact**: none — same component, same call site; no change to `dashboard.component.html`/`.ts`
+  (the parent's own `*ngIf="permissionsService.isAdmin()"` gate around the whole widget is unrelated and
+  untouched — it's a coarser, higher-level gate; the fix here is the checklist's own finer-grained rule
+  for whether its *content* is actionable for the current user).
+
+- **Files**: `src-ui/src/app/components/dashboard/dashboard.component.spec.ts`
+- **Reason**: this spec's `PermissionsService` mock (`{ currentUserCan, isAdmin }`) predates
+  `OnboardingChecklistComponent` calling `isSuperUser()` — with the method restored above, every test in
+  this file threw `TypeError: this.permissionsService.isSuperUser is not a function` the moment the
+  checklist (rendered as a child of `DashboardComponent`) called it during `ngOnInit`. Same shape of gap
+  the `23d0da4b9` bug-fix pass already hit once with `isAdmin` on this same mock.
+- **Approach**: added `isSuperUser: () => true` alongside the existing `currentUserCan`/`isAdmin` stubs.
+- **Upgrade impact**: none — test-only fix.
+
+- **Files**:
+  `src-ui/src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.spec.ts`
+- **Reason**: cover the restored gating rule.
+- **Approach**: added a `PermissionsService` mock (`isSuperUser: true` by default, `currentUserCan: false`
+  by default — false so `DocumentService`'s own unrelated constructor-time custom-fields fetch, gated on
+  `View`+`CustomField`, doesn't fire in every test; `isSuperUser` alone already satisfies the checklist's
+  gate for the existing tests). Two new cases: a non-admin (`isSuperUser: false`, `currentUserCan: false`)
+  sees `visible === false` and triggers zero HTTP requests, asserted per-resource via
+  `httpTestingController.expectNone()` for all six endpoints; a non-superuser who holds every required
+  `add` permission (`currentUserCan` implemented as `action === PermissionAction.Add`) still sees the
+  checklist and its six count requests still fire.
+- **Upgrade impact**: none — test-only addition.
+
+**Verification**: `npx jest --testPathPatterns=onboarding-checklist` (8/8 passing, two new). `npx jest
+--testPathPatterns=dashboard` (47/48 passing — the same single pre-existing "Paperless-ngx" vs "Docvera"
+failure noted in every prior entry, not a regression). `ng build --configuration production` (English
+locale) succeeds.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
