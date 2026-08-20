@@ -371,4 +371,28 @@ describe('AppFrameComponent', () => {
   it('should call maybeRefreshDocumentCounts after saved views reload', () => {
     expect(maybeRefreshSpy).toHaveBeenCalled()
   })
+
+  it('should not render the sidebar or router-outlet, and show a retryable error, on a genuine settings init failure', () => {
+    settingsService.initializationFailed = true
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('#sidebarMenu')).toBeNull()
+    expect(fixture.nativeElement.querySelector('router-outlet')).toBeNull()
+    // Scoped to <main> — the top navbar's own notifications dropdown also
+    // uses pngx-empty-state for an unrelated "No notifications" state.
+    const main = fixture.nativeElement.querySelector('main')
+    expect(main.querySelector('pngx-error-state')).not.toBeNull()
+    expect(main.querySelector('pngx-empty-state')).toBeNull()
+  })
+
+  it('should not render the sidebar or router-outlet, and show a non-retryable explanation (no error state), when settings init is permission-denied', () => {
+    settingsService.initializationPermissionDenied = true
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('#sidebarMenu')).toBeNull()
+    expect(fixture.nativeElement.querySelector('router-outlet')).toBeNull()
+    const main = fixture.nativeElement.querySelector('main')
+    expect(main.querySelector('pngx-empty-state')).not.toBeNull()
+    expect(main.querySelector('pngx-error-state')).toBeNull()
+  })
 })

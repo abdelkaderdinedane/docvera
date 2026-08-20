@@ -298,8 +298,13 @@ export class SettingsService {
 
   public dashboardIsEmpty: boolean = false
 
-  /** True when the initial ui_settings/ fetch failed; app runs on defaults */
+  /** True when the initial ui_settings/ fetch failed for a genuine (non-permission) reason */
   public initializationFailed: boolean = false
+  /** True when the initial ui_settings/ fetch was rejected specifically because
+   *  the account lacks the UISettings permission — distinct from
+   *  initializationFailed because retrying can never succeed for this case,
+   *  so the UI must not offer a retry button for it. */
+  public initializationPermissionDenied: boolean = false
   public initializationErrorDetail: string = null
 
   public globalDropzoneEnabled: boolean = true
@@ -322,14 +327,23 @@ export class SettingsService {
   // this is called by the app initializer in app.module
   public initializeSettings(): Observable<UiSettings> {
     this.initializationFailed = false
+    this.initializationPermissionDenied = false
     this.initializationErrorDetail = null
     return this.http.get<UiSettings>(this.baseUrl).pipe(
       first(),
       catchError((error) => {
-        this.initializationFailed = true
-        this.initializationErrorDetail = getHttpErrorDetail(error)
+        if (error?.status === 403) {
+          this.initializationPermissionDenied = true
+        } else {
+          this.initializationFailed = true
+          this.initializationErrorDetail = getHttpErrorDetail(error)
+        }
         setTimeout(() => {
-          this.toastService.showError('Error loading settings', error)
+          this.toastService.showError(
+            this.initializationPermissionDenied
+              ? $localize`:@@docvera.settingsInit.toastPermissionDenied:Your account doesn't have permission to load application settings.`
+              : $localize`:@@docvera.settingsInit.toastError:Couldn't load application settings.`
+          )
         }, 500)
         return of({
           settings: {

@@ -1251,6 +1251,105 @@ component-level getter is fully equivalent here and stays contained to the one f
 
 ---
 
+## Dashboard permission-adaptivity fixes — Lot C: ui_settings failure leaves the app in a broken half-state
+
+Lot C of the same permission-adaptivity pass as Lots A and B above, and the most structural of the three.
+
+**Symptoms, all confirmed against the actual committed source before changing anything**:
+1. `SettingsService.initializeSettings()`'s `catchError` block called
+   `this.toastService.showError('Error loading settings', error)` — a bare, un-tagged string literal with
+   no `$localize` and no i18n mechanism at all. This one always renders in English regardless of the
+   active UI locale, confirmed by inspection (not just inferred): every other user-facing string in this
+   file and `app-frame.component.html` at least goes through Angular's `i18n`/`$localize`, this one
+   didn't.
+2. `permissionsService.initialize(uisettings.permissions, this.currentUser)` was only ever called inside
+   the success (`tap`) branch of `initializeSettings()` — never in the `catchError` branch. Every sidebar
+   nav item in `app-frame.component.html` is gated by `*pngxIfPermissions`, which calls
+   `PermissionsService.currentUserCan()`; with `permissions`/`currentUser` left at their un-initialized
+   class-field defaults after a failed fetch, every single one of those checks evaluates false — the
+   entire sidebar goes empty, confirmed by reading through every `*pngxIfPermissions` guard in the
+   sidebar template against this code path.
+3. `app-frame.component.html` rendered `<pngx-error-state>` *above* `<router-outlet>`, not *instead of*
+   it — the failed-init banner and the (now-permission-broken, effectively unusable) dashboard route
+   both rendered on the same page at once, confirmed by reading the template structure directly.
+4. The banner's body text ("...check with your administrator if the problem continues") assumes the
+   reader isn't the administrator — not true in general, and specifically not true for the exact failure
+   this banner exists to describe (a missing `UISettings` permission can be missing from an
+   administrator's own account).
+
+- **Files**: `src-ui/src/app/services/settings.service.ts`
+- **Reason**: distinguish a genuine load failure from a permission boundary (§5.12) at the source, and
+  fix the un-i18n'd toast (symptom 1).
+- **Approach**: added `initializationPermissionDenied` alongside the existing `initializationFailed`,
+  set from `error?.status === 403` in `catchError` (mirroring the same branch Lot A introduced in
+  `RecentDocumentsWidgetComponent`) — `initializationFailed` is now genuinely "non-permission failure"
+  only, matching its doc comment. The toast now picks between two `$localize` messages with
+  `docvera.settingsInit.*` custom ids based on which branch fired, instead of one hardcoded English
+  string; the raw `error` object is no longer passed to `toastService.showError()` (it was never
+  rendered by the toasts-dropdown template — confirmed by grep — so dropping it is a pure simplification,
+  not a behavior change).
+- **Upgrade impact**: none — additive field, corrected i18n on an existing call; no upstream file.
+
+- **Files**: `src-ui/src/app/components/app-frame/app-frame.component.html`, `.ts`
+- **Reason**: fix symptoms 2, 3 and 4 together — they share one root cause (the degraded-but-still-
+  rendered layout) and one fix (stop trying to partially render that layout at all).
+- **Approach**: restructured the template so `settingsService.initializationPermissionDenied ||
+  settingsService.initializationFailed` gates the *entire* `<div class="container-fluid">` — sidebar and
+  `<router-outlet>` alike — behind a single `@if`. The `@else` branch is the pre-existing normal layout,
+  unchanged. The failure branch renders one of two mutually exclusive states inside a bare `<main>`: a
+  `pngx-empty-state` (icon `lock`, no action) when `initializationPermissionDenied`, explaining plainly
+  that the account is missing the UI settings permission and that an administrator must grant it — worded
+  to not assume the reader isn't that administrator, addressing symptom 4 directly — or the pre-existing
+  `pngx-error-state` (`level="page"`, retry wired to `retryInitialization()`) for a genuine
+  `initializationFailed`. This resolves symptom 2 as a side effect without touching
+  `PermissionsService.initialize()`'s call sites at all: since the sidebar (where every broken permission
+  check lived) no longer renders during a failure, there's no empty sidebar to see. The top navbar
+  (branding, search, notifications, and — importantly — the *Logout* link) is left unconditional outside
+  this `@if`, so a user stuck in either failure state still has a way to leave the page rather than being
+  fully trapped. Every string in both new branches carries a `docvera.settingsInit.*` custom id, per
+  §5.11's convention. `EmptyStateComponent` added to the component's standalone `imports` (`ErrorStateComponent`
+  was already there from the prior `eee16f0e9` increment).
+- **Upgrade impact**: moderate — `app-frame.component.html` is the core navigation shell and the file
+  most likely to conflict on a future `git merge tags/vX.Y.Z`; the restructure wraps existing markup in a
+  new outer `@if`/`@else` rather than rewriting the sidebar/main content itself, so a diff against
+  upstream should still be mechanically resolvable, but re-verify placement after any upstream app-frame
+  rework.
+
+- **Files**: `src-ui/src/main.ts`
+- **Reason**: the new permission-denied state needed an icon distinct from the generic error state's
+  `gear`; no lock-style icon was registered in this app's curated `ngx-bootstrap-icons` subset.
+- **Approach**: added `lock` to both the import list and the `icons` object, alphabetically positioned,
+  following the exact convention from `23d0da4b9`'s icon additions. Verified the export exists in the
+  installed package before adding it.
+- **Upgrade impact**: none — additive only.
+
+- **Files**: `src-ui/src/app/services/settings.service.spec.ts`, `src-ui/src/app/components/app-frame/app-frame.component.spec.ts`
+- **Reason**: cover the new branch and the restructured template.
+- **Approach**: two new `SettingsService` tests assert `initializationPermissionDenied`/
+  `initializationFailed` are set correctly (and mutually exclusively) for a 403 vs. a 500 — the
+  pre-existing "shows toast on 403" test was left as-is (still passes; it only asserts the toast fired,
+  not its exact text, so it's compatible with the new i18n'd message). Two new `AppFrameComponent` tests
+  assert that setting each flag removes both `#sidebarMenu` and `router-outlet` from the DOM and renders
+  the correct one of `pngx-error-state`/`pngx-empty-state` — scoped to `<main>` specifically, since the
+  top navbar's own notifications dropdown independently uses `pngx-empty-state` for an unrelated "No
+  notifications" state and would otherwise produce a false pass/fail.
+- **Upgrade impact**: none — test-only additions.
+
+**Alternatives considered**: fixing symptom 2 directly (calling
+`permissionsService.initialize([], someDefaultUser)` in the `catchError` branch, so the sidebar would at
+least render its zero-permission-item state correctly instead of relying on the un-initialized default)
+was considered and rejected in favor of not rendering the sidebar at all. A "correctly empty" sidebar
+next to a dashboard that also can't really function is still two broken-looking regions on screen at
+once — exactly what the fix request's "either the app loads or it explains why it cannot; showing both
+is worse than either" line rules out. Blocking the whole content area is a stronger, simpler guarantee
+than trying to make the degraded layout internally consistent.
+
+**Verification**: `npx jest --testPathPatterns=settings.service` (all passing, 2 new) and `npx jest
+--testPathPatterns=app-frame` (all passing, 2 new). `ng build --configuration production` succeeds for
+both English-only and all 47 locales; confirmed no compile errors from the template restructure.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

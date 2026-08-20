@@ -134,6 +134,27 @@ describe('SettingsService', () => {
     expect(toastSpy).toHaveBeenCalled()
   }))
 
+  it('should set initializationPermissionDenied (not initializationFailed) on a 403', fakeAsync(() => {
+    httpTestingController
+      .expectOne(`${environment.apiBaseUrl}ui_settings/`)
+      .flush(
+        { detail: 'You do not have permission to perform this action.' },
+        { status: 403, statusText: 'Forbidden' }
+      )
+    tick(500)
+    expect(settingsService.initializationPermissionDenied).toBeTruthy()
+    expect(settingsService.initializationFailed).toBeFalsy()
+  }))
+
+  it('should set initializationFailed (not initializationPermissionDenied) on a non-permission error', fakeAsync(() => {
+    httpTestingController
+      .expectOne(`${environment.apiBaseUrl}ui_settings/`)
+      .flush('boom', { status: 500, statusText: 'Server Error' })
+    tick(500)
+    expect(settingsService.initializationFailed).toBeTruthy()
+    expect(settingsService.initializationPermissionDenied).toBeFalsy()
+  }))
+
   it('calls ui_settings api endpoint with POST on store', () => {
     let req = httpTestingController.expectOne(
       `${environment.apiBaseUrl}ui_settings/`
