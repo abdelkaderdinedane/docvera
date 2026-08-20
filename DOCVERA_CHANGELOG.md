@@ -1192,6 +1192,65 @@ distinction while still letting the widget render with partial data when only th
 
 ---
 
+## Dashboard permission-adaptivity fixes — Lot B: quick actions card renders empty when no action survives gating
+
+Lot B of the same permission-adaptivity pass as Lot A above.
+
+**Investigated, not reproduced as reported**: the report described the "Import a document" quick action
+rendering (and being clickable) for a user without add-document rights, producing a permission-denied
+toast. Checked `quick-actions-widget.component.html` (and, since the report's "same for the other quick
+actions" implicated every upload entry point on the dashboard, also `upload-file-widget.component.html`'s
+sidebar widget and `file-drop.component.ts`'s global drag-and-drop dropzone) against the actual committed
+source before changing anything, per this project's "trust but verify" convention. All three already
+gate correctly: each quick-action button carries its own `*pngxIfPermissions` (`Add`+`Document` for
+upload, `View`+`Document` for search, `View`+`Tag` for manage tags, added in `23d0da4b9`), the sidebar
+upload widget is wrapped the same way (pre-existing upstream fix, `95c12c184`), and the global dropzone's
+`dragDropEnabled` getter separately checks `Add`+`Document` (also pre-existing upstream code). No code
+path was found today where an unprivileged user could see and click an unguarded upload control from
+this dashboard. Not changed, since there was nothing to fix here — verified against current source before
+touching anything, same discipline as the earlier Defect 2 false alarm on this same checklist feature.
+
+**Real defect found while verifying**: the fix request's second requirement — "if no action survives the
+gating, hide the whole Quick Actions card instead of rendering an empty bordered box" — was *not*
+implemented. Each of the three buttons independently hides itself via `*pngxIfPermissions`, but the
+`.docvera-section-card` wrapper and its "Quick actions" title rendered unconditionally regardless of
+whether zero, one, two or three of the buttons inside it survived gating. A user with none of
+`Add`+`Document`, `View`+`Document`, or `View`+`Tag` would see an empty titled card with nothing
+actionable in it — a real, reproducible gap, just not the one the symptom paragraph described.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/quick-actions-widget/quick-actions-widget.component.ts`
+- **Reason**: see above.
+- **Approach**: added a `hasVisibleAction` getter that mirrors the three buttons' individual
+  `*pngxIfPermissions` checks with OR logic (`PermissionsService.currentUserCan()` for each pair,
+  `||`-combined) — the directive itself only supports AND-across-an-array, not OR-across-distinct-checks,
+  so this couldn't be expressed as a single `*pngxIfPermissions` on the wrapper.
+- **Upgrade impact**: none — additive getter, isolated component.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/quick-actions-widget/quick-actions-widget.component.html`
+- **Reason**: apply the new getter.
+- **Approach**: wrapped the entire `.docvera-section-card` in `@if (hasVisibleAction)`. No change to the
+  three inner buttons' own individual gating.
+- **Upgrade impact**: none.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/quick-actions-widget/quick-actions-widget.component.spec.ts` (new)
+- **Reason**: no test coverage existed for this component before this fix (same `23d0da4b9` gap as Lot
+  A's widget).
+- **Approach**: three cases — the card renders when at least one action is permitted (default, all
+  permitted); the card is entirely absent (not an empty box) when no action survives gating; the card
+  still renders, with exactly one control, for a user who can only view tags.
+- **Upgrade impact**: none — new test file only.
+
+**Alternatives considered**: extending `IfPermissionsDirective` itself to support an "OR across array"
+mode was considered and rejected as broader than this fix needs — every other existing call site relies
+on its current AND semantics, and a mode flag would be a shared-directive change (higher blast radius,
+touches every component that imports it) for a need only this one wrapper has today. A local
+component-level getter is fully equivalent here and stays contained to the one file that needs it.
+
+**Verification**: `npx jest --testPathPatterns=quick-actions-widget` (3/3 passing, new suite).
+`ng build --configuration production` succeeds.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
