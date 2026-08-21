@@ -1703,6 +1703,97 @@ prior entries, per instruction. `theme.scss` itself was not modified.
 
 ---
 
+## Defect — 9 login-page strings untranslated in French (Django templates, not Angular)
+
+Same class of defect as the dashboard's `docvera.*`/`messages.fr_FR.xlf` gap, but a completely
+different i18n mechanism: these live in Django templates (`{% translate %}`/`{% blocktranslate %}` +
+gettext `.po` files), not Angular `$localize`/`.xlf`. Diagnosed each of the 9 reported strings against
+actual template source before touching anything, per instruction.
+
+**Step 1 — diagnosis, all nine are case (a)**: every one of the 9 strings was already correctly wrapped
+in `{% translate %}` or `{% blocktranslate %}` — confirmed by reading
+`src/documents/templates/paperless-ngx/base.html` (7 strings, the auth brand panel added by `07acdcf24`)
+and `src/documents/templates/account/login.html` (1 string) directly, not assumed. **No case (b)
+(hardcoded literal) and no case (c) existed — this was purely a missing-translation gap, not a code
+defect requiring template changes**, so step 2 below touches only the `.po` file. Two things worth
+flagging from the diagnosis itself:
+- The copyright line was *already* correctly interpolated —
+  `&copy; {% now "Y" %} Veltrix AI. {% translate "All rights reserved." %}` — the year is dynamic
+  (`{% now "Y" %}`, not a hardcoded "2026"), "Veltrix AI" is correctly left untranslated, and "All rights
+  reserved." is already its own separate translatable unit. Nothing to fix there beyond adding its
+  French target.
+- "Need help? / Contact support" is one `{% blocktranslate %}` unit containing an embedded `<a>` link,
+  not two separate strings — the slash in the report reflects how it reads visually, not two `msgid`s.
+
+**`.po` file identified**: `src/locale/fr_FR/LC_MESSAGES/django.po` serves French for these templates
+(standard Django gettext layout: `src/locale/<lang>/LC_MESSAGES/django.po`). Checked before editing:
+zero "Docvera"/"Veltrix" mentions and none of the 9 target strings present anywhere in the file — this
+project has never added a single Docvera-specific French entry to it. `git log` on the file confirms the
+last commit to touch it was `6c8a9b037`, an upstream "New Crowdin translations" sync, predating
+`07acdcf24` (the auth-page redesign that introduced 8 of these 9 strings) — **`django-admin
+makemessages` has never been run on this fork since the Docvera auth-page work**, same gap shape as the
+Angular `.xlf` files.
+
+**Whether regenerating would disturb existing translations — checked, not assumed**: this environment
+has neither GNU `gettext` binaries (`msguniq`/`msgmerge`/`xgettext` — checked via `Get-Command`, none
+found) nor a Django installation (`import django` fails), so `makemessages` genuinely cannot be run here
+to test the question directly. Established the safe procedure without it: `.mo` compiled files are
+`.gitignore`'d (confirmed) and compiled from `.po` at Docker image build time via `manage.py
+compilemessages` (confirmed in `Dockerfile`) — so the `.po` file is the actual source of truth to edit,
+and hand-adding new `msgid`/`msgstr` pairs in the file's own established format, without touching any
+existing entry, carries none of the reordering/fuzzy-marking risk a full `makemessages` regeneration
+would (the same risk profile difference already flagged for the `.xlf` files, confirmed applicable here
+too).
+
+- **Files**: `src/locale/fr_FR/LC_MESSAGES/django.po`
+- **Reason**: step 2 — add the missing French targets.
+- **Approach**: hand-added 9 new `msgid`/`msgstr` pairs, each `msgid` copied verbatim (byte-for-byte,
+  including the literal `&amp;` entities as they appear in the template source — not decoded, not
+  retyped) from the actual template lines, with an accurate `#: file:line` comment. Positioned each
+  within the file's existing per-source-file grouping: the `login.html` entry next to that template's
+  existing (already-stale, pre-redesign) cluster, the 8 `base.html` entries immediately before that
+  template's two existing (also stale-lined but still-current) entries. Pure addition — `git diff`
+  confirms 36 insertions, 0 deletions, and the `#: base.html:58`/`:62` entries plus every other existing
+  entry in the file are untouched. The blocktranslate `msgid` keeps the exact `<a href="..." target=
+  "_blank" rel="noopener">` markup from the source, translating only the visible text inside and outside
+  the tag — the link target/attributes are identical in `msgid` and `msgstr`.
+- **Upgrade impact**: none — additive-only `.po` entries; no template or code touched, since diagnosis
+  found no case (b)/(c) strings.
+
+**Translation choices**: "professional European French... matching the register already used in the
+Angular locale file," per instruction. "Intelligent document management" (the product tagline, matches
+`DOCVERA_BRAND.tagline` verbatim — checked, no existing French rendering anywhere in the repo) translated
+as marketing copy rather than word-for-word: "La gestion documentaire intelligente." The two `&amp;`
+bullets ("Bilingual OCR — English & Arabic", "Automated tagging & classification") are rendered with the
+word "et" rather than carrying the `&`/`&amp;` symbol into the translation — sidesteps entirely whether
+Django's autoescaping would double-escape a literal ampersand in the translated output (a question about
+pre-existing template behavior this task wasn't scoped to investigate or fix), and reads as more natural
+French UI copy regardless. "Étiquetage" for "tagging" matches "étiquette" — the term already established
+for "tag" in `messages.fr_FR.xlf` — keeping the two i18n systems terminologically consistent even though
+they're mechanically separate. None of the 9 strings needed an email-related term, so the Angular file's
+"courriel" convention wasn't directly applicable here, but was kept in mind and would apply if a future
+string needs it.
+
+**Not fixed, flagged**: two adjacent strings in the same brand panel — `aria-label="{% translate 'About
+Docvera' %}"` and `{% translate "by Veltrix AI" %}` (the sidebar byline) — are *also* missing from
+`django.po` (checked, zero matches for either). Neither was in the reported list of 9, and neither is
+main-content copy a customer reads the same way (one is a screen-reader-only landmark label, the other a
+small byline already partially in English by design — "Veltrix AI" itself doesn't translate). Left alone
+as out of this task's scope; noted here so they're not mistaken for something already covered.
+
+**Verification**: could not run `manage.py check`, `compilemessages`, or the backend test suite — same
+environment limitation as the prior SSO-flag task (no `uv`, no Django, and this time confirmed no GNU
+gettext binaries either). What *was* verified: `git diff --stat` shows exactly 36 insertions / 0
+deletions (9 complete, well-formed entries, nothing existing touched); `msgid`/`msgstr` counts in the
+file both increased from 527 to 536 (balanced, one `msgstr` per `msgid`, no orphaned half-entries); `file
+src/locale/fr_FR/LC_MESSAGES/django.po` still reports it as a valid "GNU gettext message catalogue,
+Unicode text, UTF-8 text" after editing; every new entry's format (comment/msgid/msgstr/blank line, quote
+escaping) matches the file's own existing 500+ entries by direct example, not guessed. This is not a
+substitute for `manage.py compilemessages` + a real page load — please run that (or CI) before treating
+this as fully verified, same caveat as the SSO-flag change.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

@@ -1270,6 +1270,10 @@ msgstr "Merci d'utiliser %(site_name)s ! %(site_domain)s"
 msgid "Paperless-ngx sign in"
 msgstr "Connexion à Paperless-ngx"
 
+#: documents/templates/account/login.html:12
+msgid "Enter your credentials to access your workspace."
+msgstr "Entrez vos identifiants pour accéder à votre espace de travail."
+
 #: documents/templates/account/login.html:10
 msgid "Please sign in."
 msgstr "Veuillez vous connecter."
@@ -1423,6 +1427,38 @@ msgstr "Code"
 #: documents/templates/mfa/authenticate.html:24
 msgid "Cancel"
 msgstr "Annuler"
+
+#: documents/templates/paperless-ngx/base.html:32
+msgid "Intelligent document management"
+msgstr "La gestion documentaire intelligente"
+
+#: documents/templates/paperless-ngx/base.html:33
+msgid "Centralize, search and automate your documents in English and Arabic."
+msgstr "Centralisez, recherchez et automatisez vos documents en anglais et en arabe."
+
+#: documents/templates/paperless-ngx/base.html:41
+msgid "Bilingual OCR — English &amp; Arabic"
+msgstr "OCR bilingue — anglais et arabe"
+
+#: documents/templates/paperless-ngx/base.html:47
+msgid "Full-text search across every document"
+msgstr "Recherche en texte intégral dans tous vos documents"
+
+#: documents/templates/paperless-ngx/base.html:53
+msgid "Automated tagging &amp; classification"
+msgstr "Étiquetage et classification automatisés"
+
+#: documents/templates/paperless-ngx/base.html:59
+msgid "Isolated data per customer"
+msgstr "Données isolées par client"
+
+#: documents/templates/paperless-ngx/base.html:63
+msgid "All rights reserved."
+msgstr "Tous droits réservés."
+
+#: documents/templates/paperless-ngx/base.html:110
+msgid "Need help? <a href=\"https://docvera.io/support\" target=\"_blank\" rel=\"noopener\">Contact support</a>"
+msgstr "Besoin d'aide ? <a href=\"https://docvera.io/support\" target=\"_blank\" rel=\"noopener\">Contactez le support</a>"
 
 #: documents/templates/paperless-ngx/base.html:58
 msgid "Share link was not found."
