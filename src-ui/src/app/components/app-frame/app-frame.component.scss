@@ -157,8 +157,11 @@ main {
 .sidebar .nav-link {
   font-weight: 500;
   white-space: nowrap;
+  // Reserved even when inactive so the active item doesn't shift layout
+  // when it gains the border below.
+  border-inline-start: 3px solid transparent;
 
-  &:hover, &.active, &:focus {
+  &:hover, &:focus {
     color: var(--bs-primary);
   }
 
@@ -169,12 +172,25 @@ main {
 
   &.active {
     font-weight: bold;
+    // Background + accent bar carry the active signal instead of relying on
+    // color alone (WCAG 1.4.1). Text stays the default body color rather than
+    // --bs-primary: at the dark-mode Navy lightness (58%, see
+    // DOCVERA_DESIGN_SYSTEM.md §7) there isn't enough contrast headroom left
+    // to also tint a visible background under it and stay AA — see §5.13.
+    color: var(--bs-body-color);
+    background-color: var(--pngx-bg-alt2);
+    border-inline-start-color: var(--bs-primary);
   }
 
   i-bs {
     position: relative;
     top: -1px;
   }
+}
+
+.sidebar-open-documents-list {
+  max-height: 14rem;
+  overflow-y: auto;
 }
 
 .sidebar-heading {

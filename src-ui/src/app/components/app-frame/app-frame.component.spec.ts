@@ -27,7 +27,11 @@ import {
   DjangoMessagesService,
 } from 'src/app/services/django-messages.service'
 import { OpenDocumentsService } from 'src/app/services/open-documents.service'
-import { PermissionsService } from 'src/app/services/permissions.service'
+import {
+  PermissionAction,
+  PermissionsService,
+  PermissionType,
+} from 'src/app/services/permissions.service'
 import { RemoteVersionService } from 'src/app/services/rest/remote-version.service'
 import { SavedViewService } from 'src/app/services/rest/saved-view.service'
 import { SearchService } from 'src/app/services/rest/search.service'
@@ -394,5 +398,116 @@ describe('AppFrameComponent', () => {
     const main = fixture.nativeElement.querySelector('main')
     expect(main.querySelector('pngx-empty-state')).not.toBeNull()
     expect(main.querySelector('pngx-error-state')).toBeNull()
+  })
+
+  describe('sidebar regrouping', () => {
+    function navLink(routerLink: string): HTMLAnchorElement {
+      return fixture.nativeElement.querySelector(
+        `#sidebarMenu a[ng-reflect-router-link="${routerLink}"], #sidebarMenu a[routerLink="${routerLink}"]`
+      )
+    }
+
+    // Every item that existed in the old flat "Manage" list, plus Trash
+    // (which moved out of it), keyed by its new section. This is the
+    // regression guard for the regrouping: if an item is dropped, ungated,
+    // or left behind in the wrong section, one of these assertions fails.
+    const ungatedSection = ['dashboard', 'documents', 'trash']
+    const organizationSection = [
+      'correspondents',
+      'tags',
+      'documenttypes',
+      'storagepaths',
+      'customfields',
+    ]
+    const automationSection = ['workflows', 'mail', 'savedviews']
+    const administrationSection = [
+      'settings',
+      'config',
+      'usersgroups',
+      'tasks',
+      'logs',
+    ]
+
+    it('renders every item from every section when all permissions are granted', () => {
+      // Logs is gated by permissionsService.isAdmin(), a separate mechanism
+      // from *pngxIfPermissions used by every other item — must be granted
+      // independently for it to show up here.
+      jest.spyOn(permissionsService, 'isAdmin').mockReturnValue(true)
+      fixture.destroy()
+      fixture = TestBed.createComponent(AppFrameComponent)
+      component = fixture.componentInstance
+      fixture.detectChanges()
+
+      for (const routerLink of [
+        ...ungatedSection,
+        ...organizationSection,
+        ...automationSection,
+        ...administrationSection,
+      ]) {
+        expect(navLink(routerLink)).not.toBeNull()
+      }
+    })
+
+    it('groups items under the new Organization and Automation headings, not the old Manage heading', () => {
+      const headings = Array.from(
+        fixture.nativeElement.querySelectorAll('#sidebarMenu .sidebar-heading')
+      ).map((el: HTMLElement) => el.textContent.trim())
+      expect(headings.some((h) => h.includes('Organization'))).toBeTruthy()
+      expect(headings.some((h) => h.includes('Automation'))).toBeTruthy()
+      expect(headings.some((h) => h.includes('Manage'))).toBeFalsy()
+    })
+
+    it('moves Trash into the ungated top-level group, not the Manage/Administration list', () => {
+      const trashLink = navLink('trash')
+      expect(trashLink).not.toBeNull()
+      // The ungated group is the first <ul>, with no *pngxIfPermissions on
+      // its own <li> wrapper (only Documents' <li> is itself gated).
+      const trashItem = trashLink.closest('li')
+      expect(trashItem.closest('.nav-group')).toBeNull()
+    })
+
+    it('still gates each regrouped item on its own permission after the split', () => {
+      // Correspondents (Organization) and Workflows (Automation) came from
+      // the same flat list before the split. Denying only one type must not
+      // hide the other, or drop the whole new section. *pngxIfPermissions
+      // only evaluates in ngOnInit, so the mock must be in place before the
+      // fixture is (re)created.
+      jest
+        .spyOn(permissionsService, 'currentUserCan')
+        .mockImplementation(
+          (action: PermissionAction, type: PermissionType) =>
+            !(action === PermissionAction.View && type === PermissionType.Correspondent)
+        )
+      fixture.destroy()
+      fixture = TestBed.createComponent(AppFrameComponent)
+      component = fixture.componentInstance
+      fixture.detectChanges()
+
+      expect(navLink('correspondents')).toBeNull()
+      expect(navLink('tags')).not.toBeNull()
+      expect(navLink('workflows')).not.toBeNull()
+    })
+
+    it('preserves the Delete/Document guard on Trash after moving it out of Manage', () => {
+      jest
+        .spyOn(permissionsService, 'currentUserCan')
+        .mockImplementation(
+          (action: PermissionAction, type: PermissionType) =>
+            !(action === PermissionAction.Delete && type === PermissionType.Document)
+        )
+      fixture.destroy()
+      fixture = TestBed.createComponent(AppFrameComponent)
+      component = fixture.componentInstance
+      fixture.detectChanges()
+
+      expect(navLink('trash')).toBeNull()
+      expect(navLink('documents')).not.toBeNull()
+    })
+
+    it('replaces the Document Types "hash" glyph icon with a drawn bookmark icon', () => {
+      const link = navLink('documenttypes')
+      expect(link.querySelector('i-bs[name="hash"]')).toBeNull()
+      expect(link.querySelector('i-bs[name="bookmark"]')).not.toBeNull()
+    })
   })
 })

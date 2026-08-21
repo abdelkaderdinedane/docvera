@@ -1794,6 +1794,110 @@ this as fully verified, same caveat as the SSO-flag change.
 
 ---
 
+## Sidebar navigation improvements — regrouping, icon fix, active-state contrast, keyboard tooltips
+
+Last item of Increment 2 before regression testing. Five-part UX pass on the sidebar
+(`app-frame.component.html`/`.scss`), read against `DOCVERA_DESIGN_SYSTEM.md` first per instruction, which
+now has a new §5.13 ("Sidebar navigation") and a new §7 subsection ("Sidebar active-state contrast
+decision") documenting the patterns and the contrast math below in full — this entry summarizes; see those
+sections for the complete reasoning.
+
+**1 — Regrouping.** The old flat 9-item "Manage" list (equal visual weight for daily-use items like
+Correspondents alongside configure-once items like Storage Paths) is now three groups by frequency of use:
+an unheaded top group gains **Trash** (moved up from Manage — it's a document view, not a setting: now
+sits after Dashboard/Documents); **Organization** (Correspondents, Tags, Document Types, Storage Paths,
+Custom Fields); **Automation** (Workflows, Mail, and the *static* Saved Views management link — not the
+separate, always-present dynamic per-user saved-views shortcut list, which is untouched and stays where it
+was). Administration (Settings, Configuration, Users & Groups, File Tasks, Logs) is unchanged. Every
+item's existing `*pngxIfPermissions` guard (or, for Logs, its separate `permissionsService.isAdmin()`
+guard) was preserved exactly, attribute-for-attribute — this was a reorder/regroup only, no route,
+permission, or badge behavior changed. New `app-frame.component.spec.ts` coverage
+(`sidebar regrouping` describe block) asserts the full expected item set renders per section and that
+denying one item's permission doesn't hide its section-mates, specifically to catch a future regroup from
+silently dropping or ungating an item.
+
+**2 — "Open documents" no longer pushes lower sections around.** Was an unbounded list between the main
+nav and the (now-split) management groups — every additional open document shifted everything below it
+further down. Now `.sidebar-open-documents-list` (`max-height: 14rem; overflow-y: auto`), so Organization/
+Automation/Administration stay at a stable vertical position regardless of how many documents are open;
+the "Open documents" heading itself stays outside the scroll container.
+
+**3 — Document Types icon.** Was rendering the literal character "#" (icon name `hash`) instead of a drawn
+icon — visibly lighter weight than every neighboring icon. Registered `bookmark` (already shipped in the
+installed `ngx-bootstrap-icons` package, just not registered) in `src-ui/src/main.ts`, in alphabetical
+position in both the import list and the `icons` object, matching the file's existing convention; swapped
+the Document Types `<i-bs name="...">` to it. **Icon audit, not fixed (flagged for later, low-traffic and
+out of this task's specific scope)**: the Documentation footer link's icon is missing the `me-1` spacing
+class every other sidebar icon carries; the two GitHub/update-check footer `info-circle` icons use an
+explicit `width="1.2em" height="1.2em"` where the rest of the sidebar relies on the icon's implicit
+default size. Both are minor sizing inconsistencies, not "wrong icon" defects.
+
+**4 — Active-state contrast.** The active item's highlight was barely distinguishable from its siblings.
+Computed (not eyeballed) WCAG contrast for candidate designs before writing any CSS, per the methodology
+already established for the dark-mode Navy token: Navy-colored active text on `--pngx-primary-faded`
+(≈1.69:1) and on `--pngx-bg-alt` (≈4.09–4.11:1) both fail 4.5:1 in dark mode — dark-mode Navy text is
+already at the minimum lightness (58%) that clears 4.5:1 against the plain page background, with almost no
+headroom left for any visibly-different background under it. Resolved by decoupling background and text
+color: `.active` uses `--pngx-bg-alt2` background with **default body text** (`--bs-body-color`, not
+Navy) — ≈7.19:1 dark mode, >10:1 light mode — plus a `border-inline-start: 3px solid var(--bs-primary)`
+accent bar to carry the brand-color signal as a non-text UI boundary (only needs 3:1, passes easily). Navy
+text is kept for `:hover`/`:focus` only, unchanged. Logical property (`border-inline-start`, not
+`border-left`) since RTL locale support lands later this phase. Status isn't carried by color alone — the
+background, the border, and (see below) `aria-current="page"` all independently mark the active item, per
+the existing accessibility-audit rule.
+
+**5 — Collapsed-mode tooltips, keyboard-accessible.** The sidebar already uses `ngbPopover` (not
+`ngbTooltip`, unused elsewhere in this codebase) for collapsed-mode item identification, gated by
+`[disablePopover]="!slimSidebarEnabled"` — but its `triggers="mouseenter:mouseleave"` was hover-only,
+unreachable by keyboard. Changed to `triggers="mouseenter:mouseleave focus:blur"` on all 22 non-interactive
+popovers throughout the sidebar, so tabbing to a collapsed icon-only item opens its identifying popover.
+The one interactive popover (the disabled update-check popover, containing Enable/Disable buttons) was
+deliberately left `mouseenter`-only — open-on-focus/close-on-blur would close it the instant focus moves
+from the trigger to a button inside it, making the buttons unreachable by keyboard, which is worse than
+the current hover-only state. Also added `ariaCurrentWhenActive="page"` alongside every
+`routerLinkActive="active"` (18 occurrences), so the active item is marked to assistive technology
+independently of the visual treatment.
+
+**New i18n**: two new `docvera.*` custom ids for the new section headings —
+`docvera.sidebar.section.organization` ("Organization" / "Organisation") and
+`docvera.sidebar.section.automation` ("Automation" / "Automatisation"). Extracted via `ng extract-i18n`,
+French targets hand-added to `messages.fr_FR.xlf` following the established procedure, verified via a full
+`ng build --configuration production` (all 35 locales) checked directly against
+`src/documents/static/frontend/fr-FR/main.js` (not `--localize=fr-FR`, which silently produces an
+unlocalized build under this project's custom webpack builder, and not `dist/`) — confirmed "Organisation"
+and "Automatisation" present, no leaked English "Organization"/"Automation" strings. The pre-existing
+"Administration" heading kept its plain auto-hash-id `i18n` (unchanged content, no custom id needed).
+
+- **Files**: `src-ui/src/app/components/app-frame/app-frame.component.html`,
+  `src-ui/src/app/components/app-frame/app-frame.component.scss`, `src-ui/src/main.ts`,
+  `src-ui/src/app/components/app-frame/app-frame.component.spec.ts`, `src-ui/messages.xlf`,
+  `src-ui/src/locale/messages.fr_FR.xlf`, `DOCVERA_DESIGN_SYSTEM.md`.
+- **Reason**: architect-requested UX pass on the sidebar — section grouping, icon consistency,
+  active-state legibility, keyboard-accessible collapsed-mode tooltips.
+- **Approach**: see the five numbered points above.
+- **Upgrade impact**: **`app-frame.component.html` is now the file most likely to conflict on a future
+  upstream `git merge tags/vX.Y.Z`** — it's shared with upstream, and this change touches nearly the
+  entire sidebar `<nav>` block (regrouping the management list, moving Trash, retriggering every item's
+  popover/routerLinkActive attributes). A future upstream sidebar change (a new nav item, a reordered
+  Manage list, a different popover pattern) will very likely need a hand-merge here rather than a clean
+  fast-forward. `app-frame.component.scss`'s `.sidebar .nav-link` block is a smaller, more contained
+  upstream-diff surface but is also touched. `main.ts`'s icon registration is a low-risk, purely additive
+  diff (one import + one object entry, in convention-following alphabetical position).
+
+**Verification**: `pnpm run test -- app-frame.component.spec.ts` — 26/26 passing, including the 6 new
+`sidebar regrouping` tests (full item-set-per-section rendering, Organization/Automation headings replace
+Manage, Trash moved to the ungated group, per-item permission gating survives the split for both a
+View-gated item (Correspondents) and the Delete-gated Trash item, hash→bookmark icon swap). `ng lint` —
+clean. Full `ng build --configuration production` — succeeds, same output hash before and after a
+whitespace-only indentation cleanup pass (confirms the formatting fix changed nothing behaviorally); French
+bundle verified to contain the new translated headings as above. `pre-commit`/root-level `prettier` could
+not be run in this environment (repo root has no `node_modules` — the `.prettierrc.js` plugin
+`prettier-plugin-organize-imports` isn't resolvable from there; a pre-existing environment gap, not
+introduced by this change) — formatting was done and checked by hand instead; please run `pre-commit`
+(or CI) before merging to confirm.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

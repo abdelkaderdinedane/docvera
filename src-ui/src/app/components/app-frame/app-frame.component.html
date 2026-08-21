@@ -186,13 +186,14 @@
                 class="nav-link"
                 routerLink="dashboard"
                 routerLinkActive="active"
+                ariaCurrentWhenActive="page"
                 (click)="closeMenu()"
                 ngbPopover="Dashboard"
                 i18n-ngbPopover
                 [disablePopover]="!slimSidebarEnabled"
                 placement="end"
                 container="body"
-                triggers="mouseenter:mouseleave"
+                triggers="mouseenter:mouseleave focus:blur"
                 popoverClass="popover-slim"
               >
                 <i-bs class="me-1" name="house"></i-bs
@@ -210,17 +211,43 @@
                 class="nav-link"
                 routerLink="documents"
                 routerLinkActive="active"
+                ariaCurrentWhenActive="page"
                 (click)="closeMenu()"
                 ngbPopover="Documents"
                 i18n-ngbPopover
                 [disablePopover]="!slimSidebarEnabled"
                 placement="end"
                 container="body"
-                triggers="mouseenter:mouseleave"
+                triggers="mouseenter:mouseleave focus:blur"
                 popoverClass="popover-slim"
               >
                 <i-bs class="me-1" name="files"></i-bs
                 ><span>&nbsp;<ng-container i18n>Documents</ng-container></span>
+              </a>
+            </li>
+            <li
+              class="nav-item app-link"
+              *pngxIfPermissions="{
+                action: PermissionAction.Delete,
+                type: PermissionType.Document,
+              }"
+            >
+              <a
+                class="nav-link"
+                routerLink="trash"
+                routerLinkActive="active"
+                ariaCurrentWhenActive="page"
+                (click)="closeMenu()"
+                ngbPopover="Trash"
+                i18n-ngbPopover
+                [disablePopover]="!slimSidebarEnabled"
+                placement="end"
+                container="body"
+                triggers="mouseenter:mouseleave focus:blur"
+                popoverClass="popover-slim"
+              >
+                <i-bs class="me-1" name="trash"></i-bs
+                ><span>&nbsp;<ng-container i18n>Trash</ng-container></span>
               </a>
             </li>
           </ul>
@@ -265,12 +292,13 @@
                       class="nav-link"
                       routerLink="view/{{ view.id }}"
                       routerLinkActive="active"
+                      ariaCurrentWhenActive="page"
                       (click)="closeMenu()"
                       [ngbPopover]="view.name"
                       [disablePopover]="!slimSidebarEnabled"
                       placement="end"
                       container="body"
-                      triggers="mouseenter:mouseleave"
+                      triggers="mouseenter:mouseleave focus:blur"
                       popoverClass="popover-slim"
                     >
                       <i-bs class="me-1" name="funnel"></i-bs>
@@ -323,7 +351,7 @@
                 <span i18n>Open documents</span>
               </h6>
             }
-            <ul class="nav flex-column mb-2">
+            <ul class="nav flex-column mb-2 sidebar-open-documents-list">
               @for (d of openDocuments; track d) {
                 <li class="nav-item w-100 app-link">
                   <a
@@ -331,12 +359,13 @@
                     [class.text-truncate]="!slimSidebarEnabled"
                     routerLink="documents/{{ d.id }}"
                     routerLinkActive="active"
+                    ariaCurrentWhenActive="page"
                     (click)="closeMenu()"
                     [ngbPopover]="d.title | documentTitle"
                     [disablePopover]="!slimSidebarEnabled"
                     placement="end"
                     container="body"
-                    triggers="mouseenter:mouseleave"
+                    triggers="mouseenter:mouseleave focus:blur"
                     popoverClass="popover-slim"
                   >
                     <i-bs class="me-1" name="file-text"></i-bs
@@ -362,7 +391,7 @@
                     [disablePopover]="!slimSidebarEnabled"
                     placement="end"
                     container="body"
-                    triggers="mouseenter:mouseleave"
+                    triggers="mouseenter:mouseleave focus:blur"
                     popoverClass="popover-slim"
                   >
                     <i-bs class="me-1" name="x"></i-bs
@@ -377,7 +406,9 @@
 
           <div class="nav-group mt-3 mb-1">
             <h6 class="sidebar-heading px-3 text-muted">
-              <span i18n>Manage</span>
+              <span i18n="@@docvera.sidebar.section.organization"
+                >Organization</span
+              >
             </h6>
             <ul class="nav flex-column mb-2">
               <li
@@ -391,13 +422,14 @@
                   class="nav-link"
                   routerLink="correspondents"
                   routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
                   (click)="closeMenu()"
                   ngbPopover="Correspondents"
                   i18n-ngbPopover
                   [disablePopover]="!slimSidebarEnabled"
                   placement="end"
                   container="body"
-                  triggers="mouseenter:mouseleave"
+                  triggers="mouseenter:mouseleave focus:blur"
                   popoverClass="popover-slim"
                 >
                   <i-bs class="me-1" name="person"></i-bs
@@ -420,13 +452,14 @@
                   class="nav-link"
                   routerLink="tags"
                   routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
                   (click)="closeMenu()"
                   ngbPopover="Tags"
                   i18n-ngbPopover
                   [disablePopover]="!slimSidebarEnabled"
                   placement="end"
                   container="body"
-                  triggers="mouseenter:mouseleave"
+                  triggers="mouseenter:mouseleave focus:blur"
                   popoverClass="popover-slim"
                 >
                   <i-bs class="me-1" name="tags"></i-bs
@@ -444,16 +477,17 @@
                   class="nav-link"
                   routerLink="documenttypes"
                   routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
                   (click)="closeMenu()"
                   ngbPopover="Document Types"
                   i18n-ngbPopover
                   [disablePopover]="!slimSidebarEnabled"
                   placement="end"
                   container="body"
-                  triggers="mouseenter:mouseleave"
+                  triggers="mouseenter:mouseleave focus:blur"
                   popoverClass="popover-slim"
                 >
-                  <i-bs class="me-1" name="hash"></i-bs
+                  <i-bs class="me-1" name="bookmark"></i-bs
                   ><span
                     >&nbsp;<ng-container i18n
                       >Document Types</ng-container
@@ -472,13 +506,14 @@
                   class="nav-link"
                   routerLink="storagepaths"
                   routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
                   (click)="closeMenu()"
                   ngbPopover="Storage Paths"
                   i18n-ngbPopover
                   [disablePopover]="!slimSidebarEnabled"
                   placement="end"
                   container="body"
-                  triggers="mouseenter:mouseleave"
+                  triggers="mouseenter:mouseleave focus:blur"
                   popoverClass="popover-slim"
                 >
                   <i-bs class="me-1" name="folder"></i-bs
@@ -498,13 +533,14 @@
                   class="nav-link"
                   routerLink="customfields"
                   routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
                   (click)="closeMenu()"
                   ngbPopover="Custom Fields"
                   i18n-ngbPopover
                   [disablePopover]="!slimSidebarEnabled"
                   placement="end"
                   container="body"
-                  triggers="mouseenter:mouseleave"
+                  triggers="mouseenter:mouseleave focus:blur"
                   popoverClass="popover-slim"
                 >
                   <i-bs class="me-1" name="ui-radios"></i-bs
@@ -513,32 +549,16 @@
                   >
                 </a>
               </li>
-              <li
-                class="nav-item app-link"
-                *pngxIfPermissions="{
-                  action: PermissionAction.View,
-                  type: PermissionType.SavedView,
-                }"
+            </ul>
+          </div>
+
+          <div class="nav-group mt-3 mb-1">
+            <h6 class="sidebar-heading px-3 text-muted">
+              <span i18n="@@docvera.sidebar.section.automation"
+                >Automation</span
               >
-                <a
-                  class="nav-link"
-                  routerLink="savedviews"
-                  routerLinkActive="active"
-                  (click)="closeMenu()"
-                  ngbPopover="Saved Views"
-                  i18n-ngbPopover
-                  [disablePopover]="!slimSidebarEnabled"
-                  placement="end"
-                  container="body"
-                  triggers="mouseenter:mouseleave"
-                  popoverClass="popover-slim"
-                >
-                  <i-bs class="me-1" name="window-stack"></i-bs
-                  ><span
-                    >&nbsp;<ng-container i18n>Saved Views</ng-container></span
-                  >
-                </a>
-              </li>
+            </h6>
+            <ul class="nav flex-column mb-2">
               <li
                 class="nav-item app-link"
                 *pngxIfPermissions="{
@@ -551,13 +571,14 @@
                   class="nav-link"
                   routerLink="workflows"
                   routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
                   (click)="closeMenu()"
                   ngbPopover="Workflows"
                   i18n-ngbPopover
                   [disablePopover]="!slimSidebarEnabled"
                   placement="end"
                   container="body"
-                  triggers="mouseenter:mouseleave"
+                  triggers="mouseenter:mouseleave focus:blur"
                   popoverClass="popover-slim"
                 >
                   <i-bs class="me-1" name="boxes"></i-bs
@@ -578,13 +599,14 @@
                   class="nav-link"
                   routerLink="mail"
                   routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
                   (click)="closeMenu()"
                   ngbPopover="Mail"
                   i18n-ngbPopover
                   [disablePopover]="!slimSidebarEnabled"
                   placement="end"
                   container="body"
-                  triggers="mouseenter:mouseleave"
+                  triggers="mouseenter:mouseleave focus:blur"
                   popoverClass="popover-slim"
                 >
                   <i-bs class="me-1" name="envelope"></i-bs
@@ -594,25 +616,28 @@
               <li
                 class="nav-item app-link"
                 *pngxIfPermissions="{
-                  action: PermissionAction.Delete,
-                  type: PermissionType.Document,
+                  action: PermissionAction.View,
+                  type: PermissionType.SavedView,
                 }"
               >
                 <a
                   class="nav-link"
-                  routerLink="trash"
+                  routerLink="savedviews"
                   routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
                   (click)="closeMenu()"
-                  ngbPopover="Trash"
+                  ngbPopover="Saved Views"
                   i18n-ngbPopover
                   [disablePopover]="!slimSidebarEnabled"
                   placement="end"
                   container="body"
-                  triggers="mouseenter:mouseleave"
+                  triggers="mouseenter:mouseleave focus:blur"
                   popoverClass="popover-slim"
                 >
-                  <i-bs class="me-1" name="trash"></i-bs
-                  ><span>&nbsp;<ng-container i18n>Trash</ng-container></span>
+                  <i-bs class="me-1" name="window-stack"></i-bs
+                  ><span
+                    >&nbsp;<ng-container i18n>Saved Views</ng-container></span
+                  >
                 </a>
               </li>
             </ul>
@@ -635,13 +660,14 @@
                   class="nav-link"
                   routerLink="settings"
                   routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
                   (click)="closeMenu()"
                   ngbPopover="Settings"
                   i18n-ngbPopover
                   [disablePopover]="!slimSidebarEnabled"
                   placement="end"
                   container="body"
-                  triggers="mouseenter:mouseleave"
+                  triggers="mouseenter:mouseleave focus:blur"
                   popoverClass="popover-slim"
                 >
                   <i-bs class="me-1" name="gear"></i-bs
@@ -659,13 +685,14 @@
                   class="nav-link"
                   routerLink="config"
                   routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
                   (click)="closeMenu()"
                   ngbPopover="Configuration"
                   i18n-ngbPopover
                   [disablePopover]="!slimSidebarEnabled"
                   placement="end"
                   container="body"
-                  triggers="mouseenter:mouseleave"
+                  triggers="mouseenter:mouseleave focus:blur"
                   popoverClass="popover-slim"
                 >
                   <i-bs class="me-1" name="sliders2-vertical"></i-bs
@@ -685,13 +712,14 @@
                   class="nav-link"
                   routerLink="usersgroups"
                   routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
                   (click)="closeMenu()"
                   ngbPopover="Users & Groups"
                   i18n-ngbPopover
                   [disablePopover]="!slimSidebarEnabled"
                   placement="end"
                   container="body"
-                  triggers="mouseenter:mouseleave"
+                  triggers="mouseenter:mouseleave focus:blur"
                   popoverClass="popover-slim"
                 >
                   <i-bs class="me-1" name="people"></i-bs
@@ -714,13 +742,14 @@
                   class="nav-link"
                   routerLink="tasks"
                   routerLinkActive="active"
+                  ariaCurrentWhenActive="page"
                   (click)="closeMenu()"
                   ngbPopover="File Tasks"
                   i18n-ngbPopover
                   [disablePopover]="!slimSidebarEnabled"
                   placement="end"
                   container="body"
-                  triggers="mouseenter:mouseleave"
+                  triggers="mouseenter:mouseleave focus:blur"
                   popoverClass="popover-slim"
                 >
                   <i-bs class="me-1" name="list-task"></i-bs
@@ -751,13 +780,14 @@
                     class="nav-link"
                     routerLink="logs"
                     routerLinkActive="active"
+                    ariaCurrentWhenActive="page"
                     (click)="closeMenu()"
                     ngbPopover="Logs"
                     i18n-ngbPopover
                     [disablePopover]="!slimSidebarEnabled"
                     placement="end"
                     container="body"
-                    triggers="mouseenter:mouseleave"
+                    triggers="mouseenter:mouseleave focus:blur"
                     popoverClass="popover-slim"
                   >
                     <i-bs class="me-1" name="text-left"></i-bs
@@ -776,7 +806,7 @@
                   [disablePopover]="!slimSidebarEnabled"
                   placement="end"
                   container="body"
-                  triggers="mouseenter:mouseleave"
+                  triggers="mouseenter:mouseleave focus:blur"
                   popoverClass="popover-slim"
                 >
                   <i-bs class="d-flex" name="question-circle"></i-bs
@@ -800,7 +830,7 @@
                       [disablePopover]="!slimSidebarEnabled"
                       placement="end"
                       container="body"
-                      triggers="mouseenter:mouseleave"
+                      triggers="mouseenter:mouseleave focus:blur"
                       popoverClass="popover-slim"
                     >
                       {{ versionString }}
@@ -860,7 +890,7 @@
                             href="https://github.com/paperless-ngx/paperless-ngx/releases"
                             [ngbPopover]="updateAvailablePopContent"
                             popoverClass="shadow"
-                            triggers="mouseenter:mouseleave"
+                            triggers="mouseenter:mouseleave focus:blur"
                             container="body"
                           >
                             <i-bs

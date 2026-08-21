@@ -261,6 +261,73 @@ survive gating, versus a widget like Recent Documents (gated as a whole by `*png
 `Document` view, but whose *own* primary request can still independently 403 in the defensive case above)
 showing the calm explanation instead.
 
+## 5.13 Sidebar navigation
+
+**Grouping is by frequency of use, not by object type.** The sidebar (`app-frame.component.html`) groups
+nav items into an unheaded top group (dashboard-level views used every session: Dashboard, Documents,
+Trash), **Organization** (the taxonomy an operator maintains regularly: Correspondents, Tags, Document
+Types, Storage Paths, Custom Fields), **Automation** (configured occasionally, then left running:
+Workflows, Mail, the Saved Views *management* link), and **Administration** (configured once, by an
+admin: Settings, Configuration, Users & Groups, File Tasks, Logs). An item's permission gate is a property
+of the item, not the group — moving an item between sections never changes, drops, or merges its own
+`*pngxIfPermissions` guard (or, for Logs specifically, its `permissionsService.isAdmin()` guard — a
+separate mechanism, preserved as-is). `app-frame.component.spec.ts`'s `sidebar regrouping` describe block
+asserts the full expected item set per section survives, and that permission denial on one item in a
+section doesn't hide its neighbors, specifically to catch a future regrouping edit from silently dropping
+or ungating an item.
+
+Do not confuse the **Organization/Automation/Administration** static management-link groups above with
+the separate, always-present **"Saved views"** nav-group rendered just above them — that one is the
+user's own dynamic, drag-reorderable shortcut list (`savedViewService.sidebarViews`), gated the same way
+but structurally and functionally distinct from the single static "Saved Views" link (which opens the
+saved-views management page and lives in Automation).
+
+**Icons**: every sidebar item icon comes from the registered `ngx-bootstrap-icons` subset in
+`src-ui/src/main.ts` — never a raw character (the old Document Types icon, `hash`, rendered as a literal
+"#" glyph rather than a drawn icon, visibly lighter and differently weighted than its neighbors; it's now
+`bookmark`, registered in `main.ts` in alphabetical position in both the import list and the `icons`
+object, matching the existing convention). If a needed icon isn't already registered, add it in its
+alphabetical slot in both places rather than importing it ad hoc in the component.
+
+**New section headings use the standard `docvera.*` custom i18n id** (§5.11's convention) —
+`docvera.sidebar.section.organization` / `docvera.sidebar.section.automation` — with French targets added
+to `messages.fr_FR.xlf` by hand, verified via a full `ng build --configuration production` checked against
+`src/documents/static/frontend/fr-FR/main.js` (not `--localize=fr-FR`, which silently produces an
+unlocalized build under this project's custom webpack builder, and not `dist/`, which isn't this project's
+production output path — see the extraction procedure this pattern follows in `DOCVERA_CHANGELOG.md`).
+The pre-existing "Administration" heading was left as a plain, auto-hash-id `i18n` string since it's
+unchanged content, not new — only genuinely new source text gets a custom id.
+
+**Active-state contrast** — see the accessibility subsection below; the short version is that the active
+item's background and text-color decisions are deliberately decoupled from each other, because the
+dark-mode Navy text color alone doesn't have contrast headroom left to also sit on a tinted background.
+
+**Collapsed-mode tooltips use the existing `ngbPopover` mechanism** (not `ngbTooltip`, which isn't used
+elsewhere in this codebase), already wired to every item via `[disablePopover]="!slimSidebarEnabled"`.
+The trigger was `mouseenter:mouseleave` only — hover-only, unreachable by keyboard — and is now
+`mouseenter:mouseleave focus:blur` throughout, so tabbing to a collapsed icon-only item opens its
+identifying popover the same way hovering it does. The one interactive popover in the sidebar (the
+disabled-update-check popover, containing Enable/Disable buttons) is deliberately left `mouseenter`-only:
+making an interactive popover open-on-focus/close-on-blur would close it as soon as focus moves from the
+trigger to a button inside it, making the buttons unreachable by keyboard — worse than the hover-only
+status quo. Every `routerLinkActive="active"` item also now carries `ariaCurrentWhenActive="page"`, so the
+active item is identified to assistive technology (`aria-current="page"`) independently of the visual
+treatment.
+
+**"Open documents" stays a fixed-height, internally-scrolling region** (`.sidebar-open-documents-list`,
+`max-height: 14rem; overflow-y: auto`) rather than growing without bound — with enough documents open it
+used to push every section below it (Organization, Automation, Administration) further down the page per
+additional open document, leaving them at an unpredictable vertical position. The heading itself
+(`<h6>Open documents</h6>`) stays outside the scroll container so it's never scrolled out of view while
+its list is mid-scroll.
+
+**Icon audit findings, not fixed (flagged for a future pass, out of scope for this change)**: the
+Documentation link's icon (`<i-bs name="question-circle">`) is missing the `me-1` spacing class every
+other sidebar icon carries, and the two GitHub/update-check footer icons (`info-circle`) use an explicit
+`width="1.2em" height="1.2em"` where the rest of the sidebar relies on the icon's implicit default size —
+both are minor, low-traffic inconsistencies rather than the "typographic character instead of a drawn
+icon" defect this task specifically targeted, so left as-is rather than folded into an unrelated change.
+
 ---
 
 ## 7. Accessibility (WCAG 2.1 AA)
@@ -337,3 +404,43 @@ shipping an as-is brand value that happens to fail in dark mode. A color that ha
 way is not yet ready to ship on a dark surface.
 
 Full findings, methodology, and what's not yet covered: `DOCVERA_ACCESSIBILITY_AUDIT.md`.
+
+### Sidebar active-state contrast decision
+
+The sidebar's `.nav-link.active` state (see §5.13) deliberately uses a **different text color than
+`:hover`/`:focus`**, rather than the single shared color the rest of the codebase would default to. This
+is intentional, computed the same way as the dark-mode Navy decision above, and documented here so a
+future "simplify this, it looks redundant" edit doesn't silently reintroduce a contrast failure.
+
+**The problem**: the obvious design — Navy-colored active text (matching `:hover`/`:focus`) on top of a
+visibly-tinted background, so the active item reads as "the same color, just highlighted" — fails WCAG AA
+in dark mode. Dark-mode Navy text is already set to the *minimum* lightness (58%, see above) that clears
+4.5:1 against the plain page background (`--bs-body-bg`, ≈4.85:1, almost no headroom above the 4.5:1
+floor). Any background lighter than page-background pulls that ratio down further. Two candidates were
+computed and rejected before landing on the current design:
+
+| Candidate background | Text color | Computed contrast (dark mode) | Result |
+|---|---|---|---|
+| `--pngx-primary-faded` (the existing "highlight" tint token, used elsewhere) | Navy (`--bs-primary`, 58% lightness) | ≈ 1.69:1 | **Fails badly** |
+| `--pngx-bg-alt` (`#242529`) | Navy (`--bs-primary`, 58% lightness) | ≈ 4.09–4.11:1 | **Fails**, narrowly — below the 4.5:1 floor |
+
+Solving algebraically for the maximum background luminance that keeps Navy-58% text at 4.5:1 gives
+`L_bg ≤ 0.01262`; the page background itself is already at `L ≈ 0.00808`, leaving almost no margin for a
+perceptibly different, still-passing background under Navy text.
+
+**Resolution — decouple background and text color**: `.active` uses a neutral surface token,
+`--pngx-bg-alt2` (`#232323` dark / `var(--bs-gray-200)` light), as the background, paired with the
+**default body text color** (`--bs-body-color`) rather than Navy — computed at ≈7.19:1 in dark mode, and
+comfortably over 10:1 in light mode (near-black text on light grey). Navy is kept *only* for `:hover` and
+`:focus`, unchanged, still safe against the unmodified page background. The brand-color signal that Navy
+text used to carry on the active item is now carried instead by a `border-inline-start: 3px solid
+var(--bs-primary)` accent bar — a non-text UI-component boundary, so it only needs to clear 3:1, which
+Navy does easily against either surface token. `border-inline-start` (not `border-left`) since Docvera
+plans RTL locale support later this phase; a hard-coded `left` would render on the wrong edge under RTL.
+The transparent-border reservation on every `.nav-link` (`border-inline-start: 3px solid transparent`)
+exists purely so gaining the colored border on `.active` doesn't shift layout by the border's width.
+
+**Rule going forward**: don't reuse `--pngx-primary-faded` or reintroduce Navy-colored text on any new
+tinted background in dark mode without first computing the pairing — Navy at 58% lightness has almost no
+contrast budget left, by design (see the color-token decision above), so it fails on backgrounds that
+would be perfectly safe for default body-color text.
