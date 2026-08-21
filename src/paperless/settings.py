@@ -526,6 +526,13 @@ ACCOUNT_EMAIL_SUBJECT_PREFIX = "[Paperless-ngx] "
 DISABLE_REGULAR_LOGIN = __get_boolean("PAPERLESS_DISABLE_REGULAR_LOGIN")
 REDIRECT_LOGIN_TO_SSO = __get_boolean("PAPERLESS_REDIRECT_LOGIN_TO_SSO")
 
+# Docvera: shows the disabled "Single sign-on (SSO)" placeholder button on the
+# login page, prepared ahead of the Phase 5 SSO integration. Off by default —
+# unavailable functionality should not be exposed to customers. Distinct from
+# REDIRECT_LOGIN_TO_SSO above, which governs the real (already-functional)
+# social-account SSO redirect. Flip to "yes" once Phase 5 actually ships.
+SSO_PLACEHOLDER_ENABLED = __get_boolean("PAPERLESS_SSO_PLACEHOLDER_ENABLED")
+
 AUTO_LOGIN_USERNAME = os.getenv("PAPERLESS_AUTO_LOGIN_USERNAME")
 
 ACCOUNT_EMAIL_VERIFICATION = (

@@ -1605,6 +1605,71 @@ English source fallback remains for any of them.
 
 ---
 
+## Architect review follow-up 1 — hide the disabled SSO placeholder from customers
+
+The login page's "coming soon" SSO button (`07acdcf24`, the auth-pages redesign) is disabled and
+labeled as a future capability, but was still shown to every customer regardless of whether Phase 5 SSO
+actually exists yet. The architect's instruction: unavailable functionality shouldn't be exposed, but the
+extension point should stay easy to pick back up — not deleted outright.
+
+**Preservation approach chosen: a feature flag defaulting to off**, not a commented-out block or an
+unused-but-present component. Reason: this exact mechanism — a Django setting, sourced from a
+`PAPERLESS_*` env var via `__get_boolean()`, exposed to templates through
+`documents/context_processors.py`, gating a `{% if %}` block — is already the established convention in
+this same file for `DISABLE_REGULAR_LOGIN`, `ACCOUNT_ALLOW_SIGNUPS`, and `FIRST_INSTALL`. Using it here
+keeps the change consistent with three sibling conditionals already sitting in the same template,
+keeps the markup/CSS/i18n strings live and real (not dead commented-out HTML someone has to first verify
+still matches current markup conventions before re-enabling), and makes Phase 5's actual launch a
+one-line env var flip (`PAPERLESS_SSO_PLACEHOLDER_ENABLED=yes`) with no code change at all.
+
+- **Files**: `src/paperless/settings.py`
+- **Reason**: define the new flag.
+- **Approach**: added `SSO_PLACEHOLDER_ENABLED = __get_boolean("PAPERLESS_SSO_PLACEHOLDER_ENABLED")`
+  immediately after `REDIRECT_LOGIN_TO_SSO`, with a comment distinguishing it from that setting —
+  `REDIRECT_LOGIN_TO_SSO` is the real, already-functional upstream social-account SSO redirect;
+  `SSO_PLACEHOLDER_ENABLED` only controls whether the Docvera-added disabled placeholder button renders.
+  `__get_boolean()` defaults to `"NO"`, so the flag is off unless explicitly set.
+- **Upgrade impact**: low — additive setting, same helper/pattern as its immediate neighbors.
+
+- **Files**: `src/documents/context_processors.py`
+- **Reason**: expose the new setting to templates, matching how `DISABLE_REGULAR_LOGIN` etc. are exposed.
+- **Approach**: added `"SSO_PLACEHOLDER_ENABLED": django_settings.SSO_PLACEHOLDER_ENABLED` to the
+  `settings()` context processor's return dict.
+- **Upgrade impact**: none — one additional dict key.
+
+- **Files**: `src/documents/templates/account/login.html`
+- **Reason**: gate the placeholder's visibility on the new flag.
+- **Approach**: changed the wrapping condition from `{% if not DISABLE_REGULAR_LOGIN %}` to
+  `{% if not DISABLE_REGULAR_LOGIN and SSO_PLACEHOLDER_ENABLED %}` — the original condition is
+  preserved (still nothing shown if regular login itself is disabled), the new one is additive and
+  defaults closed. The button, its `disabled`/`title="Coming soon"` state, the "Centralized identity is
+  coming in a future release" note, and the surrounding `.auth-sso-group` markup are all untouched inside
+  the block — nothing was deleted, only newly gated. Added a template comment explaining the flag and
+  pointing at `settings.py`, so a future Phase 5 implementer finds the on-switch immediately.
+- **Upgrade impact**: low — single conditional in a Docvera-added block within an otherwise
+  upstream-shared template; re-verify after upstream auth-template changes, same as the rest of the
+  auth-pages redesign.
+
+**i18n strings — checked, none orphaned**: `"Single sign-on (SSO)"`, `"Coming soon"`, and "Centralized
+identity is coming in a future release." remain inside live, reachable `{% translate %}` tags — they're
+gated by a runtime condition, not removed from the template, so `makemessages` still extracts them and
+they stay genuinely translatable (the same way every other `{% if DISABLE_REGULAR_LOGIN %}`-gated string
+in this file already does). Checked `src/locale/` directly: none of the three strings exist in any `.po`
+file today (this project's Django `.po` files haven't been regenerated since these strings were added,
+same gap as the Angular locale files documented earlier in this changelog) — so there was nothing to
+remove from locale entries either way. The shared `"or"` divider text and its `.auth-divider` CSS class
+are unaffected — that class is also used independently on `signup.html` for the real (non-placeholder)
+social-provider list, confirmed by grep before touching anything, so it was left alone.
+
+**Verification**: Python syntax of both edited `.py` files validated (`ast.parse`); this environment has
+neither `uv` nor a configured Django virtualenv available, so `manage.py check`/the backend test suite
+could not be run here — flagging rather than silently skipping. The change is mechanically identical to
+three already-working, already-tested sibling conditionals in the same two files, which lowers risk, but
+this should still be exercised (`manage.py check`, a manual login-page load with the flag both on and
+off) before considering it fully verified.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

@@ -56,7 +56,13 @@
 {% block after_form_content %}
     {% load allauth socialaccount %}
     {% get_providers as socialaccount_providers %}
-    {% if not DISABLE_REGULAR_LOGIN %}
+    {% if not DISABLE_REGULAR_LOGIN and SSO_PLACEHOLDER_ENABLED %}
+        {# Disabled SSO placeholder, prepared ahead of Phase 5. Gated behind
+           SSO_PLACEHOLDER_ENABLED (off by default, see settings.py) rather than
+           shown-but-disabled: unavailable functionality should not be exposed
+           to customers. Flip PAPERLESS_SSO_PLACEHOLDER_ENABLED=yes to preview
+           it; the markup, styling (.auth-sso-group/.auth-sso-note in
+           base.css) and i18n strings stay live and translatable either way. #}
         <div class="auth-sso-group">
             <div class="auth-divider">{% translate "or" %}</div>
             <div class="d-grid">
