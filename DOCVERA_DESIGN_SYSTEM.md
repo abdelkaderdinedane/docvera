@@ -290,13 +290,50 @@ Acceptance criteria for all Docvera UI work:
 
 ### Known color-token decision (dark mode, Docvera Navy)
 
-`--pngx-primary-lightness` (dark mode, `theme.scss`'s `paperless-green-dark-mode` mixin) was raised
-from 42% to **58%** to bring Navy-colored text/links up to the 4.5:1 minimum against the dark page
-background (was ≈2.76:1, now ≈4.85:1). This was an explicit accessibility-over-brand-fidelity decision:
-raising the same token makes a second pairing — light-gray button label text on a Navy button
-background — measurably worse (was already failing at ≈3.07:1, now ≈1.75:1). That second pairing is a
-known, currently-unresolved gap, not a false negative — see `DOCVERA_ACCESSIBILITY_AUDIT.md` §4 for the
-full numbers and the recommended fix (a second, distinct color token, or a different foreground color
-for text-on-primary-background specifically, rather than reusing the same lightened value everywhere).
+**This is a recorded, intentional deviation from the brand token, not an unexplained inconsistency.**
+Dark mode does not render the exact Docvera Navy brand color — it renders a deliberately lightened
+variant, approved specifically to meet WCAG AA contrast. Documented here so that stays true going
+forward, even as the surrounding code changes.
+
+**The values** (`src-ui/src/theme.scss`):
+
+| | HSL | Approx. RGB / hex | Where |
+|---|---|---|---|
+| Brand Navy (`DOCVERA_BRAND.primaryColor`, light mode) | `hsl(217, 65%, 29%)` | `#1A3D7C` | `paperless-green` mixin — `--pngx-primary: 217, 65%; --pngx-primary-lightness: 29%` |
+| Adjusted dark-mode value | `hsl(217, 65%, 58%)` | ≈ `rgb(78, 132, 218)` | `paperless-green-dark-mode` mixin — `--pngx-primary-lightness: 58%` |
+
+Same hue and saturation (`217, 65%`) in both modes — only `--pngx-primary-lightness` moves, from **29%**
+(light mode's true brand value) to **58%** in dark mode. (The dark-mode mixin's own lightness was
+previously **42%** — see below — before this fix; 29% was never used in dark mode at all, since dark
+mode has always applied its own override.)
+
+**Measured contrast, before and after** (WCAG relative-luminance ratios, computed not eyeballed — full
+methodology in `DOCVERA_ACCESSIBILITY_AUDIT.md` §4):
+
+| Pairing | Before (42% lightness) | After (58% lightness) | Requirement |
+|---|---|---|---|
+| Navy text/links directly on the dark page background (`.text-primary`, default `<a>`, `.btn-link` text, against `--bs-body-bg` `#161618`) | ≈ 2.76:1 — **fails** | ≈ 4.85:1 — **passes** | 4.5:1 (normal text) |
+| Light-gray button label text (`--pngx-primary-text-contrast`, `#abb2bf`) on a Navy button background | ≈ 3.07:1 — fails | ≈ 1.75:1 — **fails, and is worse than before** | 4.5:1 (button label text) |
+
+**Why the deviation exists**: both pairings share the single `--pngx-primary-lightness` token but need
+it to move in *opposite* directions to pass — lightening the token fixes the first pairing by pulling
+the color away from the dark background, but by the same motion pulls it *toward* the light-gray
+button-text color, actively worsening the second. There is no value of this one token that passes both.
+Faced with that trade-off, the explicit decision was **accessibility over exact brand-color fidelity**:
+fix the pairing that's read constantly as body text and links (pairing 1), accept that the rarer
+Navy-button-with-gray-label pairing (pairing 2) gets worse in the process, and track pairing 2 as a
+known, currently-unresolved gap rather than silently accepting either a contrast failure or an unexplained
+color shift. The recommended fix for pairing 2 — a second, distinct color token (or a different
+foreground color specifically for text-on-primary-background), rather than reusing the same lightened
+value everywhere — is documented but not yet implemented; see `DOCVERA_ACCESSIBILITY_AUDIT.md` §4.
+
+**Rule going forward**: any brand color that gets applied to a dark surface — a new accent color, a
+future update to the Navy value itself, a third-party brand color introduced by an integration — must be
+checked against WCAG AA (4.5:1 text, 3:1 large text/UI boundaries) for every pairing it's actually used
+in on that surface, computed (not eyeballed), *before* shipping. If it fails, adjust the token the same
+way this one was: document the exact before/after values and ratios here, name which pairing(s) were
+fixed and which (if any) got worse as a trade-off, and record the decision explicitly rather than
+shipping an as-is brand value that happens to fail in dark mode. A color that hasn't been checked this
+way is not yet ready to ship on a dark surface.
 
 Full findings, methodology, and what's not yet covered: `DOCVERA_ACCESSIBILITY_AUDIT.md`.

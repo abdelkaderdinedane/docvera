@@ -1670,6 +1670,39 @@ off) before considering it fully verified.
 
 ---
 
+## Architect review follow-up 2 — document the dark-mode Navy token deviation
+
+The architect approved keeping the WCAG AA dark-mode fix from `4d4392d9a` (raising
+`--pngx-primary-lightness` in dark mode so it no longer matches the exact brand Navy value), conditioned
+on the trade-off being recorded in the design system itself — not just in the accessibility audit report
+— so it reads as a documented, intentional decision rather than an unexplained deviation the next person
+finds and has to re-investigate.
+
+- **Files**: `DOCVERA_DESIGN_SYSTEM.md`
+- **Reason**: see above.
+- **Approach**: expanded the existing "Known color-token decision (dark mode, Docvera Navy)" subsection
+  under §7 (Accessibility) — it already stated the ratio numbers but not the exact brand color value
+  or a forward-looking rule. Added: (1) a table of the exact values read directly from
+  `src-ui/src/theme.scss` — brand Navy `hsl(217, 65%, 29%)` / `#1A3D7C` (the `paperless-green` mixin,
+  light mode's true value) versus the adjusted dark-mode value `hsl(217, 65%, 58%)` ≈ `rgb(78, 132, 218)`
+  (the `paperless-green-dark-mode` mixin) — same hue/saturation in both, only lightness moves; (2) a
+  before/after table of the two measured pairings this token affects (text/link-on-page-background:
+  ≈2.76:1 fail → ≈4.85:1 pass; button-label-on-Navy-background: ≈3.07:1 fail → ≈1.75:1, still fails and
+  is worse than before), cross-checked against `DOCVERA_ACCESSIBILITY_AUDIT.md` §4 rather than restated
+  from memory; (3) an explicit statement of the trade-off and why accessibility was prioritized over
+  exact brand-hue fidelity; (4) a new "Rule going forward" paragraph — the piece that didn't exist yet —
+  requiring any future brand color applied to a dark surface to be checked against WCAG AA per pairing,
+  computed rather than eyeballed, before shipping, with the same before/after/trade-off documentation
+  this entry provides as the expected format.
+- **Upgrade impact**: none — documentation only, no `theme.scss` value changed.
+
+**Verification**: every numeric value in the new table cross-checked directly against
+`src-ui/src/theme.scss` (the `--pngx-primary`/`--pngx-primary-lightness` declarations in both the
+`paperless-green` and `paperless-green-dark-mode` mixins) rather than restated from this changelog's own
+prior entries, per instruction. `theme.scss` itself was not modified.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
