@@ -1539,6 +1539,72 @@ the reproduction test fails against the pre-fix code with `NG0302` and passes af
 
 ---
 
+## Defect #2 fix — French targets for the 34 strings missing from messages.fr_FR.xlf
+
+Follow-up to the diagnostic inventory above. Adds the French translations that inventory found missing:
+the 31 `docvera.*` ids (onboarding, settingsInit, recentDocuments — none of which had ever been
+extracted into `messages.xlf`, let alone translated) and the 3 pre-existing `welcome-widget` rebrand
+strings that were extracted but never translated. `fr_FR` only, per instruction — the other 34
+configured target locales are untouched and still correctly report these strings as missing (expected,
+not a regression).
+
+- **Files**: `src-ui/messages.xlf`
+- **Reason**: step 1 of the documented procedure — the 31 `docvera.*` ids had never been captured by an
+  extraction run.
+- **Approach**: `npx ng extract-i18n` (1861 messages). Also caught up the file on drift accumulated
+  across several prior sessions' component changes unrelated to this pass (286 insertions/167 deletions
+  total) — the file hadn't been regenerated since `23d0da4b9`.
+- **Upgrade impact**: none — English-source extraction artifact, not shipped.
+
+- **Files**: `src-ui/src/locale/messages.fr_FR.xlf`
+- **Reason**: step 2 — hand-add a `<trans-unit>` with a French `<target>` for each of the 34 missing ids.
+- **Approach**: for every id, copied the `<trans-unit>` block (id, `<source>`, `<x id="...">`
+  interpolation placeholders included) verbatim from the freshly regenerated `messages.xlf` — never
+  retyped — then added a `<target state="translated">` matching the file's own established conventions
+  (confirmed by lookup before writing anything): "étiquette(s)" for tags, "correspondant(s)" for
+  correspondents, "type de document" for document type, "Réessayer" for Retry, "Impossible de charger
+  X" for "Couldn't load X", "Ignorer" for Dismiss, "collaborateur" for team member/colleague (reusing the
+  exact phrasing from an orphaned pre-rebuild trans-unit for the same concept), and "courriel" for email
+  (the file's own established term throughout its mail-account strings — see note below). All 34 appended
+  at the end of the file, matching the exact position and format `23d0da4b9`'s own 34-string addition
+  used. Did not run `docvera-rebrand-locales.ps1` — it only rewrites existing text via regex and would
+  have done nothing for entries that don't exist yet.
+- **Upgrade impact**: none — additive-only translation content.
+
+**Verification found a real gap in my own process, not a product bug**: my first `ng build
+--configuration production --localize=fr-FR` came back with the exact same output hash as an unrelated
+earlier English-only build, and inspecting the wrong (stale, leftover) `dist/paperless-ui/fr-FR/`
+directory showed English text — this project's custom webpack builder
+(`@angular-builders/custom-webpack:browser`) doesn't apply the single-locale `--localize=<locale>` CLI
+override the way the standard Angular builder does, silently producing an unlocalized build instead of
+erroring. Chased this through several dead ends (cache clearing, a position-in-file experiment moving a
+translation to the top of the file) before recognizing the `--configuration production` config
+overrides `outputPath` to `../src/documents/static/frontend/`, not `dist/paperless-ui` — the directory I
+was checking was stale output from earlier in the session. Checking the *correct* path
+(`src/documents/static/frontend/fr-FR/main.js`) after a full un-flagged `ng build --configuration
+production` (which does correctly localize all 35 configured target locales, confirmed by the same
+build's own console warnings correctly listing per-locale gaps) showed every one of the 34 new strings
+compiled to French, and the English source text correctly absent. Recorded here so the working
+verification command for this project is `ng build --configuration production` (no `--localize`
+override) checked against `src/documents/static/frontend/<locale>/`, not the two-part command originally
+documented in the diagnostic report above.
+
+**Terminology note flagged for review**: the file's established term for "email" throughout its
+mail-account strings is "courriel" (Québécois French), not "e-mail"/"email" (more common in
+France/European French). Per instruction to match the file's existing conventions rather than invent new
+terms, the two mail-related onboarding strings use "courriel". If a stricter European register is
+wanted going forward, this — and the pre-existing "courriel" usage elsewhere in the file predating this
+change — would need a deliberate, separate terminology pass, not something to silently override for only
+the two new strings this commit adds.
+
+**Verification**: `ng build --configuration production` (all 35 locales) — the four new `docvera.*`
+group ids and the three welcome-widget ids each report exactly 34 "No translation found" occurrences
+(35 target locales − fr-FR, matching every other untranslated string's expected count precisely), and
+direct inspection of the compiled `fr-FR` bundle confirms all 34 French targets are present and no
+English source fallback remains for any of them.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

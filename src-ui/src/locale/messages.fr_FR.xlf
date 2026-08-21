@@ -11842,6 +11842,278 @@
         </context-group>
               <target state="translated">Configuration terminée — les 5 étapes sont accomplies. Cette liste ne s'affichera plus.</target>
       </trans-unit>
+      <trans-unit id="docvera.settingsInit.permissionDenied.heading" datatype="html">
+        <source>You don&apos;t have access to application settings</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/app-frame/app-frame.component.html</context>
+          <context context-type="linenumber">126</context>
+        </context-group>
+              <target state="translated">Vous n'avez pas accès aux paramètres de l'application</target>
+      </trans-unit>
+      <trans-unit id="docvera.settingsInit.permissionDenied.body" datatype="html">
+        <source>Your account doesn&apos;t have the permission needed to load application settings. Ask an administrator to grant the UI settings permission on your account — this can be true even if you are the administrator, if that specific permission isn&apos;t enabled.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/app-frame/app-frame.component.html</context>
+          <context context-type="linenumber">128</context>
+        </context-group>
+              <target state="translated">Votre compte ne dispose pas de la permission nécessaire pour charger les paramètres de l'application. Demandez à un administrateur de vous accorder cette permission sur votre compte — cela peut être vrai même si vous êtes administrateur, si cette permission spécifique n'est pas activée.</target>
+      </trans-unit>
+      <trans-unit id="docvera.settingsInit.error.heading" datatype="html">
+        <source>Couldn&apos;t load your settings</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/app-frame/app-frame.component.html</context>
+          <context context-type="linenumber">136</context>
+        </context-group>
+              <target state="translated">Impossible de charger vos paramètres</target>
+      </trans-unit>
+      <trans-unit id="docvera.settingsInit.error.body" datatype="html">
+        <source>Something went wrong while loading application settings. Try again in a moment, or contact your administrator if the problem continues.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/app-frame/app-frame.component.html</context>
+          <context context-type="linenumber">138</context>
+        </context-group>
+              <target state="translated">Une erreur s'est produite lors du chargement des paramètres de l'application. Réessayez dans un instant, ou contactez votre administrateur si le problème persiste.</target>
+      </trans-unit>
+      <trans-unit id="docvera.settingsInit.error.retryLabel" datatype="html">
+        <source>Retry</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/app-frame/app-frame.component.html</context>
+          <context context-type="linenumber">140</context>
+        </context-group>
+              <target state="translated">Réessayer</target>
+      </trans-unit>
+      <trans-unit id="docvera.settingsInit.toastPermissionDenied" datatype="html">
+        <source>Your account doesn&apos;t have permission to load application settings.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/services/settings.service.ts</context>
+          <context context-type="linenumber">344</context>
+        </context-group>
+              <target state="translated">Votre compte n'a pas la permission de charger les paramètres de l'application.</target>
+      </trans-unit>
+      <trans-unit id="docvera.settingsInit.toastError" datatype="html">
+        <source>Couldn&apos;t load application settings.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/services/settings.service.ts</context>
+          <context context-type="linenumber">345</context>
+        </context-group>
+              <target state="translated">Impossible de charger les paramètres de l'application.</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.title" datatype="html">
+        <source>Get started with your setup</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">10</context>
+        </context-group>
+              <target state="translated">Premiers pas</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.progressText" datatype="html">
+        <source> <x id="INTERPOLATION" equiv-text="{{ completedRequiredCount }}"/> of <x id="INTERPOLATION_1" equiv-text="{{ requiredTotal }}"/> steps complete </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">16,18</context>
+        </context-group>
+              <target state="translated"> <x id="INTERPOLATION" equiv-text="{{ completedRequiredCount }}"/> sur <x id="INTERPOLATION_1" equiv-text="{{ requiredTotal }}"/> étapes terminées </target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.progressAriaLabel" datatype="html">
+        <source>Setup progress</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">25</context>
+        </context-group>
+              <target state="translated">Progression de la configuration</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.dismissLabel" datatype="html">
+        <source>Dismiss setup checklist</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">38</context>
+        </context-group>
+              <target state="translated">Ignorer la liste de configuration</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.status.done" datatype="html">
+        <source>Completed</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">58</context>
+        </context-group>
+              <target state="translated">Terminé</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.status.pending" datatype="html">
+        <source>Not completed</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">65</context>
+        </context-group>
+              <target state="translated">Non terminé</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.upload.label" datatype="html">
+        <source>Upload first document</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">73</context>
+        </context-group>
+              <target state="translated">Importez votre premier document</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.upload.description" datatype="html">
+        <source>Add a file so there&apos;s something to organize, tag and search.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">78,79</context>
+        </context-group>
+              <target state="translated">Ajoutez un fichier pour avoir quelque chose à organiser, étiqueter et rechercher.</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.upload.action" datatype="html">
+        <source> Upload </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">87,89</context>
+        </context-group>
+              <target state="translated"> Importer </target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.taxonomy.label" datatype="html">
+        <source>Create or confirm a document type or tag</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">117</context>
+        </context-group>
+              <target state="translated">Créez ou confirmez un type de document ou une étiquette</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.taxonomy.description" datatype="html">
+        <source>Tags and document types are how documents get sorted and found later.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">122,123</context>
+        </context-group>
+              <target state="translated">Les étiquettes et les types de document permettent de classer et de retrouver vos documents par la suite.</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.taxonomy.action" datatype="html">
+        <source>Go to tags</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">130</context>
+        </context-group>
+              <target state="translated">Aller aux étiquettes</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.correspondent.label" datatype="html">
+        <source>Add first correspondent</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">162</context>
+        </context-group>
+              <target state="translated">Ajoutez votre premier correspondant</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.correspondent.description" datatype="html">
+        <source>Correspondents track who a document was sent by or to.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">167</context>
+        </context-group>
+              <target state="translated">Les correspondants permettent de savoir par qui ou à qui un document a été envoyé.</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.correspondent.action" datatype="html">
+        <source>Go to correspondents</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">174</context>
+        </context-group>
+              <target state="translated">Aller aux correspondants</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.invite.label" datatype="html">
+        <source>Invite a team member</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">203</context>
+        </context-group>
+              <target state="translated">Invitez un collaborateur</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.invite.description" datatype="html">
+        <source>Give a colleague their own account instead of sharing yours.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">208,209</context>
+        </context-group>
+              <target state="translated">Donnez à un collègue son propre compte plutôt que de partager le vôtre.</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.invite.action" datatype="html">
+        <source>Manage users</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">216</context>
+        </context-group>
+              <target state="translated">Gérer les utilisateurs</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.mail.label" datatype="html">
+        <source>Configure email ingestion</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">244</context>
+        </context-group>
+              <target state="translated">Configurez l'importation des courriels</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.optionalBadge" datatype="html">
+        <source>Optional</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">249</context>
+        </context-group>
+              <target state="translated">Facultatif</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.mail.description" datatype="html">
+        <source>Automatically import documents sent to a mailbox. Not required to finish setup.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">255,256</context>
+        </context-group>
+              <target state="translated">Importez automatiquement les documents envoyés à une boîte de courriel. Cette étape n'est pas obligatoire pour terminer la configuration.</target>
+      </trans-unit>
+      <trans-unit id="docvera.onboarding.step.mail.action" datatype="html">
+        <source>Configure email</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/onboarding-checklist/onboarding-checklist.component.html</context>
+          <context context-type="linenumber">263</context>
+        </context-group>
+              <target state="translated">Configurer le courriel</target>
+      </trans-unit>
+      <trans-unit id="docvera.recentDocuments.permissionDenied.heading" datatype="html">
+        <source>You don&apos;t have access to documents</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/recent-documents-widget/recent-documents-widget.component.html</context>
+          <context context-type="linenumber">16</context>
+        </context-group>
+              <target state="translated">Vous n'avez pas accès aux documents</target>
+      </trans-unit>
+      <trans-unit id="docvera.recentDocuments.permissionDenied.body" datatype="html">
+        <source>Your account doesn&apos;t have permission to view documents. Ask an administrator to grant access.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/recent-documents-widget/recent-documents-widget.component.html</context>
+          <context context-type="linenumber">18</context>
+        </context-group>
+              <target state="translated">Votre compte n'a pas la permission de consulter les documents. Demandez à un administrateur de vous accorder l'accès.</target>
+      </trans-unit>
+      <trans-unit id="1701423372584286806" datatype="html">
+        <source>More detail on how to use and configure Docvera is always available in the <x id="START_LINK" ctype="x-a" equiv-text="&lt;a href=&quot;https://docs.paperless-ngx.com&quot; target=&quot;_blank&quot;&gt;"/>documentation<x id="CLOSE_LINK" ctype="x-a" equiv-text="&lt;/a&gt;"/>.</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/welcome-widget/welcome-widget.component.html</context>
+          <context context-type="linenumber">4</context>
+        </context-group>
+              <target state="translated">Plus de détails sur l'utilisation et la configuration de Docvera sont toujours disponibles dans la <x id="START_LINK" ctype="x-a" equiv-text="&lt;a href=&quot;https://docs.paperless-ngx.com&quot; target=&quot;_blank&quot;&gt;"/>documentation<x id="CLOSE_LINK" ctype="x-a" equiv-text="&lt;/a&gt;"/>.</target>
+      </trans-unit>
+      <trans-unit id="8460574773337265130" datatype="html">
+        <source>Docvera is running!</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/welcome-widget/welcome-widget.component.html</context>
+          <context context-type="linenumber">2</context>
+        </context-group>
+              <target state="translated">Docvera fonctionne !</target>
+      </trans-unit>
+      <trans-unit id="8919848915528803514" datatype="html">
+        <source>Thanks for being a part of the Docvera community!</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/welcome-widget/welcome-widget.component.html</context>
+          <context context-type="linenumber">7</context>
+        </context-group>
+              <target state="translated">Merci de faire partie de la communauté Docvera !</target>
+      </trans-unit>
     </body>
   </file>
 </xliff>
