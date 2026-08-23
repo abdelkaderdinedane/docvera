@@ -105,7 +105,7 @@ docs = [
 ]
 lint = [
   "prek~=0.3.10",
-  "ruff~=0.15.20",
+  "ruff>=0.15.20,<0.17.0",
 ]
 testing = [
   "daphne",
