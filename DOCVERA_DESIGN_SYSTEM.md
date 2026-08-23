@@ -444,3 +444,32 @@ exists purely so gaining the colored border on `.active` doesn't shift layout by
 tinted background in dark mode without first computing the pairing — Navy at 58% lightness has almost no
 contrast budget left, by design (see the color-token decision above), so it fails on backgrounds that
 would be perfectly safe for default body-color text.
+
+### Secondary text color decision (dark mode, `--bs-secondary-color`)
+
+**Defect #3 / regression-matrix F2**: `.recent-document-meta` (and, once traced, 8 other call sites across
+`empty-state`, `error-state`, and `onboarding-checklist`) rendered secondary/de-emphasized text at
+**3.85:1** in dark mode against `--bs-body-bg` (`#161618`) — below the 4.5:1 floor. Root cause:
+`@mixin dark-mode` (`src-ui/src/theme.scss`) set `--bs-secondary-color: #6c757d` — Bootstrap's
+`$gray-600`, reused as-is with no adjustment for the dark background it would actually sit on. Every other
+token the mixin touches was deliberately re-picked for dark-mode contrast (`--bs-body-color`,
+`--pngx-bg-alt`, `--pngx-primary-lightness`); this one was simply never given a deliberate value — the
+grey a Bootstrap default happened to leave behind, not a decision.
+
+**Fix**: new `$text-color-dark-bg-secondary: #999999`, computed at **6.34:1** against `#161618` (before/
+after: 3.85:1 → 6.34:1) — a plain neutral grey, not a brand color (dark-mode Navy has no contrast budget
+to spare for a secondary role — see the color-token decision above) and not merely a dimmed version of the
+primary dark-mode text color (`$text-color-dark-bg`, `#abb2bf`) either, so it still reads as visually
+secondary relative to primary text while clearing AA with real margin. Light mode was verified unaffected
+— this app never overrides `--bs-secondary-color` in light mode, so it still inherits Bootstrap's own
+`rgba(33, 37, 41, 0.75)`-on-white default, ≈6.73:1, untouched by this fix.
+
+**Rule going forward**: a Bootstrap default CSS custom property is not pre-verified for this app's dark
+surfaces just because Bootstrap ships a value for it. Bootstrap's own defaults (grays, `$body-secondary-color`,
+etc.) are authored and contrast-checked against *light* backgrounds; reusing one as-is inside
+`@mixin dark-mode` — or introducing any new Bootstrap variable into that mixin in the future — must be
+computed against this app's actual dark-mode background (`--bs-body-bg`, `#161618`) before shipping, the
+same way a brand color would be, rather than assumed safe because "it's just Bootstrap's default." When a
+shared token fails, fix the token (checking every consumer first, per §5.13's icon-registration-style
+audit habit) rather than patching the one component that happened to surface it — the other consumers are
+equally broken, just not yet reported.

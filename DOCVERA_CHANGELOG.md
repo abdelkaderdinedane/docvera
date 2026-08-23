@@ -1898,6 +1898,92 @@ introduced by this change) — formatting was done and checked by hand instead; 
 
 ---
 
+## Defect #3 fix — recent-document metadata contrast, traced to a shared token, not just one selector
+
+Regression-matrix item F2 flagged that defect #3 from the architect's original list ("recent-document
+contrast") was never actually fixed. Re-measured before touching anything, per the standing verify-first
+practice for reported defects.
+
+**Measurement (dark mode, dashboard, `.recent-document-meta`)**: `color: var(--bs-secondary-color)`
+resolves to `#6c757d`, computed against the dark page background `--bs-body-bg` (`#161618`) at **3.85:1**
+— matches the architect's DevTools reading exactly (WCAG relative-luminance formula, not eyeballed).
+Fails the 4.5:1 requirement for normal text.
+
+**Scope check, done before choosing a fix**: `--bs-secondary-color` is not a `.recent-document-meta`-only
+color — it's a shared Bootstrap CSS custom property, and this codebase's own dark-mode mixin
+(`@mixin dark-mode` in `src-ui/src/theme.scss`) sets it explicitly to `#6c757d`. Grepped every
+`var(--bs-secondary-color)` consumer under `src-ui/src/app`: **9 call sites across 4 components** —
+`empty-state.component.scss` (1), `error-state.component.scss` (2), `onboarding-checklist.component.scss`
+(4), `recent-documents-widget.component.scss` (2) — all using it for secondary/de-emphasized text on the
+same dark page background, all sharing the identical 3.85:1 failure. `.recent-document-meta` was simply
+the one the regression matrix happened to catch first; the others were equally broken and unreported.
+**Fixed the token, not the one selector** — a per-component override would have left the other 8 call
+sites failing, silently reintroducing the same defect under a different component's name.
+
+**Root cause**: `#6c757d` is Bootstrap's own `$gray-600`, the *exact same value* the dark-mode mixin's
+author plugged in for `--bs-secondary-color` without adjusting it for the dark background — every other
+color the mixin touches (`--bs-body-color`, `--pngx-bg-alt`, `--pngx-primary-lightness`, etc.) was
+deliberately re-picked for dark-mode contrast; this one wasn't. Confirmed via `git log`/reading the mixin
+directly that this token had never been given a deliberate value for dark mode, exactly as reported —
+Bootstrap's light-mode default for `--bs-secondary-color` is actually `rgba(33, 37, 41, 0.75)` (a
+_blended_ value computed against a white background), not `$gray-600` on its own; the dark-mode override
+substituted a flat mid-grey without re-deriving it for the new (much darker) background it would actually
+sit on.
+
+**Fix**: `src-ui/src/theme.scss` — new Sass variable `$text-color-dark-bg-secondary: #999999`, deliberately
+a plain neutral grey rather than a dimmed variant of `$text-color-dark-bg` (the primary dark-mode body-text
+color), so it still reads as visually secondary/de-emphasized relative to primary text while clearing
+4.5:1 with real margin. `--bs-secondary-color` and `--bs-secondary-color-rgb` in `@mixin dark-mode` now
+derive from it (the `-rgb` channel kept in sync via the same `color.channel(...)` pattern already used for
+`--bs-body-color-rgb`, rather than a separately hand-typed literal that could drift from the hex value).
+No brand color was reached for, per the existing §7 rule — this is neutral secondary text on a dark
+surface, and Docvera Navy at dark-mode lightness has no contrast headroom to spare for a secondary role
+anyway (see the Navy token decision below it in §7).
+
+**Computed contrast, before and after**:
+
+| Pairing | Before | After | Requirement | Result |
+|---|---|---|---|---|
+| `--bs-secondary-color` text on `--bs-body-bg` (dark mode, `#161618`) | `#6c757d` → **3.85:1** | `#999999` → **6.34:1** | 4.5:1 (normal text) | **Fixed**, with ≈1.84:1 margin above the floor |
+| `--bs-secondary-color` text on the page background (light mode, unmodified) | `rgba(33,37,41,.75)` on white → **6.73:1** | unchanged — this app never overrides `--bs-secondary-color` in light mode, only the dark-mode mixin was touched | 4.5:1 | **Unaffected, still passes** |
+
+Light mode was verified, not assumed, specifically because the fix only touches `@mixin dark-mode` — light
+mode continues to inherit Bootstrap's own light-mode default untouched, and was recomputed above to confirm
+nothing regressed there while fixing dark mode.
+
+**Spec coverage**: searched for an existing pattern of asserting computed/cascaded styles (contrast,
+resolved CSS custom properties) in this codebase's Jest specs — found none (`getComputedStyle` does not
+appear in any `.spec.ts`). This isn't an oversight to fill in ad hoc: Jest/JSDOM specs mount components
+without loading the compiled application stylesheet, so `getComputedStyle` in a component spec would not
+see `theme.scss`'s cascaded `--bs-secondary-color` value at all — a test written that way would either
+pass vacuously (nothing resolves the custom property, so the assertion is meaningless) or need to hand-set
+the property before asserting, which tests the assertion helper, not the actual token pipeline. No test
+was added; if this class of regression needs automated coverage in the future it would need a real-browser
+tool (e.g. a Playwright screenshot/contrast check under `src-ui/e2e/`), not a Jest unit spec — flagged here
+rather than inventing a unit-test pattern that wouldn't actually catch this defect.
+
+- **Files**: `src-ui/src/theme.scss`.
+- **Reason**: fix defect #3 (recent-document metadata contrast) at its actual root cause.
+- **Approach**: see above — new `$text-color-dark-bg-secondary` Sass variable, `--bs-secondary-color`/
+  `--bs-secondary-color-rgb` in `@mixin dark-mode` now derive from it instead of a stale hardcoded
+  `#6c757d`.
+- **Upgrade impact**: `theme.scss` is a shared file also touched by the earlier dark-mode Navy contrast fix
+  and the sidebar active-state work — a future upstream `git merge tags/vX.Y.Z` touching Bootstrap variable
+  defaults or this app's dark-mode mixin has moderate conflict risk here, though the change itself is a
+  small, localized diff (one new variable, two lines in the mixin) rather than a structural rewrite. No
+  component `.scss` file needed touching — all 9 call sites inherit the fix automatically through the
+  shared token, which is the direct benefit of having fixed the token rather than patching selectors
+  individually.
+
+**Verification**: full `ng build --configuration production` succeeds; compiled `styles.css` inspected
+directly and confirmed exactly two `--bs-secondary-color: #999999;` declarations (the dark-mode mixin's two
+application sites in the generated CSS) with zero remaining `#6c757d` occurrences anywhere in the bundle;
+existing specs for the two consumers that have spec files (`onboarding-checklist`, `recent-documents-widget`
+— `empty-state`/`error-state` have no spec files) — 14/14 passing, unaffected by the color-only change as
+expected.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

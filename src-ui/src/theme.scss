@@ -37,6 +37,14 @@
 $text-color-light-bg: #212529;
 $text-color-dark-bg: #abb2bf;
 $text-color-dark-bg-accent: color.adjust($text-color-dark-bg, $lightness: 10%);
+// Neutral secondary/muted text on the dark page background (#161618). Not
+// derived from $text-color-dark-bg — deliberately a plain, lower grey rather
+// than a dimmed version of the primary dark-mode text color, so it reads as
+// visually secondary while still clearing 4.5:1. See
+// DOCVERA_DESIGN_SYSTEM.md §7 for the computed contrast and why this isn't
+// just Bootstrap's light-mode $gray-600 reused as-is (that value, #6c757d,
+// was never adjusted for the dark background and only reaches 3.85:1 here).
+$text-color-dark-bg-secondary: #999999;
 // Taken from bootstrap
 $form-check-input-checked-bg-image-dark: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><path fill='none' stroke='#{$text-color-light-bg}' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10l3 3l6-6'/></svg>");
 $form-check-radio-checked-bg-image-dark: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'><circle r='2' fill='#{$text-color-light-bg}'/></svg>");
@@ -90,8 +98,8 @@ $form-check-radio-checked-bg-image-dark: url("data:image/svg+xml,<svg xmlns='htt
   --pngx-primary-text-contrast: var(--bs-body-color);
   --bs-body-color: #{$text-color-dark-bg};
   --bs-body-color-rgb: #{color.channel($text-color-dark-bg, "red", $space: rgb)}, #{color.channel($text-color-dark-bg, "green", $space: rgb)}, #{color.channel($text-color-dark-bg, "blue", $space: rgb)};
-  --bs-secondary-color: #6c757d;
-  --bs-secondary-color-rgb: 108, 117, 125;
+  --bs-secondary-color: #{$text-color-dark-bg-secondary};
+  --bs-secondary-color-rgb: #{color.channel($text-color-dark-bg-secondary, "red", $space: rgb)}, #{color.channel($text-color-dark-bg-secondary, "green", $space: rgb)}, #{color.channel($text-color-dark-bg-secondary, "blue", $space: rgb)};
   --bs-danger: #b71631;
   --bs-danger-rgb: 183, 22, 49;
   --bs-body-bg: #161618;
