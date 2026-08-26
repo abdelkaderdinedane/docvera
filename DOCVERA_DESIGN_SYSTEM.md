@@ -420,6 +420,74 @@ already-shipped login/password-reset pages until the follow-up fix documented in
 dark-mode fix (`base.css`)" for the full before/after contrast table and why a single token couldn't
 safely serve both the text and fill roles.
 
+## 5.15 Django admin branding
+
+**The admin (`/admin/`) is an internal surface, not a customer one** — it does not get the auth pages'
+two-column brand-panel treatment. It does need to stop carrying a different product's identity: Phase 2's
+exit gate is "no unintended source-brand UI remains," and the admin was rendering with the upstream
+product name and Django's own default teal/blue admin skin, not Docvera at all.
+
+**Two, mostly-independent fixes**:
+1. **Text** — `admin.site.site_header`/`site_title`/`index_title` (`src/paperless/urls.py`) are plain
+   Python attribute assignments, not template content. They already existed (previously set to
+   "Paperless-ngx"), so this is a one-line-each string change to "Docvera"/"Docvera administration", not a
+   template override at all. These three attributes alone drive the browser-tab title, the top
+   branding-bar text, and the admin index page's `<h1>` — confirmed by reading Django's own
+   `admin/base_site.html` (`{{ site_title|default:_('Django site admin') }}` in the title block,
+   `{{ site_header|default:_('Django administration') }}` in the branding block) and `AdminSite.index()`
+   (`"title": self.index_title`, which flows into `admin/base.html`'s `{% block content_title %}<h1>{{
+   title }}</h1>{% endblock %}`).
+2. **Color** — Django's admin CSS (`admin/css/base.css`) is built entirely on CSS custom properties
+   (`--primary`, `--secondary`, `--link-fg`, etc.), the same pattern this app's own `base.css` uses. A
+   small additional stylesheet overriding just those properties, loaded after Django's own, re-colors the
+   whole admin without touching a single Django template's markup.
+
+**Override approach chosen, and why**: `src/documents/templates/admin/base_site.html` —
+`{% extends "admin/base_site.html" %}` plus one `{% block extrastyle %}{{ block.super }}<link ...>{%
+endblock %}` — rather than copying Django's admin templates wholesale. `admin/base_site.html` is the one
+file every admin page extends (login, index, every change form, password change — confirmed by grepping
+Django's own `registration/*.html` templates, none of which hardcode branding; they all inherit it from
+this one file), so overriding it once covers every admin surface uniformly, and a 4-line file has no
+re-check burden on a future Django upgrade the way copying `admin/base.html` (a large, frequently-touched
+upstream file) would.
+
+**Confirmed the override mechanism actually works here, not assumed**: `{% extends %}`-ing a template with
+the *same path* as the file doing the extending only works if Django's template resolution skips the
+current file's own origin and continues to the next app in `INSTALLED_APPS` order — verified two ways.
+First, by reading `django/template/loader_tags.py::ExtendsNode.find_template()` directly: it explicitly
+maintains a `history` list seeded with `self.origin` (the current template's own origin) and passes
+`skip=history` to `engine.find_template()`, which every loader respects — this is the actual, documented
+mechanism, not a happy accident. Second, by *reproducing* it: built a disposable Django project (outside
+this repo, discarded after use) with `INSTALLED_APPS` ordered exactly like this project's
+(`documents`-equivalent app before `django.contrib.admin`) and a shadow `admin/base_site.html`, then
+rendered it — no recursion, and the output's `<head>` shows exactly the expected order:
+
+```html
+<link rel="stylesheet" href="/static/admin/css/base.css">
+<link rel="stylesheet" href="/static/admin/css/dark_mode.css">
+<script src="/static/admin/js/theme.js"></script>
+<link rel="stylesheet" href="/static/admin-theme.css">
+```
+
+Django's own two stylesheets load first, `admin-theme.css` loads last — exactly the cascade order the CSS
+override in `admin-theme.css` depends on to win at equal selector specificity. This also confirms
+`documents.apps.DocumentsConfig` does precede `django.contrib.admin` in this project's actual
+`INSTALLED_APPS` (checked directly in `src/paperless/settings.py`, not assumed from the reproduction alone).
+
+**Other admin surfaces checked, not just the login page**: the admin index header, browser title, and
+"administration" heading are all driven by the same `site_header`/`site_title`/`index_title` fixed above —
+confirmed via source, not per-page guesswork. The password-change page (`registration/password_change_form
+.html`/`password_change_done.html`) extends `admin/base_site.html` the same as every other admin page and
+has no hardcoded branding of its own (grepped Django's own template for "Django"/"Paperless" literals —
+none) — so it's covered automatically by both fixes above, with no separate template needed.
+
+**What `admin-theme.css` deliberately does *not* touch**: Django's `--accent` (pale yellow, used for the
+branding-bar text color) and the message/border/selected-row grays are left at Django's defaults. Verified
+(not assumed) that leaving them doesn't reintroduce a contrast problem once the *background* colors change
+underneath them — see §7, "Django admin color-token override," for the computed pairings. These aren't
+part of Django's own visual identity the way the teal header bar and links are, and touching them would
+work against the explicit "keep the override minimal" instruction for a marginal, unverified visual gain.
+
 ---
 
 ## 7. Accessibility (WCAG 2.1 AA)
@@ -681,3 +749,45 @@ upstream branding — a value can be the *correct* brand color and still be miss
 variant a sibling value already received, as the base button border shows. When auditing for leftover
 branding, check every consumer of a color family for *consistency of treatment*, not just correctness of
 hue.
+
+### Django admin color-token override
+
+Full pattern and the override-mechanism verification are in §5.15. This is the contrast math for
+`admin-theme.css`'s values, computed against **Django's own admin background colors** — `--body-bg: #fff`
+light / `#121212` dark, *not* the same `#f5f5f5`/`#161618` this app's own `base.css` uses for the
+customer-facing Django pages. Treating them as interchangeable would have been an eyeballing mistake this
+fix specifically avoided.
+
+**Fills** (`--primary: #1A3D7C`, `--secondary: #132D5C`, `--breadcrumbs-bg: #132D5C`) — every consumer in
+Django's own CSS pairs these with white or near-white text (`--primary-fg`, `--header-link-color`, or a
+literal `white`), confirmed by grepping Django's `autocomplete.css`/`widgets.css`/`base.css` for every
+`var(--primary)`/`var(--secondary)` consumer before choosing a value. Because a fill's contrast doesn't
+depend on the surrounding page background, one value is safe in both light and dark admin rendering — the
+same reasoning already established for `--pngx-primary` in the customer-facing pages.
+
+| Pairing | Contrast | Requirement | Result |
+|---|---|---|---|
+| Header-branding text (`--accent`, Django default pale yellow, unchanged) on new `--secondary` header bg | 9.88:1 | 4.5:1 | **Passes** |
+| Header-link text (`--primary-fg`, white, unchanged) on new `--secondary` header bg | 13.48:1 | 4.5:1 | **Passes** |
+| Breadcrumbs default text (`--breadcrumbs-fg`, Django default, unchanged) on new `--breadcrumbs-bg` | 9.47:1 | 4.5:1 | **Passes** |
+| Breadcrumbs link text, light mode (`--breadcrumbs-link-fg`, white, unchanged) on new `--breadcrumbs-bg` | 13.48:1 | 4.5:1 | **Passes** |
+| Breadcrumbs link text, dark mode (`--breadcrumbs-link-fg: #e0e0e0`, Django default, unchanged) on new `--breadcrumbs-bg` (deliberately unchanged between modes) | 10.21:1 | 4.5:1 | **Passes** |
+
+**Text links** (`--link-fg`, `--link-hover-color`) sit directly on the admin's own page background, so —
+unlike the fills — they need mode-specific values, the same `--pngx-primary`/`--pngx-primary-text` split
+already established:
+
+| Pairing | Light mode | Dark mode | Requirement | Result |
+|---|---|---|---|---|
+| `--link-fg` on admin body bg | `#1A3D7C` on `#fff` → 10.49:1 | `#4E84DA` on `#121212` → 5.03:1 | 4.5:1 | **Passes both** |
+| `--link-hover-color` on admin body bg | `#132D5C` on `#fff` → 13.48:1 | `#81A7E4` on `#121212` → 7.66:1 | 4.5:1 | **Passes both**, and clearly distinguishable from each mode's own base link color |
+
+`--link-fg`/`--link-hover-color`'s dark-mode values reuse the exact hex values already established for
+`base.css`'s own dark-mode link colors (`#4E84DA`/`#81A7E4`) — not recomputed from scratch, for visual
+consistency between the admin and the customer-facing Django pages, and verified to still pass against the
+admin's own (slightly darker, `#121212` vs `#161618`) background rather than assumed transferable.
+
+**Left at Django's defaults, verified rather than assumed safe**: `--accent`, `--header-color`,
+`--primary-fg`, message/border/selected-row colors. The two pairings that actually change (accent-on-new-
+header-bg, breadcrumbs-fg-on-new-breadcrumbs-bg) are in the table above and both pass with wide margin —
+confirming it was safe to leave these untouched rather than a gap.

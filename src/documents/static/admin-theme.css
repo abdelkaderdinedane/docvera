@@ -1,0 +1,49 @@
+/* ---------------------------------------------------------------------- *
+ * Docvera admin theme (Phase 2 exit gate — no unintended source-brand UI).
+ *
+ * Overrides Django's own admin/css/base.css + admin/css/dark_mode.css CSS
+ * custom properties, loaded after both (see documents/templates/admin/
+ * base_site.html) so these declarations win by source order at equal
+ * selector specificity — the same selector patterns Django itself uses for
+ * each variable. Deliberately minimal: only the variables that carry
+ * Django's own teal/blue identity (header bar, breadcrumbs, text links) are
+ * touched. --accent (the pale-yellow header text/highlight color),
+ * --primary-fg, and the message/border/selected-row grays are left at
+ * Django's defaults — verified below to still read correctly against the
+ * new fill colors, and not part of Django's own visual "brand" the way the
+ * teal header bar and links are.
+ * ---------------------------------------------------------------------- */
+
+html[data-theme="light"],
+:root {
+  /* --primary and --secondary are FILL colors only in Django's admin CSS
+     (header bar background, autocomplete/calendar highlight backgrounds) —
+     every consumer pairs them with white text (--primary-fg or literal
+     white), so — like --pngx-primary in base.css — one value is safe in
+     both color schemes; no separate dark-mode override needed for these two. */
+  --primary: #1A3D7C; /* was Django's default teal #79aec8 — matches --pngx-primary */
+  --secondary: #132D5C; /* was Django's default teal #417690 — matches --pngx-primary-hover */
+  /* Literal, not var(--secondary): Django's own dark_mode.css re-derives
+     --breadcrumbs-bg from var(--primary) specifically in dark mode. A
+     literal here keeps the breadcrumb bar the same Navy in both modes,
+     matching --primary/--secondary's own mode-independence above, rather
+     than silently inheriting whatever --primary happens to resolve to. */
+  --breadcrumbs-bg: #132D5C;
+  /* Text links — a foreground-on-page-background role, unlike the fills
+     above, so (like --pngx-primary-text) these DO need a separate,
+     lighter dark-mode value below. */
+  --link-fg: #1A3D7C;
+  --link-hover-color: #132D5C;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --link-fg: #4E84DA; /* same dark-mode-safe Navy already used in base.css */
+    --link-hover-color: #81A7E4; /* lighter hover shade, same value as base.css's dark link-hover */
+  }
+}
+
+html[data-theme="dark"] {
+  --link-fg: #4E84DA;
+  --link-hover-color: #81A7E4;
+}

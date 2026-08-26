@@ -2399,6 +2399,105 @@ fully verified.
 
 ---
 
+## Phase 2 exit gate, Task 2 — Django admin now carries Docvera branding, not Paperless-ngx/Django's own
+
+`/admin/` is a separate surface from the customer-facing auth pages the earlier redesign covered — it has
+its own login page, its own template hierarchy, and was rendering with the upstream product name and
+Django's own default teal/blue admin skin. Internal surface, so no two-column brand panel; it does need to
+stop carrying another product's identity, per the Phase 2 exit-gate criterion.
+
+**Text — a code change, not a template override**: `admin.site.site_header`/`site_title`/`index_title`
+(`src/paperless/urls.py`) were already being set explicitly (to `"Paperless-ngx"` /
+`"Paperless-ngx administration"`) — not Django's own defaults, this codebase's own prior customization,
+apparently never carried through the Docvera rebrand. Changed to `"Docvera"` / `"Docvera administration"`.
+Confirmed via Django's own `admin/base_site.html` source that these three attributes alone drive the
+browser-tab title, the top branding-bar text, and the admin index page's `<h1>` — no template touch needed
+for the text.
+
+**Color — one minimal template override plus one new stylesheet**: Django's admin CSS
+(`admin/css/base.css`) is built on CSS custom properties (`--primary`, `--secondary`, `--link-fg`, etc.),
+the same pattern this app's own `base.css` already uses for the customer pages. Added
+`src/documents/static/admin-theme.css` overriding just those properties with Docvera Navy, loaded via a
+new `src/documents/templates/admin/base_site.html` — `{% extends "admin/base_site.html" %}` plus one
+`{% block extrastyle %}{{ block.super }}<link ...>{% endblock %}`, four lines. Chose this over copying
+Django's admin templates wholesale, per instruction: `admin/base_site.html` is the one file every admin
+page extends (login, index, every change form, password change), so one small override covers all of them
+uniformly, and a 4-line file has far less re-check burden on a future Django version bump than a copy of
+`admin/base.html` (a large file Django itself revises across releases) would.
+
+**Verified the override mechanism actually resolves correctly here — not assumed**: confirmed
+`documents.apps.DocumentsConfig` precedes `django.contrib.admin` in this project's `INSTALLED_APPS`
+(`src/paperless/settings.py`), then verified two ways that `{% extends %}`-ing a template at the *same
+path* as the overriding file correctly finds Django's own version rather than recursing into itself: (1)
+read `django/template/loader_tags.py::ExtendsNode.find_template()` directly — it explicitly tracks visited
+template origins and skips them, the documented mechanism, not a coincidence; (2) built a disposable
+Django project outside this repo (discarded after use) with `INSTALLED_APPS` ordered the same way and a
+shadow `admin/base_site.html`, rendered it, and confirmed the actual output — no recursion, and the
+`<head>` shows Django's own `admin/css/base.css` and `admin/css/dark_mode.css` loading first, with
+`admin-theme.css` loading last, exactly the order the CSS override needs to win by source order at equal
+selector specificity.
+
+**Other admin surfaces checked, not just login**: the admin index header, browser title, and
+"administration" heading are all driven by the same three `urls.py` attributes above. The password-change
+page (`registration/password_change_form.html`/`password_change_done.html`, Django's own templates)
+extends `admin/base_site.html` the same as every other admin page and has no hardcoded branding of its
+own (grepped Django's own template source — zero "Django"/"Paperless" literals) — covered automatically by
+both fixes, no separate template needed.
+
+**Computed contrast for every changed CSS variable, both admin light and dark modes** (against Django's
+*own* admin body background — `#fff`/`#121212`, not the customer-page `#f5f5f5`/`#161618`, a distinct
+context deliberately not conflated):
+
+| Pairing | Light | Dark | Requirement | Result |
+|---|---|---|---|---|
+| `--link-fg` on admin body bg | `#1A3D7C` → 10.49:1 | `#4E84DA` → 5.03:1 | 4.5:1 | **Passes both** |
+| `--link-hover-color` on admin body bg | `#132D5C` → 13.48:1 | `#81A7E4` → 7.66:1 | 4.5:1 | **Passes both**, distinguishable from base |
+| Header-branding text (Django's own accent, unchanged) on new header bg | 9.88:1 | same (fill is mode-independent) | 4.5:1 | **Passes** |
+| Breadcrumbs text/link (Django defaults, unchanged) on new breadcrumbs bg | 9.47:1–13.48:1 | 10.21:1 | 4.5:1 | **Passes** |
+
+`--primary`/`--secondary`/`--breadcrumbs-bg` (fills, paired with white text everywhere in Django's own CSS)
+use one value in both modes — the same reasoning already established for `--pngx-primary`. Full table in
+`DOCVERA_DESIGN_SYSTEM.md` §7, "Django admin color-token override." `--accent`/message/border/selected-row
+colors deliberately left at Django's defaults — verified, not assumed, that this doesn't reintroduce a
+contrast gap, and touching them would work against the explicit "keep it minimal" instruction for no
+verified visual gain.
+
+**i18n**: `index_title`'s existing `msgid`/`msgstr` pair in `django.po` (`"Paperless-ngx administration"` →
+`"Administration de Paperless-ngx"`, sourced from the exact line this fix changed) updated in place to
+`"Docvera administration"` / `"Administration de Docvera"`, rather than left as an orphan alongside a new
+entry — same string, just rebranded and moved. `site_header`/`site_title` stay plain Python strings, not
+wrapped in `gettext_lazy` — matching the existing (and unchanged) convention that a proper noun/product
+name isn't translated anywhere else in this app.
+
+- **Files**: `src/paperless/urls.py`, `src/documents/templates/admin/base_site.html` (new),
+  `src/documents/static/admin-theme.css` (new), `src/locale/fr_FR/LC_MESSAGES/django.po`,
+  `DOCVERA_BRANDING.md`, `DOCVERA_DESIGN_SYSTEM.md`.
+- **Reason**: Phase 2 exit-gate criterion — the admin login page, index, and password-change flow were
+  carrying another product's name and color identity.
+- **Approach**: see above.
+- **Upgrade impact — explicit, since it determines merge cost**: `admin/base_site.html` and
+  `admin-theme.css` are **entirely new files**, not a modification or divergence of any upstream
+  paperless-ngx template — paperless-ngx itself never shipped an admin template override, so there is
+  **zero merge risk from a future `git merge tags/vX.Y.Z`** against upstream paperless-ngx for these two
+  files specifically. The real (separate) upgrade-risk axis is a future **Django version bump** (this repo
+  pins `django~=5.2.5` in `pyproject.toml`), not an upstream paperless-ngx merge: if a future Django major
+  version renames or removes the `extrastyle` block, or restructures `admin/base_site.html` significantly,
+  this override's `{% block extrastyle %}` hook could silently stop injecting `admin-theme.css` (the page
+  would still render, just without the Navy theme — a visual regression, not a crash). Worth a quick visual
+  check of `/admin/` whenever Django's pinned version changes. `urls.py`'s three-line text change touches
+  an existing, already-Docvera-diverged block (previously "Paperless-ngx", never upstream Django defaults
+  to begin with), so no new merge-conflict surface there either.
+
+**Verification**: `py_compile` confirms `urls.py` is still syntactically valid after the edit;
+`admin-theme.css`'s brace count is balanced. The override mechanism itself was *reproduced*, not just read
+about — see above — the strongest verification done for any Django-side change this session, since it goes
+beyond reading source to actually executing the resolution path outside this repo. Could not render the
+real `/admin/` in a browser in this environment (no `uv`, no Django installed in this project itself, no
+running container) — recommend the architect load `/admin/` (login, index, a change form, password change)
+in both light and dark color schemes before treating this as fully verified.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
