@@ -2127,6 +2127,62 @@ treating this as the final word.
 
 ---
 
+## Architect review item 7, Task 3 — Django admin PermissionDenied, investigated, not fixed
+
+Report only, per instruction — the admin is an internal surface, so whether/when to address this is left
+to the architect's prioritization, not decided here.
+
+**What was reported**: a staff user with insufficient per-model permission hit `/admin/auth/user/` and got
+a raw Django `PermissionDenied` page.
+
+**Root cause, traced through Django's own source (not assumed)**: `django.contrib.admin.options.py`'s
+`changelist_view` (and several sibling views) call `self.has_view_or_change_permission(request)` and
+`raise PermissionDenied` directly if it fails — this is the *per-model* permission check, separate from
+`AdminSite.admin_view`'s wrapper (`django/contrib/admin/sites.py`), which only checks
+`self.has_permission(request)` (i.e., is the user active and staff — a *site-wide* check) before letting
+the view run at all. A user can clear the site-wide check (staff status) and still fail the per-model one,
+which is exactly this report's scenario. That per-model `PermissionDenied` is **not caught anywhere inside
+`django.contrib.admin`** — it propagates up through Django's normal request/response cycle to the exact
+same top-level handler used by the rest of the app (`response_for_exception` in
+`django/core/handlers/exception.py`, see Task 1/2), which resolves `handler403` → looks for `403.html`.
+
+**Does Django admin have its own error-template hierarchy that would shadow ours?** Checked directly:
+`django.contrib.admin` ships `templates/admin/404.html` and `templates/admin/500.html` in its own package,
+but **no `admin/403.html`** — and grepped Django's entire source tree for every reference to
+`"admin/404.html"`/`"admin/500.html"`: **zero matches anywhere**, including inside `django.contrib.admin`
+itself. They exist as an optional convenience a project *could* wire up via its own `handler404`/`500`,
+but nothing in Django — and nothing in this project's `urls.py`, which doesn't override
+`handler403`/`404`/`500` at all — actually uses them. Admin has no special-cased 403 template of its own,
+namespaced or otherwise.
+
+**Conclusion**: the raw page the architect saw is Django's generic, unbranded 403 fallback
+(`ERROR_PAGE_TEMPLATE % {"title": "403 Forbidden", ...}` from `django/views/defaults.py`) — it renders
+because no `403.html` existed *anywhere in the project* until Task 1's commit, not because admin has some
+separate, uncovered error path. **Task 1's new `403.html` already covers this scenario** — admin's
+per-model `PermissionDenied` goes through the identical global handler as every other 403 in the app; no
+additional template, view override, or admin-specific wiring is needed for the raw-page symptom to go
+away.
+
+**What "fixing this properly" could still involve, if the architect wants to go further** (not done, since
+the raw-page symptom is already resolved by Task 1): the new 403 page's copy and its single "Go to
+Dashboard" action are written for a customer-facing 403 — reasonable content for this scenario too
+(a staff user still reads "your account doesn't have permission... ask an administrator" sensibly), but
+the recovery link drops a staff user straight out of `/admin/` into the customer-facing Angular app rather
+than back to the admin index. Making that link context-aware (e.g., linking back to `/admin/` when the
+403 originated under `/admin/`) is a small, separable follow-up if the architect wants admin-specific
+polish — explicitly not done here per instruction to report, not fix.
+
+- **Files**: none — investigation only, no code change.
+- **Verification**: read `django/contrib/admin/options.py`, `django/contrib/admin/sites.py`, and grepped
+  the entire installed Django 5.2.5 source tree for `admin/404.html`/`admin/500.html`/`admin/403.html`
+  references (via the same disposable venv from Task 1/2), rather than inferring admin's behavior from
+  documentation or memory. Could not reproduce the reported scenario end-to-end in a live app (no `uv`, no
+  running Django instance in this environment) — this traces the code path precisely but was not confirmed
+  against an actual browser session; recommend a quick manual check (a staff-but-not-superuser account
+  hitting a per-model-gated admin page, before and after Task 1's commit) before closing this out.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
