@@ -411,19 +411,14 @@ still break the 500 page specifically, because only 500 gets an empty context �
 cannot differentiate *why* CSRF failed (stale cookie vs. missing referer vs. no cookie at all) even if a
 future revision wanted to, since none of those flags reach a custom template.
 
-**Known gap, flagged, not fixed here (out of this task's scope)**: `base.css` defines `--pngx-primary` once
-(`#1A3D7C` Navy), with **no dark-mode override** — unlike `src-ui/src/theme.scss`, which lightens the same
-brand color to 58% lightness specifically so it passes 4.5:1 as *text* on a dark background (see the Navy
-token decision below). Computed for this page's dark-mode background (`#161618`): Navy text/links styled
-via `.text-primary`/`.btn-link` (both already used by the shipped login/password-reset pages, not newly
-introduced by this task) sit at **≈1.72:1 in dark mode — failing badly**, a pre-existing gap on the
-already-shipped auth pages, discovered as a side effect of verifying this task's own contrast. The new
-error pages avoid the pairing entirely rather than triggering it a second time: their action button uses
-`.btn.btn-primary` (solid Navy **fill** with white text, ≈10.49:1, mode-independent since a filled button's
-contrast doesn't depend on the page background) rather than Navy text directly on the page background.
-Fixing the underlying `base.css` gap — giving `--pngx-primary` the same dark-mode-safe treatment
-`theme.scss` already has — is a reasonable follow-up but touches the shipped auth pages, outside what this
-task asked for; flagged here rather than folded in silently.
+**Gap found while verifying this task's own contrast — now fixed, see the dedicated §7 subsection below**:
+`base.css` defined `--pngx-primary` once (`#1A3D7C` Navy) with no dark-mode override, unlike
+`src-ui/src/theme.scss`'s Angular equivalent. The new error pages sidestepped the pairing entirely (their
+action button uses `.btn.btn-primary`'s solid Navy **fill** with white text, ≈10.49:1, mode-independent,
+rather than Navy text directly on the page background), but the underlying gap remained live on the
+already-shipped login/password-reset pages until the follow-up fix documented in §7 — see "Navy-as-text
+dark-mode fix (`base.css`)" for the full before/after contrast table and why a single token couldn't
+safely serve both the text and fill roles.
 
 ---
 
@@ -570,3 +565,64 @@ same way a brand color would be, rather than assumed safe because "it's just Boo
 shared token fails, fix the token (checking every consumer first, per §5.13's icon-registration-style
 audit habit) rather than patching the one component that happened to surface it — the other consumers are
 equally broken, just not yet reported.
+
+### Navy-as-text dark-mode fix (`base.css`, Django-rendered pages)
+
+**Found while verifying the new error pages' own contrast** (§5.14), then fixed as a dedicated follow-up:
+`src/documents/static/base.css` — which styles the Django-rendered auth pages (login, signup, password
+reset, MFA) and the new error pages — defined `--pngx-primary` (`#1A3D7C` Navy) with no dark-mode override
+at all, unlike its Angular `theme.scss` counterpart. Every consumer of the token (and of
+`--bs-link-color-rgb`, which turned out to share the identical value and the identical gap — see below)
+was checked before choosing a fix, per the same discipline as the `--bs-secondary-color` fix above.
+
+**Every consumer, checked before fixing**: `--pngx-primary` is used for two *different* roles that turned
+out to need *opposite* dark-mode treatment:
+
+| Role | Consumers | Dark-mode need |
+|---|---|---|
+| Text on the page background | `.text-primary`, `.btn-link` (base color), the two `:focus-visible` outline rules, and — the actively-used one — the implicit Bootstrap `a { color: rgba(var(--bs-link-color-rgb), ...) }` default applied to every plain `<a>` on these pages (e.g. "Forgot password?", "Contact support") | Needs a **lighter** Navy to clear 4.5:1 against the dark page background |
+| Solid fill (background), with white text on top | `.btn.btn-primary` (submit/action buttons), `.auth-brand` (the two-column auth pages' left panel) | Already safe as the **original, darker** Navy — a filled background's contrast doesn't depend on the page background at all, and lightening it would *break* it (see below) |
+
+`.text-primary` and `.btn-link` turned out not to be used in any current template (grepped
+`src/documents/templates/`, zero matches) — but `--bs-link-color-rgb` is: Bootstrap's own default anchor
+color rule consumes it for every unstyled `<a>` tag, and this app overrides it unconditionally in the base
+`body {}` rule to the same Navy value, with no dark-mode adjustment either. That's the actively-broken
+consumer this fix needed to reach, not just the two unused utility classes.
+
+**Why one dark-mode value couldn't serve both roles — computed, not assumed**: the already-approved
+Angular dark-mode Navy value (`hsl(217, 65%, 58%)` ≈ `#4E84DA`, see the color-token decision above) fixes
+the text role, but applying it to the *fill* role too breaks it: white button/panel text on that lighter
+fill computes to **≈3.73:1 — a regression below 4.5:1**, down from the original (unmodified) fill's
+≈10.49:1. The fix therefore had to decouple the two roles into separate tokens, the same pattern already
+used for the sidebar active state above, rather than reuse one token for both.
+
+**Fix**: new `--pngx-primary-text` token (defaults to `var(--pngx-primary)` in light mode — identical
+value, no light-mode change), overridden only inside the existing dark-mode media query to `#4E84DA` — the
+same already-vetted value used by the Angular app, for cross-surface brand consistency rather than
+inventing a second dark-mode Navy shade. `--bs-link-color-rgb` gets the equivalent dark-mode override
+(`78, 132, 218`, the RGB-triplet form Bootstrap's `rgba(var(...))` consumption requires).
+`.text-primary`/`.btn-link`/both focus-outline rules were repointed from `--pngx-primary` to
+`--pngx-primary-text`. `--pngx-primary` itself, `.btn.btn-primary`, and `.auth-brand` were **not touched at
+all** — they keep resolving to the original, unmodified Navy in both modes, since that pairing was already
+safe.
+
+**Computed contrast, every pairing, before and after**:
+
+| Pairing | Before | After | Requirement | Result |
+|---|---|---|---|---|
+| Navy text/links (`--bs-link-color-rgb`/`--pngx-primary-text`) on dark page bg (`#161618`) | `#1A3D7C` → **1.72:1** | `#4E84DA` → **4.85:1** | 4.5:1 (text) | **Fixed** |
+| Same pairing, light mode (unchanged) | `#1A3D7C` on `#f5f5f5` → **9.62:1** | unchanged — light mode never touched | 4.5:1 | **Unaffected, still passes** |
+| Focus-visible outline (UI boundary) on dark page bg | `#1A3D7C` → **1.72:1** — this was *also* failing the 3:1 UI-boundary floor, not caught by name in the original report but the same root cause | `#4E84DA` → **4.85:1** | 3:1 (UI component boundary) | **Fixed as a side effect of the same token change** |
+| White text on `.btn.btn-primary`/`.auth-brand` solid fill (mode-independent — a fill's contrast never depended on page background) | `#1A3D7C` fill → **10.49:1** | **unchanged** — `--pngx-primary` itself was never modified | 4.5:1 (button label text) | **Unaffected, still passes** — confirmed the rejected all-in-one-token approach would have regressed this to ≈3.73:1 |
+
+**Discovered but not fixed here, flagged as a separate, unrelated issue**: `--bs-link-hover-color-rgb: 15,
+56, 20` and `.btn.btn-primary`'s hover/active border colors (`#0c2c10`, `#09220d`) in `base.css` are dark
+**green** — leftover from the original upstream paperless-ngx branding, never updated during the Docvera
+rebrand. This is a wrong-brand-color defect, not a contrast defect, and touching it wasn't part of this
+fix's scope; left exactly as found rather than silently folded in.
+
+**Rule going forward**: when a color token serves both a text/foreground role and a solid-fill/background
+role, dark-mode adjustment must be computed **separately for each role**, even if today's value happens to
+be identical for both — as this case shows, the value that fixes one role can silently break the other.
+Split into distinct tokens (as done here) rather than assuming one dark-mode value serves every consumer of
+a shared token name.

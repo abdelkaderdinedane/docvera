@@ -2274,6 +2274,65 @@ explanation holds in practice.
 
 ---
 
+## Fix — `base.css` Navy-as-text dark-mode contrast (the gap flagged during the error-pages work)
+
+Follow-up to item 7, fixing the pre-existing gap flagged (not fixed) while verifying the branded error
+pages: `base.css`'s `--pngx-primary` had no dark-mode override, unlike its Angular `theme.scss`
+counterpart, leaving Navy text at ≈1.72:1 on the shipped login/password-reset pages in dark mode. Same
+approach as the earlier `--bs-secondary-color` fix: compute every pairing, fix the shared token rather than
+individual call sites, check every consumer first, verify light mode stays unaffected.
+
+**Every consumer, checked before choosing a value**: `--pngx-primary` turned out to serve two different
+roles needing *opposite* dark-mode treatment — text-on-page-background (`.text-primary`, `.btn-link`, both
+`:focus-visible` outline rules, and — the actively-used one — Bootstrap's own default `<a>` color via
+`--bs-link-color-rgb`, which this app sets to the identical Navy value with the identical gap) versus
+solid-fill background with white text on top (`.btn.btn-primary`, `.auth-brand`, the two-column auth
+pages' left panel). `.text-primary`/`.btn-link` turned out to be unused in any current template (grepped,
+zero matches) — `--bs-link-color-rgb` is the one that actually matters, since it governs every plain `<a>`
+tag's color on these pages (e.g. "Forgot password?", "Contact support").
+
+**Why a single token couldn't fix both roles**: the already-approved Angular dark-mode Navy value
+(`hsl(217, 65%, 58%)` ≈ `#4E84DA`) fixes the text role, but applying it to the fill role too regresses
+white button/panel text to ≈3.73:1 — computed and confirmed before committing to an approach, not assumed.
+Split into a new `--pngx-primary-text` token (defaults to `--pngx-primary` in light mode, overridden to
+`#4E84DA` in dark mode only) for the text/UI-boundary consumers; `--pngx-primary` itself, `.btn.btn-primary`,
+and `.auth-brand` were left completely untouched, since that pairing was already safe in both modes.
+
+**Computed contrast, every pairing, before and after**:
+
+| Pairing | Before | After | Requirement | Result |
+|---|---|---|---|---|
+| Navy text/links on dark page bg (`#161618`) | `#1A3D7C` → 1.72:1 | `#4E84DA` → 4.85:1 | 4.5:1 | **Fixed** |
+| Same pairing, light mode | `#1A3D7C` on `#f5f5f5` → 9.62:1 | unchanged | 4.5:1 | **Unaffected** |
+| Focus-visible outline on dark bg (a UI-boundary consumer sharing the same broken token, not separately reported but the same root cause) | 1.72:1 | 4.85:1 | 3:1 | **Fixed as a side effect** |
+| White text on `.btn.btn-primary`/`.auth-brand` solid fill | 10.49:1 (mode-independent) | unchanged — `--pngx-primary` was never modified | 4.5:1 | **Unaffected** — confirmed the naive all-in-one-token fix would have regressed this to ≈3.73:1 |
+
+Full reasoning and the value-serves-two-roles pitfall are documented in `DOCVERA_DESIGN_SYSTEM.md` §7,
+"Navy-as-text dark-mode fix."
+
+**Discovered, not fixed, flagged as a separate defect**: `--bs-link-hover-color-rgb: 15, 56, 20` and two
+of `.btn.btn-primary`'s hover/active border colors (`#0c2c10`, `#09220d`) in `base.css` are dark **green**
+— leftover from the original upstream paperless-ngx branding, never updated during the Docvera rebrand.
+A wrong-brand-color defect, not a contrast defect; out of scope for this fix, left exactly as found.
+
+- **Files**: `src/documents/static/base.css`, `DOCVERA_DESIGN_SYSTEM.md`.
+- **Reason**: close the dark-mode contrast gap flagged during the error-pages work, on the architect's
+  explicit follow-up instruction.
+- **Approach**: see above.
+- **Upgrade impact**: small, localized diff to `base.css` (one new token, four consumers repointed, one
+  dark-mode override block extended) — same shared-file risk profile as every other `base.css` touch this
+  phase (auth-page redesign, error pages); low conflict surface since upstream doesn't touch this
+  Docvera-specific file.
+
+**Verification**: could not render these pages in a browser in this environment (no `uv`, no Django, no
+running container) — contrast values are computed via the WCAG relative-luminance formula (script-checked,
+not eyeballed), the same methodology used for every prior contrast fix this session. `base.css` brace count
+confirmed balanced after editing. Recommend the architect re-check the login page's "Forgot password?" /
+"Contact support" links and the auth-page focus ring in dark mode against a real browser before treating
+this as fully verified.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

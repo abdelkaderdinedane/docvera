@@ -5,6 +5,14 @@ body {
   --pngx-primary: #1A3D7C;
   --pngx-primary-hover: #132D5C;
   --pngx-primary-active: #0E2447;
+  /* Navy as TEXT/UI-boundary color (links, .text-primary, .btn-link, focus
+     rings) — kept as its own token, distinct from --pngx-primary, because
+     the two need DIFFERENT values in dark mode: text needs a lighter Navy to
+     clear 4.5:1 against the dark page background, but that same lighter
+     value fails as a solid-fill button background (white button text drops
+     to ~3.73:1). See the dark-mode override below and
+     DOCVERA_DESIGN_SYSTEM.md §7. Equal to --pngx-primary in light mode. */
+  --pngx-primary-text: var(--pngx-primary);
   --pngx-surface: #ffffff;
   --pngx-surface-border: #e2e5ea;
   --pngx-text-muted: #5b6472;
@@ -20,7 +28,7 @@ body {
 }
 
 .text-primary {
-  color: var(--pngx-primary) !important;
+  color: var(--pngx-primary-text) !important;
 }
 
 .form-control {
@@ -37,7 +45,7 @@ body {
 }
 
 .btn-link {
-  --bs-btn-color: var(--pngx-primary);
+  --bs-btn-color: var(--pngx-primary-text);
   --bs-btn-hover-color: var(--pngx-primary-hover);
   --bs-btn-active-color: var(--pngx-primary-active);
 }
@@ -269,7 +277,7 @@ html, body {
 .auth-layout button:focus-visible,
 .auth-layout input:focus-visible,
 .auth-layout .form-check-input:focus-visible {
-  outline: 2px solid var(--pngx-primary);
+  outline: 2px solid var(--pngx-primary-text);
   outline-offset: 2px;
 }
 
@@ -311,6 +319,14 @@ html, body {
     --pngx-surface: #1c1c1f;
     --pngx-surface-border: #33353b;
     --pngx-text-muted: #9aa1ac;
+    /* Navy lightened to hsl(217, 65%, 58%) for dark-mode AA text contrast —
+       the same value already approved for the Angular app's dark-mode Navy
+       text (src-ui/src/theme.scss, see DOCVERA_DESIGN_SYSTEM.md §7). Only
+       the TEXT/UI-boundary token moves; --pngx-primary itself (the button
+       and brand-panel FILL color) is deliberately left untouched here — see
+       the comment on --pngx-primary-text's declaration above for why. */
+    --bs-link-color-rgb: 78, 132, 218;
+    --pngx-primary-text: #4E84DA;
   }
 
   .form-control {
@@ -390,6 +406,6 @@ html, body {
 
 .error-page a:focus-visible,
 .error-page button:focus-visible {
-  outline: 2px solid var(--pngx-primary);
+  outline: 2px solid var(--pngx-primary-text);
   outline-offset: 2px;
 }
