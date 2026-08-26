@@ -2584,6 +2584,57 @@ reads "Courriel" and the Mail Rule add form's filter description reads "Docvera 
 
 ---
 
+## Increment 3, document list item 2 — tag badges contained within the small card
+
+Targeted fix, not a redesign, per the architect's standing instruction for this increment: filtering,
+sorting, selection, and view-switching are all untouched. The grid-view small card's tag badge stack
+(top-right corner over the thumbnail) could overlap the card's own edge with several tags, and a single
+long tag name had no width constraint at all — the existing ellipsis truncation only activated once there
+were more than 3 tags (`tags-no-wrap`), so 1–3 tags of any length rendered completely unconstrained.
+
+**Root cause**: `.doc-img-container` (the thumbnail wrapper the tag stack and selection checkbox are
+absolutely positioned against) had no `position` of its own, so the absolutely-positioned children fell
+back to positioning against `.card` (Bootstrap's own `position: relative` default) instead of the
+thumbnail specifically, and nothing clipped them if they grew past the thumbnail's bounds.
+
+**Fix**: `.doc-img-container` now establishes its own positioning context and clips its children
+(`position: relative; overflow: hidden`) — the tag stack and checkbox now position and clip against the
+thumbnail itself, matching their apparent design intent, and can never visually escape the card regardless
+of tag count or name length. `.tags` gained a `max-block-size` capping it at the thumbnail's own height (a
+backstop alongside the existing tagIDs/moreTags count limit, not a replacement for it — that limit is
+unchanged). The per-badge ellipsis truncation (`max-inline-size`, `white-space: nowrap`, `text-overflow:
+ellipsis`) now applies unconditionally instead of only when `tags.length > 3`, so a single long tag name is
+handled the same way. The now-dead `[class.tags-no-wrap]` binding (its only CSS consumer was folded into
+the unconditional rule) was removed from the template rather than left as inert dead code.
+
+**Logical properties**: `top`/`right`/`max-width` converted to `inset-block-start`/`inset-inline-end`/
+`max-inline-size`, ahead of RTL locale support landing later this phase, per the FOR-ALL instruction.
+
+- **Files**: `src-ui/src/app/components/document-list/document-card-small/document-card-small.component.scss`,
+  `.html` (one line — the dead `tags-no-wrap` binding removed).
+- **Reason**: Increment 3, document list item 2 — contain the tag badge within the card bounds; check
+  several tags and a long tag name, which the prior layout wasn't tested against.
+- **Approach**: see above.
+- **Upgrade impact**: **this is an upstream-shared component** (`document-card-small`, part of the core
+  document list upstream also ships). Both changes are small and additive — one new CSS rule
+  (`.doc-img-container`), token conversions on an existing rule (`.tags`), and a one-attribute template
+  removal — not a restructuring of the component's markup or logic, so conflict risk on a future
+  `git merge tags/vX.Y.Z` is low, but nonzero: upstream could plausibly touch this same `.tags`/
+  `.doc-img-container` styling in its own future card redesign.
+- **Testing**: no new automated test — this is a visual/CSS containment fix (positioning context, overflow
+  clipping, text-overflow truncation) that Jest/jsdom cannot meaningfully assert (jsdom doesn't compute
+  layout), so a test would only assert the class/CSS exists, not that containment actually works. Flagging
+  this honestly rather than adding a test with no real verification value. Existing tag-related tests
+  (`document-card-small.component.spec.ts` — 6/6) continue to pass unaffected, confirming the count-based
+  tagIDs/moreTags limit (a distinct, untouched mechanism) still behaves as before.
+
+**Verification**: could not render this in a browser in this environment (no `pnpm start` + backend
+available). CSS reasoned through and cross-checked (positioning-context chain, clipping behavior) rather
+than eyeballed; recommend the architect confirm visually with several tags and one long tag name, in both
+color schemes, before treating this as fully verified.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

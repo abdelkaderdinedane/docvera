@@ -8,6 +8,16 @@
   height: 180px;
 }
 
+.doc-img-container {
+  // Establishes the positioning context for the absolutely-positioned tag
+  // stack and selection checkbox below, and clips them to the thumbnail's
+  // own bounds (including its rounded top corners) instead of letting them
+  // escape into the card body or past the card's own edge with several tags
+  // or a long tag name.
+  position: relative;
+  overflow: hidden;
+}
+
 .document-card-check {
   display: none;
   position: absolute;
@@ -67,19 +77,26 @@ a {
 }
 
 .tags {
-  top: .2rem;
-  right: 0;
-  max-width: 80%;
+  inset-block-start: .2rem;
+  inset-inline-end: 0;
+  max-inline-size: 80%;
+  // Caps the tag stack at the thumbnail's own height (minus a small margin)
+  // so it can never grow past doc-img-container's clipped bounds even with
+  // several tags — a backstop alongside the existing tagIDs/moreTags count
+  // limit, not a replacement for it.
+  max-block-size: calc(180px - .4rem);
+  overflow: hidden;
   row-gap: .2rem;
   line-height: 1;
 
-  &.tags-no-wrap {
-    ::ng-deep .badge {
-      display: inline-block;
-      max-width: 100%;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+  // Every badge truncates a long name with an ellipsis rather than wrapping
+  // or overflowing — previously only applied once there were more than 3
+  // tags, so a single long tag name on its own had no width constraint.
+  ::ng-deep .badge {
+    display: inline-block;
+    max-inline-size: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
