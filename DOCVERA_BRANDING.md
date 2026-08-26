@@ -37,7 +37,7 @@ don't assume the UI shows teal just because it's in the constant.
 | `src/documents/templates/paperless-ngx/base.html` | Django-rendered auth pages (login, password reset, etc.): `<meta name="author">`, favicon, the "by Veltrix AI" byline. |
 | `src/documents/templates/paperless-ngx/snippets/svg_logo.html`, `svg_leaf.html` | Server-side logo snippets — now `<img>` tags pointing at the static Docvera logo assets instead of inline hand-drawn SVG markup. |
 | `src/documents/templates/paperless-ngx/error_base.html`, `src/documents/templates/400.html`/`403.html`/`403_csrf.html`/`404.html`/`500.html` | Branded Django error pages (new, not present upstream) — the complete set of templates Django itself exposes a hook for, reusing the Docvera logo snippet, brand tokens, and typography from the auth pages in a single-column layout. |
-| `src/documents/static/base.css` | `--bs-link-color-rgb: 26, 61, 124` (Navy) for the Django admin/auth pages, `.byline` styling, and the `.error-page-*` rules for the branded error pages above. |
+| `src/documents/static/base.css` | `--bs-link-color-rgb: 26, 61, 124` (Navy) for the Django admin/auth pages, `.byline` styling, and the `.error-page-*` rules for the branded error pages above. `--pngx-primary`/`--pngx-primary-text` split (fill vs. text/UI-boundary roles — each needs a different dark-mode value) and every link/button hover/active shade are Navy end to end — no upstream green remains in this file (audited and confirmed; see `DOCVERA_CHANGELOG.md`). |
 | `src-ui/src/locale/messages.*.xlf` (47 files) | Human-facing translated strings, rebranded via `scripts/docvera-rebrand-locales.ps1`. |
 | `PAPERLESS_APP_TITLE`, `PAPERLESS_APP_LOGO` env vars | Runtime overrides for title/logo without a rebuild. |
 

@@ -2333,6 +2333,72 @@ this as fully verified.
 
 ---
 
+## Phase 2 exit gate, Task 1 — leftover upstream green audited and removed from base.css
+
+"No unintended source-brand UI remains" is the exit-gate criterion. Audited the whole file (and every
+other Django-side stylesheet) before fixing anything, rather than only the three values already flagged
+while fixing the `--pngx-primary` dark-mode gap.
+
+**Full audit**: grepped every color literal (`#hex`, `rgb()`/`rgba()`, and every `--token: R, G, B` triplet)
+in `src/documents/static/base.css`. `bootstrap.min.css` is vendored/unmodified — not a branding surface,
+left untouched. Every Django template under `src/documents/templates/` checked for inline `style=`
+attributes or `<style>` blocks carrying color — none found outside `base.css` itself. **Result: exactly
+three** leftover-upstream-green values, all in `base.css`, all from the same never-rebranded family
+(`#17541f`-derived): `--bs-link-hover-color-rgb: 15, 56, 20`, `--bs-btn-hover-border-color: #0c2c10`,
+`--bs-btn-active-border-color: #09220d` — the same three flagged during the prior fix, confirmed to be the
+complete set, not a partial one.
+
+**Fix, using the established `--pngx-primary`/`--pngx-primary-text` split rather than new hex values**:
+- Link hover text: `19, 45, 92` in light mode (matches the existing `--pngx-primary-hover`, `#132D5C`);
+  previously had **no dark-mode override at all**, so the green value silently applied in dark mode too —
+  now overridden to `129, 167, 228` (`hsl(217, 65%, 70%)`) in dark mode, distinctly lighter than the base
+  dark-mode link color for a clear hover affordance.
+- Button hover/active border: both now use `var(--pngx-primary-text)` instead of a hardcoded green hex.
+
+**Scope note — the base-state button border was fixed too, though it was never green**: computing the
+border replacements surfaced that `--bs-btn-border-color: var(--pngx-primary)` (the *base*, non-hover
+button border — already correctly Navy) shares the identical dark-mode gap as the two reported states
+(1.72:1 against the dark page background, same root cause as the earlier text-contrast fix, just never
+checked for the border role). Left inconsistent — two states fixed, the third silently still broken —
+would have been a worse outcome than fixing all three with the same token, so all three button states now
+share one border value (`--pngx-primary-text`), which is already verified safe in both modes. The
+hover/active-vs-base distinction is carried by the **fill** color darkening across the three states, not
+by the border, which was never the mechanism carrying that distinction even before this fix.
+
+**Computed contrast, every replacement, both modes**:
+
+| Pairing | Light | Dark | Requirement | Result |
+|---|---|---|---|---|
+| Link hover text vs. page bg | `#132D5C` → 12.37:1 | `rgb(129,167,228)` → 7.38:1 | 4.5:1 | **Passes both** |
+| Button border (base/hover/active) vs. page bg | `#1A3D7C` → 9.62:1 | `#4E84DA` → 4.85:1 | 3:1 | **Passes both** — closes the previously-undiscovered base-state gap too |
+| White button text on fill (untouched, sanity check) | 10.49:1 | unchanged | 4.5:1 | **Still passes** |
+
+Full detail, including why border needed `--pngx-primary-text` rather than `--pngx-primary`, in
+`DOCVERA_DESIGN_SYSTEM.md` §7, "Leftover upstream-green audit."
+
+**Not fixed, flagged**: `.btn-link`'s hover/active colors (already Navy, not green) share the same
+dark-mode-as-text gap in principle but the class is confirmed unused in any current template — carried
+forward from the prior fix's note rather than re-investigated, since nothing renders it today.
+
+- **Files**: `src/documents/static/base.css`, `DOCVERA_BRANDING.md`, `DOCVERA_DESIGN_SYSTEM.md`.
+- **Reason**: Phase 2 exit-gate criterion — no unintended source-brand (upstream paperless-ngx green) UI
+  may remain.
+- **Approach**: see above. No new i18n strings — this is a pure CSS token change, no user-facing text
+  touched.
+- **Upgrade impact**: small, localized `base.css` diff (three token replacements, one new dark-mode
+  override, one base-state token repoint) — same low-conflict profile as every other `base.css` touch this
+  phase, since upstream doesn't touch this Docvera-specific file.
+
+**Verification**: could not render in a browser in this environment. `base.css` brace count confirmed
+balanced after editing; re-grepped for every known upstream-green literal (`0c2c10`, `09220d`,
+`15, 56, 20`, `17541f`) post-fix and confirmed zero remaining outside explanatory comments documenting the
+old values. Contrast figures are computed via the WCAG relative-luminance formula (script-checked), the
+same methodology as every prior contrast fix this session. Recommend a real-browser check of the login
+page's link hover state and the "Sign in" button's border in both color schemes before treating this as
+fully verified.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

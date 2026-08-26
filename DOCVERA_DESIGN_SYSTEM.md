@@ -615,14 +615,69 @@ safe.
 | Focus-visible outline (UI boundary) on dark page bg | `#1A3D7C` → **1.72:1** — this was *also* failing the 3:1 UI-boundary floor, not caught by name in the original report but the same root cause | `#4E84DA` → **4.85:1** | 3:1 (UI component boundary) | **Fixed as a side effect of the same token change** |
 | White text on `.btn.btn-primary`/`.auth-brand` solid fill (mode-independent — a fill's contrast never depended on page background) | `#1A3D7C` fill → **10.49:1** | **unchanged** — `--pngx-primary` itself was never modified | 4.5:1 (button label text) | **Unaffected, still passes** — confirmed the rejected all-in-one-token approach would have regressed this to ≈3.73:1 |
 
-**Discovered but not fixed here, flagged as a separate, unrelated issue**: `--bs-link-hover-color-rgb: 15,
-56, 20` and `.btn.btn-primary`'s hover/active border colors (`#0c2c10`, `#09220d`) in `base.css` are dark
-**green** — leftover from the original upstream paperless-ngx branding, never updated during the Docvera
-rebrand. This is a wrong-brand-color defect, not a contrast defect, and touching it wasn't part of this
-fix's scope; left exactly as found rather than silently folded in.
+**Discovered here, fixed as a separate follow-up (Phase 2 exit-gate item)**: `--bs-link-hover-color-rgb:
+15, 56, 20` and `.btn.btn-primary`'s hover/active border colors (`#0c2c10`, `#09220d`) in `base.css` were
+dark **green** — leftover from the original upstream paperless-ngx branding, never updated during the
+Docvera rebrand. A wrong-brand-color defect, not a contrast defect, so out of scope for this fix at the
+time — see "Leftover upstream-green audit" below for the full fix, which also closes a UI-boundary
+contrast gap on the button's *base*-state border found while computing the replacement values.
 
 **Rule going forward**: when a color token serves both a text/foreground role and a solid-fill/background
 role, dark-mode adjustment must be computed **separately for each role**, even if today's value happens to
 be identical for both — as this case shows, the value that fixes one role can silently break the other.
 Split into distinct tokens (as done here) rather than assuming one dark-mode value serves every consumer of
 a shared token name.
+
+### Leftover upstream-green audit (`base.css`)
+
+**Phase 2 exit-gate item — "no unintended source-brand UI remains."** Audited every color literal in every
+Django-side stylesheet (`base.css`; `bootstrap.min.css`, vendored/unmodified, not a branding surface;
+every Django template checked for inline `style=`/`<style>` colors — none found outside `base.css`) for
+anything not a Docvera brand token or a neutral, rather than fixing only the three values already known.
+**Result: exactly three**, all in `base.css`, all upstream paperless-ngx green (`#17541f`-family) never
+touched during the Docvera rebrand:
+
+| Token | Was (upstream green) | Role |
+|---|---|---|
+| `--bs-link-hover-color-rgb` | `15, 56, 20` | Text — link color while hovered |
+| `--bs-btn-hover-border-color` | `#0c2c10` | UI boundary — button border, hover state |
+| `--bs-btn-active-border-color` | `#09220d` | UI boundary — button border, active state |
+
+**Fix, using the existing token system rather than new hex values, per instruction**: the link-hover text
+color now mirrors `--pngx-primary-hover` (`19, 45, 92` / `#132D5C`) in light mode, and gets its own
+dark-mode override (`129, 167, 228` — `hsl(217, 65%, 70%)`, noticeably lighter than the 58%-lightness base
+dark-mode link color for a clear hover affordance) — it previously had **no** dark-mode override at all, so
+the green value was silently applying in dark mode too, not just light. The two button border colors now
+use `--pngx-primary-text` (the token from the fix above) instead of a hardcoded hex.
+
+**Why the button border uses `--pngx-primary-text`, not `--pngx-primary`, and why all three button states
+(base included) end up with the identical border value**: a border is a UI boundary judged against the
+*page* background, not the fill it outlines — the same distinction the fix above already established for
+text. Computing it surfaced that the **base** (non-hover) button border, `--bs-btn-border-color: var(
+--pngx-primary)`, had the *identical* gap (1.72:1 against the dark page background, same root cause) even
+though it was never green and so was never named in the report. Rather than fix the two named states and
+leave the base state inconsistently broken, all three route through `--pngx-primary-text` — which is
+already verified safe against the page background in both modes (see the table above). Because the border
+color no longer varies between base/hover/active, the "hover must stay distinguishable from base" test is
+satisfied by the **fill** (`--pngx-primary` → `-hover` → `-active`, three distinct darkening navy shades),
+not by the border — the border was never the mechanism carrying that distinction in the original design
+either (base border already equalled base fill before this fix).
+
+**Computed contrast, every replacement, both modes**:
+
+| Pairing | Light mode | Dark mode | Requirement | Result |
+|---|---|---|---|---|
+| Link hover text vs. page bg | `#132D5C` on `#f5f5f5` → **12.37:1** | `rgb(129,167,228)` on `#161618` → **7.38:1** | 4.5:1 | **Passes both**, and clearly distinguishable from each mode's own base link color (9.62:1 light / 4.85:1 dark) |
+| Button border (base/hover/active, now identical) vs. page bg | `#1A3D7C` on `#f5f5f5` → **9.62:1** | `#4E84DA` on `#161618` → **4.85:1** | 3:1 (UI boundary) | **Passes both** — base state's previously-undiscovered dark-mode gap (1.72:1) is fixed as part of this change |
+| White button text on fill (unaffected — fill itself untouched) | `#1A3D7C` fill → **10.49:1** | unchanged | 4.5:1 | **Still passes**, confirming the border change didn't touch the already-safe fill/text pairing |
+
+**Not fixed, flagged, genuinely out of scope**: `.btn-link`'s hover/active colors (`--pngx-primary-hover`/
+`--pngx-primary-active`, unmodified) share the same dark-mode-as-text gap in principle, but `.btn-link` is
+confirmed unused in every current template (grepped, zero matches) — same status noted in the fix above,
+carried forward rather than re-investigated, since nothing renders it today.
+
+**Rule going forward**: "the hex doesn't match the brand token" is not the only sign of leftover
+upstream branding — a value can be the *correct* brand color and still be missing the dark-mode-safe
+variant a sibling value already received, as the base button border shows. When auditing for leftover
+branding, check every consumer of a color family for *consistency of treatment*, not just correctness of
+hue.
