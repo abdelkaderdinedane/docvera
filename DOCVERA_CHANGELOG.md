@@ -2781,6 +2781,42 @@ dev tools' accessibility tree) reads "Ouvrir"/"Télécharger" before treating th
 
 ---
 
+## Increment 3, document list item 4 — filter bar responsive behavior, investigated, no change made
+
+Investigation only, per instruction — do not restructure the filter bar this task; this feeds the
+responsive audit later in the increment.
+
+**What "eight controls" refers to**: `pngx-filter-editor` — the text-filter input group, plus Tags,
+Correspondent, Document type, Storage path, Custom fields, Dates, and Permissions dropdowns (seven
+filterable controls, conditionally rendered per-permission/data-availability, plus the text filter — up to
+eight, matching the architect's count precisely) — sits in its own sticky row above the document list,
+separate from the page-header toolbar (Select/Show/display-mode/Sort/Views) above it.
+
+**Findings, from reading the actual CSS/template rather than assumption**: both the filter-editor's control
+group (`.d-flex.flex-wrap.gap-2` in `filter-editor.component.html`) and the page-header's toolbar
+(Bootstrap's `.btn-toolbar`, `display:flex; flex-wrap:wrap` by default) use unconditional flex-wrap layouts
+— no `overflow-x`, no `white-space: nowrap`, no fixed-width container forcing horizontal scroll anywhere in
+`filter-editor.component.scss` or `page-header.component.scss`. The only width constraint found is
+`input[type="text"] { min-width: 120px; }` on the text filter, which sets a floor but doesn't prevent
+wrapping (the input can drop to its own line once the row runs out of horizontal space).
+
+**Conclusion**: at narrower viewports, the filter bar's controls **wrap onto additional lines rather than
+overflowing or requiring horizontal scroll** — it degrades by consuming more *vertical* space, not by
+hiding or clipping controls. This compounds the "heavy, before any document is visible" complaint at mobile
+widths specifically: eight controls wrapping across several lines, above the page-header toolbar's own
+wrapped controls, above the document list, could push documents well below the fold on a phone-sized
+screen — a real problem for the responsive audit to address, but a different one than "controls become
+unreachable." No fix attempted here, per instruction.
+
+- **Files**: none — investigation only.
+- **Verification**: read `filter-editor.component.html`/`.scss` and `page-header.component.html`/`.scss`
+  directly. **Could not confirm live** — no `pnpm start` + backend available in this environment to actually
+  resize a browser viewport and observe the wrap behavior; this conclusion is inferred from the CSS rules
+  present (or absent) rather than observed. Recommend the architect (or the responsive audit) confirm at a
+  few concrete breakpoints (e.g. 768px, 480px, 375px) before treating "wraps, doesn't scroll" as settled.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
