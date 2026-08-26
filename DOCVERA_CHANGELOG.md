@@ -2635,6 +2635,80 @@ color schemes, before treating this as fully verified.
 
 ---
 
+## Increment 3, document list item 1 — consistent card metadata structure in grid view
+
+Targeted fix, not a redesign, per the architect's standing instruction: no change to filtering, sorting,
+selection, or view-switching. Cards in the grid view (`document-card-small`) had ragged heights because
+the metadata footer's row *existence*, not just its content, depended on whether the specific document had
+a value — some cards showed three metadata rows, others one, for the same active display-field
+configuration.
+
+**Field reliability, checked against the actual Django model before choosing a fix, not assumed**:
+
+| Field | Model definition | Reliable? |
+|---|---|---|
+| `created`, `added`, `modified` | `default=...`/`auto_now=True`, no `null=True` | **Always present** |
+| `title`, `tags` | `CharField(blank=True)` / M2M — never null, may be empty | **Always present** (as a field; value may be empty) |
+| `correspondent`, `document_type`, `storage_path`, `owner` | `ForeignKey(null=True, blank=True)` | **Genuinely optional** |
+| `page_count`, `archive_serial_number` | `PositiveIntegerField(null=True)` | **Genuinely optional** |
+| `is_shared_by_requester` | serializer-computed boolean | Always present as a field, but the card only renders its row when `true` — same visual effect as a null field |
+
+Of the fields the small card's footer can show, `created`/`added` never caused raggedness (always present,
+so every card already rendered them identically) — the actual culprits were `document_type`, `storage_path`,
+`page_count`, `archive_serial_number` (ASN), `owner`, and `is_shared_by_requester`, matching the architect's
+own example ("date, page count and owner" — page count and owner are exactly two of these).
+
+**Fix**: for each of those six fields, split the existing combined condition
+(`displayFields.includes(X) && document.hasValue`) into two — the outer `@if` (is this field active for the
+whole grid) now controls only whether the row *exists*, and the per-document value check moves to
+`[class.invisible]` on that same row. A field being active means every card in the grid gets a slot for it;
+whether *this* document has a value for it only controls whether that slot is visually filled, not whether
+it exists. No placeholder dash, no "None" — per instruction, an empty slot is genuinely blank space, not
+placeholder text (matching the convention the recent-documents widget work established earlier this phase).
+Interactive rows (`document_type`/`storage_path`, which are buttons) also get `[disabled]` alongside
+`invisible`, so an invisible row can't still be clicked. The `OWNER` row's existing suppression logic (hide
+when the document's owner *is* the current user, not just when it's null) is preserved exactly — reserving
+its row when hidden for either reason, rather than only when null, since from a pure layout standpoint both
+are "this field is active but has nothing to show" the same way.
+
+**Deliberately not touched — custom fields**: a document's custom-field metadata rows are driven by
+`@for (field of document.custom_fields; ...)` — the document's *own* populated custom-field values, not the
+full set of custom fields active across the grid. Making custom-field rows reserve space consistently would
+need threading a new `activeDisplayCustomFields`-style input down from `document-list.component.ts` (which
+already computes this for the table view) into `document-card-small` — a real structural addition, not a
+targeted fix within the existing component. Flagged here rather than attempted, per the instruction to stop
+and report rather than restructure.
+
+**Deliberately not touched — `document-card-large`**: the architect's report was specific to "the grid
+view." `document-card-small` is the grid view (`displayMode: 'smallCards'`); `document-card-large` is a
+separate component (`'largeCards'`) with its own, likely-similar per-document conditional pattern in its own
+metadata list. Out of scope for this report; flagged as a plausible but unverified candidate for the same
+fix if the architect wants it addressed too.
+
+**Spec coverage**: `document-card-small.component.spec.ts` — new `metadata row reservation` describe block
+asserts a field active but valued `null` (or unset) on the shared test fixture still renders its row,
+marked `invisible` rather than absent; that a field the fixture *does* have a value for is never marked
+invisible; and that a row becomes visible again once the document gains a value (a live re-render, not just
+initial state).
+
+- **Files**: `src-ui/src/app/components/document-list/document-card-small/document-card-small.component.html`,
+  `.spec.ts`.
+- **Reason**: Increment 3, document list item 1 — ragged card grid from inconsistent metadata structure.
+- **Approach**: see above.
+- **Upgrade impact**: **this is an upstream-shared component**. The diff is a decomposition of six existing
+  `@if` conditions plus one CSS utility class and one `[disabled]` binding per row — no new markup
+  structure, no removed functionality, low conflict surface for a future `git merge tags/vX.Y.Z`, but
+  upstream could plausibly touch these same six conditions in its own future card-layout work, since
+  they're a natural target for exactly this kind of fix upstream might make independently.
+
+**Verification**: `pnpm run test -- document-card-small.component.spec.ts` — 9/9 passing, including the 3
+new tests. Could not visually confirm actual grid uniformity in a browser in this environment (no
+`pnpm start` + backend available) — recommend the architect load the document list in grid view with a mix
+of documents (some missing owner/page count/ASN/document type) and confirm the cards now align, in both
+color schemes.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

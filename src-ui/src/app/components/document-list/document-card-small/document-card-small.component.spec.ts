@@ -99,4 +99,56 @@ describe('DocumentCardSmallComponent', () => {
     component.mouseLeaveCard()
     expect(component.popupPreview.close).toHaveBeenCalled()
   })
+
+  describe('metadata row reservation', () => {
+    // All DEFAULT_DISPLAY_FIELDS are active by default (see displayFields'
+    // own default value), and the shared `doc` fixture above deliberately
+    // leaves storage_path null and owner/archive_serial_number/
+    // is_shared_by_requester unset, so every one of these fields is
+    // "active but this document has no value" — exactly the case that used
+    // to collapse the row instead of reserving its space.
+    function iconRow(iconName: string): HTMLElement {
+      const icon: HTMLElement = fixture.nativeElement.querySelector(
+        `i-bs[name="${iconName}"]`
+      )
+      return icon?.closest('.list-group-item, .ps-0')
+    }
+
+    it('keeps a row in the DOM for an active field the document has no value for, marked invisible rather than removed', () => {
+      const storagePathRow = iconRow('folder')
+      expect(storagePathRow).not.toBeNull()
+      expect(storagePathRow.classList).toContain('invisible')
+
+      const ownerRow = iconRow('person-fill-lock')
+      expect(ownerRow).not.toBeNull()
+      expect(ownerRow.classList).toContain('invisible')
+
+      const asnRow = iconRow('upc-scan')
+      expect(asnRow).not.toBeNull()
+      expect(asnRow.classList).toContain('invisible')
+
+      const sharedRow = iconRow('people-fill')
+      expect(sharedRow).not.toBeNull()
+      expect(sharedRow.classList).toContain('invisible')
+    })
+
+    it('does not mark a row invisible when the document has a value for it', () => {
+      const documentTypeRow = iconRow('file-earmark')
+      expect(documentTypeRow).not.toBeNull()
+      expect(documentTypeRow.classList).not.toContain('invisible')
+
+      const pageCountRow = iconRow('files')
+      expect(pageCountRow).not.toBeNull()
+      expect(pageCountRow.classList).not.toContain('invisible')
+    })
+
+    it('reveals a row and clears invisible once the document gains a value', () => {
+      expect(iconRow('folder').classList).toContain('invisible')
+
+      component.document.storage_path = 4
+      fixture.detectChanges()
+
+      expect(iconRow('folder').classList).not.toContain('invisible')
+    })
+  })
 })
