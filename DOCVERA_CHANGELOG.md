@@ -2072,6 +2072,61 @@ fully verified — same caveat as every prior Django template change this sessio
 
 ---
 
+## Architect review item 7, Task 2 — confirm production exposes no debug output
+
+Verification only, no code change: configuration was already correct.
+
+**`DEBUG`**: `src/paperless/settings.py:256` — `DEBUG = __get_boolean("PAPERLESS_DEBUG", "NO")` — defaults
+to `False` unless the operator explicitly sets `PAPERLESS_DEBUG` to a truthy value. Searched the whole
+repo for every reference to `PAPERLESS_DEBUG`: it appears in exactly one compose file,
+`.devcontainer/docker-compose.devcontainer.sqlite-tika.yml` (`PAPERLESS_DEBUG: true`) — the VS Code
+dev-container config, not a production stack — and in `docs/setup.md`/`docs/development.md`, both
+explicitly describing it as something you set for the *development server*. None of the eight production
+compose stacks under `docker/compose/` (`docker-compose.postgres.yml`, `.mariadb.yml`, `.sqlite.yml`, the
+`-tika` variants, `.portainer.yml`, `.ci-test.yml`) reference `PAPERLESS_DEBUG` at all, so production
+deployments get Django's own safe default: `DEBUG = False`.
+
+**Whether a 500 can render a traceback in that configuration**: no. Confirmed by reading
+`django/core/handlers/exception.py::response_for_exception` directly (see Task 1's changelog entry for how
+— a disposable, isolated Django install used only to read source) — the generic-exception branch that
+produces Django's yellow debug traceback page (`debug.technical_500_response`) is gated on
+`if settings.DEBUG:` with **no other path to it**; with `DEBUG=False` every unhandled exception instead
+goes through `handle_uncaught_exception`, which renders `500.html` (now branded, see Task 1) if present or
+Django's own minimal "Server Error (500)" fallback otherwise — never a traceback to the browser either way.
+The same file's `Http404`/`BadRequest`/`SuspiciousOperation` branches are also explicitly `DEBUG`-gated the
+same way — none of Django's own exception paths can leak a traceback with `DEBUG=False`, regardless of
+which one fires.
+
+**`ALLOWED_HOSTS` and whether the error pages actually render**: `settings.py:614` —
+`ALLOWED_HOSTS = __get_list("PAPERLESS_ALLOWED_HOSTS", ["*"])`, defaulting to the wildcard unless an
+operator restricts it. This matters for error-page rendering specifically because a `DisallowedHost`
+exception (raised when a request's `Host` header doesn't match `ALLOWED_HOSTS`) is a `SuspiciousOperation`
+subtype, which — per the same `response_for_exception` — *would* attempt a `DEBUG`-gated technical debug
+response if `DEBUG` were ever accidentally `True` in production; with the default wildcard `["*"]`,
+`DisallowedHost` never fires at all in a default deployment, so this compound risk doesn't materialize.
+Also confirmed there's no reverse proxy or static-error-page layer in front of Django in the production
+Docker image that could intercept or replace its responses:
+`docker/rootfs/etc/s6-overlay/s6-rc.d/svc-webserver/run` runs `granian` directly against
+`paperless.asgi:application` — no bundled nginx, no separate static-file server with its own default error
+pages. Whatever Django itself renders for 403/404/500 is exactly what reaches the browser.
+
+**Conclusion**: configuration was already correct — `DEBUG` defaults to `False` and is never set to `true`
+anywhere in a production stack; with `DEBUG=False`, Django's own exception handling cannot leak a
+traceback under any of its branches; `ALLOWED_HOSTS`'s permissive default means the one path that could
+compound with an accidental `DEBUG=True` doesn't get triggered; and nothing sits between Django and the
+browser that could bypass whatever error template Django renders. No settings changes made — nothing here
+needed fixing.
+
+**Verification**: read `src/paperless/settings.py`, `docker/rootfs/etc/s6-overlay/s6-rc.d/svc-webserver/run`,
+every `docker/compose/docker-compose.*.yml`, and Django 5.2.5's own
+`django/core/handlers/exception.py`/`django/views/debug.py` source directly (via the same disposable venv
+described in Task 1), rather than reasoning from memory of how Django is "supposed to" behave. Could not
+start an actual production-mode container in this environment to confirm end-to-end — this is a
+configuration-and-source-code audit, not a live test; recommend confirming with a real deployment before
+treating this as the final word.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
