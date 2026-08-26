@@ -1,0 +1,17 @@
+{% extends "paperless-ngx/error_base.html" %}
+{% load i18n %}
+
+{% block head_title %}{% translate "Page not found" %}{% endblock head_title %}
+
+{% block icon %}
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="m14.5 9.5-2 5-5 2 2-5 5-2Z"/>
+    </svg>
+{% endblock icon %}
+
+{% block page_title %}{% translate "This page doesn't exist" %}{% endblock page_title %}
+
+{% block page_body %}
+    {% translate "The address may be mistyped, or the page may have moved." %}
+{% endblock page_body %}

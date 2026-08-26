@@ -1,0 +1,17 @@
+{% extends "paperless-ngx/error_base.html" %}
+{% load i18n %}
+
+{% block head_title %}{% translate "Access restricted" %}{% endblock head_title %}
+
+{% block icon %}
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5" y="11" width="14" height="10" rx="2"/>
+        <path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+    </svg>
+{% endblock icon %}
+
+{% block page_title %}{% translate "You don't have access to this page" %}{% endblock page_title %}
+
+{% block page_body %}
+    {% translate "Your account doesn't have permission to view this page. If you believe this is a mistake, ask an administrator to grant access." %}
+{% endblock page_body %}

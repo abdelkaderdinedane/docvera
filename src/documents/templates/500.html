@@ -1,0 +1,24 @@
+{% extends "paperless-ngx/error_base.html" %}
+{% load i18n %}
+
+{% block head_title %}{% translate "Something went wrong" %}{% endblock head_title %}
+
+{% block icon_modifier %} danger{% endblock icon_modifier %}
+
+{% block icon %}
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3.5 2.5 20h19L12 3.5Z"/>
+        <path d="M12 10v4"/>
+        <circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none"/>
+    </svg>
+{% endblock icon %}
+
+{% block page_title %}{% translate "Something went wrong on our side" %}{% endblock page_title %}
+
+{% block page_body %}
+    {% translate "We've logged the issue and our team is looking into it. Please try again in a moment." %}
+{% endblock page_body %}
+
+{% block page_action %}
+    <a class="btn btn-primary error-page-action" href="/">{% translate "Try again" %}</a>
+{% endblock page_action %}

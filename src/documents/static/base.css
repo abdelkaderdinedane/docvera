@@ -325,3 +325,71 @@ html, body {
     color: #abb2bf;
   }
 }
+
+/* ---------------------------------------------------------------------- *
+ * Error pages (403 / 404 / 500) — Docvera design system, Phase 2
+ * Increment 2. Same tokens and typography as the auth pages above, but a
+ * single centered column rather than their two-column brand-panel layout,
+ * which is too heavy for a page whose whole point is to get out of the way.
+ * Logical properties throughout — RTL locale support lands later this phase.
+ * ---------------------------------------------------------------------- */
+
+.error-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: 3rem;
+  padding-inline: 1.5rem;
+  background: var(--bs-body-bg);
+}
+
+.error-page-inner {
+  width: 100%;
+  max-width: 26rem;
+  text-align: center;
+}
+
+.error-page-logo {
+  margin-block-end: 2rem;
+}
+
+.error-page-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-block-end: 1.25rem;
+  /* Muted, not alarming — the default tone for a permission boundary or a
+     "this doesn't exist" page. Only the genuine-failure (500) page opts
+     into the danger tint below. Decorative only (aria-hidden in the
+     template), so this isn't held to the 4.5:1 text-contrast bar. */
+  color: var(--pngx-text-muted);
+}
+
+.error-page-icon svg {
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+}
+
+.error-page-icon.danger {
+  color: var(--bs-danger);
+}
+
+.error-page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-block-end: 0.5rem;
+}
+
+.error-page-body {
+  color: var(--pngx-text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  margin-block-end: 1.75rem;
+}
+
+.error-page a:focus-visible,
+.error-page button:focus-visible {
+  outline: 2px solid var(--pngx-primary);
+  outline-offset: 2px;
+}

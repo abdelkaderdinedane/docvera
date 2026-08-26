@@ -328,6 +328,61 @@ other sidebar icon carries, and the two GitHub/update-check footer icons (`info-
 both are minor, low-traffic inconsistencies rather than the "typographic character instead of a drawn
 icon" defect this task specifically targeted, so left as-is rather than folded into an unrelated change.
 
+## 5.14 Branded Django error pages (403 / 404 / 500)
+
+**These pages must render with no Angular app, no API, and no logged-in session available** — a 500 may
+well mean exactly those things are down. They are plain Django templates
+(`src/documents/templates/403.html`/`404.html`/`500.html`, extending a shared
+`src/documents/templates/paperless-ngx/error_base.html`), picked up automatically by Django's default
+`handler403`/`handler404`/`handler500` (which look up bare `403.html`/`404.html`/`500.html` by template
+name, not by app namespace — hence these three live at the app's template root rather than nested under
+`paperless-ngx/` the way the auth pages are).
+
+**Layout deliberately does not reuse `paperless-ngx/base.html`'s two-column brand panel** — that layout is
+built for a page whose job is to hold someone's attention (a login form with marketing copy alongside it);
+an error page's job is the opposite; get out of the way. `error_base.html` instead reuses the same tokens
+(`--pngx-primary`, `--pngx-surface`, `--pngx-text-muted`), the same logo snippet
+(`paperless-ngx/snippets/svg_logo.html`), and the same typography scale as the auth pages, in a single
+centered column — matching the *visual language*, not the layout, per the explicit instruction that
+produced this section.
+
+**Tone differs per page, and reuses the §5.12 reasoning rather than inventing a second convention**: 403 is
+a permission boundary (calm, muted icon, no alarm styling — "your account doesn't have permission... ask
+an administrator," the same framing §5.12 established for in-app 403s); 404 states plainly that nothing is
+broken, the address doesn't exist; 500 is a genuine failure and says so, without ever including a stack
+trace or technical detail (`{% translate %}`-only copy, nothing from `{{ exception }}` is ever rendered).
+
+**Critical constraint, verified by reading Django's own `django/views/defaults.py` source rather than
+assumed**: the three default error views pass *different* context to their template:
+
+| Handler | Context passed | Context processors run? |
+|---|---|---|
+| `permission_denied` (403) | `request=request, context={"exception": ...}` | Yes |
+| `page_not_found` (404) | `context, request` (`request_path`, `exception`) | Yes |
+| `server_error` (500) | **`template.render()` — no arguments at all** | **No — and no `request` either** |
+
+The 500 template therefore cannot rely on **anything** context-processor-driven (this app's own
+`documents.context_processors.settings`, which supplies the dynamic `APP_TITLE`/`APP_LOGO` used elsewhere,
+included) or on a `request` object being present. `{% static %}`, `{% translate %}`/`{% blocktranslate %}`,
+and `{% include %}` with only literal (`with x="..."`) arguments all still work with zero context — that's
+exactly what `error_base.html` and all three pages are built from, deliberately. Anyone extending these
+pages later must keep that constraint in mind: something that works when testing the 403 or 404 page can
+still break the 500 page specifically, because only 500 gets an empty context.
+
+**Known gap, flagged, not fixed here (out of this task's scope)**: `base.css` defines `--pngx-primary` once
+(`#1A3D7C` Navy), with **no dark-mode override** — unlike `src-ui/src/theme.scss`, which lightens the same
+brand color to 58% lightness specifically so it passes 4.5:1 as *text* on a dark background (see the Navy
+token decision below). Computed for this page's dark-mode background (`#161618`): Navy text/links styled
+via `.text-primary`/`.btn-link` (both already used by the shipped login/password-reset pages, not newly
+introduced by this task) sit at **≈1.72:1 in dark mode — failing badly**, a pre-existing gap on the
+already-shipped auth pages, discovered as a side effect of verifying this task's own contrast. The new
+error pages avoid the pairing entirely rather than triggering it a second time: their action button uses
+`.btn.btn-primary` (solid Navy **fill** with white text, ≈10.49:1, mode-independent since a filled button's
+contrast doesn't depend on the page background) rather than Navy text directly on the page background.
+Fixing the underlying `base.css` gap — giving `--pngx-primary` the same dark-mode-safe treatment
+`theme.scss` already has — is a reasonable follow-up but touches the shipped auth pages, outside what this
+task asked for; flagged here rather than folded in silently.
+
 ---
 
 ## 7. Accessibility (WCAG 2.1 AA)

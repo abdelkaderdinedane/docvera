@@ -1239,6 +1239,46 @@ msgstr "Certains champs personnalisés n'existent pas ou ont été spécifiés d
 msgid "Invalid variable detected."
 msgstr "Variable invalide détectée."
 
+#: documents/templates/403.html:4
+msgid "Access restricted"
+msgstr "Accès restreint"
+
+#: documents/templates/403.html:13
+msgid "You don't have access to this page"
+msgstr "Vous n'avez pas accès à cette page"
+
+#: documents/templates/403.html:16
+msgid "Your account doesn't have permission to view this page. If you believe this is a mistake, ask an administrator to grant access."
+msgstr "Votre compte n'a pas la permission de consulter cette page. Si vous pensez qu'il s'agit d'une erreur, demandez à un administrateur de vous accorder l'accès."
+
+#: documents/templates/404.html:4
+msgid "Page not found"
+msgstr "Page introuvable"
+
+#: documents/templates/404.html:13
+msgid "This page doesn't exist"
+msgstr "Cette page n'existe pas"
+
+#: documents/templates/404.html:16
+msgid "The address may be mistyped, or the page may have moved."
+msgstr "L'adresse est peut-être mal orthographiée, ou la page a été déplacée."
+
+#: documents/templates/500.html:4
+msgid "Something went wrong"
+msgstr "Une erreur s'est produite"
+
+#: documents/templates/500.html:16
+msgid "Something went wrong on our side"
+msgstr "Une erreur s'est produite de notre côté"
+
+#: documents/templates/500.html:19
+msgid "We've logged the issue and our team is looking into it. Please try again in a moment."
+msgstr "Nous avons enregistré l'incident et notre équipe s'en occupe. Veuillez réessayer dans un instant."
+
+#: documents/templates/500.html:23
+msgid "Try again"
+msgstr "Réessayer"
+
 #: documents/templates/account/account_inactive.html:5
 msgid "Paperless-ngx account inactive"
 msgstr "Compte Paperless-ngx inactif"
@@ -1467,6 +1507,10 @@ msgstr "Le lien de partage n'a pas été trouvé."
 #: documents/templates/paperless-ngx/base.html:62
 msgid "Share link has expired."
 msgstr "Le lien de partage a expiré."
+
+#: documents/templates/paperless-ngx/error_base.html:32
+msgid "Go to Dashboard"
+msgstr "Accéder au tableau de bord"
 
 #: documents/templates/socialaccount/authentication_error.html:5
 #: documents/templates/socialaccount/login.html:5

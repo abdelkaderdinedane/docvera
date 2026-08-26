@@ -1,0 +1,37 @@
+<!doctype html>
+{% load static i18n %}
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta name="author" content="Veltrix AI">
+        <meta name="robots" content="noindex,nofollow">
+
+        <title>{% block head_title %}{% endblock head_title %}</title>
+        <link href="{% static 'bootstrap.min.css' %}" rel="stylesheet">
+        <link href="{% static 'base.css' %}" rel="stylesheet">
+        <link rel="icon" type="image/x-icon" href="{% static 'frontend/en-US/favicon.ico' %}">
+    </head>
+
+    <body>
+        <main class="error-page">
+            <div class="error-page-inner">
+                <div class="error-page-logo">
+                    {% include "paperless-ngx/snippets/svg_logo.html" with extra_attrs="width='140' class='logo'" %}
+                </div>
+
+                <div class="error-page-icon{% block icon_modifier %}{% endblock icon_modifier %}" aria-hidden="true">
+                    {% block icon %}{% endblock icon %}
+                </div>
+
+                <h1 class="error-page-title">{% block page_title %}{% endblock page_title %}</h1>
+                <p class="error-page-body">{% block page_body %}{% endblock page_body %}</p>
+
+                {% block page_action %}
+                    <a class="btn btn-primary error-page-action" href="/">{% translate "Go to Dashboard" %}</a>
+                {% endblock page_action %}
+            </div>
+        </main>
+    </body>
+</html>

@@ -1984,6 +1984,94 @@ expected.
 
 ---
 
+## Architect review item 7, Task 1 — branded 403, 404 and 500 pages
+
+Last open item from the architect's review. Django-side only, no Angular involved: customers must never
+receive a raw framework error page.
+
+**New files, not overrides of an upstream template** — upstream paperless-ngx does not ship custom
+`403.html`/`404.html`/`500.html` at all, so this is pure addition with no upstream template being
+diverged from: `src/documents/templates/403.html`, `404.html`, `500.html` (Django's default
+`handler403`/`404`/`500` resolve these by bare template name via the app-directories loader, so they live
+at the app's template root, not nested under `paperless-ngx/` the way the auth pages are), plus a shared
+`src/documents/templates/paperless-ngx/error_base.html` the three extend.
+
+**Layout**: single centered column — the two-column brand panel from the redesigned auth pages
+(`07acdcf24`) was judged too heavy for a page whose job is to get out of the way, per instruction. Reuses
+the same tokens, logo snippet, and typography as the auth pages instead of that layout — matches the
+*visual language*, not the layout.
+
+**Tone per page**, mirroring the reasoning already established for in-app permission boundaries
+(`DOCVERA_DESIGN_SYSTEM.md` §5.12) rather than inventing a second convention:
+- **403** — calm, muted lock icon, no alarm styling. States the account lacks access to this page and
+  that an administrator can grant it.
+- **404** — brief, states nothing is broken, the address doesn't exist, with a way back.
+- **500** — states plainly that something went wrong on Docvera's side, that it's been logged, and gives a
+  single recovery action. **Never a stack trace or technical detail** — confirmed by reading Django's own
+  `django/views/defaults.py::server_error`, which calls `template.render()` with zero arguments for the
+  500 case specifically (no context, no request — so no context processor, and no `{{ exception }}`,
+  could leak anything even if the template tried to reference one, which none of these three do).
+
+**Icons**: hand-authored inline SVG, matching the exact stroke style already used by the auth pages'
+feature-list icons (`stroke="currentColor"`, `stroke-width="1.75"`) — a lock for 403, a compass for 404
+(muted, `--pngx-text-muted`, decorative/`aria-hidden`), an alert triangle for 500 (`var(--bs-danger)` —
+the only page whose icon is colored, since it's the only genuine failure of the three).
+
+**CSS**: appended to `src/documents/static/base.css` (`.error-page*` rules) — existing tokens only
+(`--pngx-primary`, `--pngx-surface`, `--pngx-text-muted`, `--bs-danger`), no hardcoded hex. Logical
+properties throughout (`padding-block`/`padding-inline`, `margin-block-end`, `inline-size`/`block-size`)
+per instruction, ahead of RTL locale support landing later this phase. The action button uses
+`.btn.btn-primary` (solid Navy fill, white text) rather than the auth pages' `.text-primary`/`.btn-link`
+classes (Navy text directly on the page background) — see DOCVERA_DESIGN_SYSTEM.md §5.14 for why: the
+latter was found, while verifying this task's own dark-mode contrast, to already fail badly (≈1.72:1) on
+the shipped auth pages, because `--pngx-primary` (unlike its Angular `theme.scss` counterpart) has no
+dark-mode-safe adjustment. Not fixed here — flagged as a pre-existing gap outside this task's scope, see
+below.
+
+**i18n**: 11 new strings, all through `{% translate %}`, French targets hand-added to
+`src/locale/fr_FR/LC_MESSAGES/django.po` following the procedure established for the earlier login-page
+translation commit — grouped by source file, positioned alphabetically (`403.html`/`404.html`/`500.html`
+sort before the existing `account/*` block; `error_base.html`'s one string sits after the `base.html`
+group, before `socialaccount/*`, matching the file's existing per-source-file alphabetical grouping).
+"Professional European French" register, consistent with the earlier login-page translations (e.g. "Nous
+avons enregistré l'incident" for the 500 page, matching that same measured, non-apologetic tone in French).
+
+- **Files**: `src/documents/templates/paperless-ngx/error_base.html` (new),
+  `src/documents/templates/403.html` (new), `404.html` (new), `500.html` (new),
+  `src/documents/static/base.css`, `src/locale/fr_FR/LC_MESSAGES/django.po`, `DOCVERA_BRANDING.md`,
+  `DOCVERA_DESIGN_SYSTEM.md`.
+- **Reason**: architect review item 7 — customers must never see a raw framework error or stack trace.
+- **Approach**: see above.
+- **Upgrade impact**: **new files only** — nothing here overrides or diverges from an upstream template,
+  so a future `git merge tags/vX.Y.Z` has no conflict surface from the three new templates or
+  `error_base.html`. The one shared-file touch is `base.css`, which is also touched by the original
+  auth-page redesign (`07acdcf24`) and by the branding rebrand — this change is a pure append (new rules
+  at the end of the file, nothing existing edited), so conflict risk there is low but not zero if upstream
+  ever restyles that same file (upstream doesn't currently touch it at all, being Docvera-specific from the
+  start, which keeps this low-risk in practice).
+
+**Known gap, flagged not fixed (out of this task's scope)**: `base.css`'s `--pngx-primary` has no
+dark-mode override, unlike `theme.scss`'s Angular equivalent — Navy text/links on the auth pages
+(`.text-primary`/`.btn-link`, already shipped, not introduced here) sit at ≈1.72:1 in dark mode, failing
+WCAG AA. Full reasoning and the avoidance strategy used on the new error pages are in
+`DOCVERA_DESIGN_SYSTEM.md` §5.14. Fixing `base.css` itself (giving `--pngx-primary` the same dark-mode
+lightness adjustment `theme.scss` already has) is a reasonable follow-up but touches the shipped auth
+pages, which this task didn't ask for.
+
+**Verification**: could not run the backend test suite, `manage.py check`, `compilemessages`, or an actual
+browser render — same environment limitation as every prior Django-side task this session (no `uv`, no
+Django installed in this project's own environment, no GNU gettext binaries). What *was* done: a Django
+5.2.5 install in a disposable, isolated venv (outside the repo, discarded after use) to read the actual
+`django/views/defaults.py` and `django/core/handlers/exception.py` source directly — confirming the exact
+context each error view receives (see §5.14) rather than assuming Django's behavior from memory; `git diff
+--stat` on `django.po` shows a clean 44-insertion, 0-deletion addition; `msgid`/`msgstr` counts both
+increased from 536 to 547 (balanced, 11 new entries, nothing existing touched); `file` still reports the
+`.po` as a valid "GNU gettext message catalogue" after editing. Please run `manage.py check` +
+`compilemessages` + an actual 403/404/500 render (light and dark, both locales) before treating this as
+fully verified — same caveat as every prior Django template change this session.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
