@@ -2183,6 +2183,97 @@ polish — explicitly not done here per instruction to report, not fix.
 
 ---
 
+## Architect follow-up on item 7 — reachability investigation, CSRF page, and completing the set
+
+Follow-up to the branded-error-pages work, prompted by the architect deploying `403.html`/`404.html`/
+`500.html` into a running container and finding that typo'd URLs (`/nimportequoi`, `/api/nimportequoi/`,
+`/accounts/nimportequoi/`) all rendered Angular's own 404 page, not the new Django templates. Investigated
+first, per instruction, before writing any code.
+
+**Why every one of those three test URLs reached Angular instead of Django's 404**: `paperless/urls.py`'s
+last pattern is an unconditional catch-all (`re_path(r".*", login_required(ensure_csrf_cookie(IndexView.
+as_view())), name="base")`). Read Django's own `django/urls/resolvers.py::URLResolver.resolve()` directly
+rather than assuming how it behaves: the root resolver loops over every top-level pattern and, on a
+`Resolver404` raised by any nested `include()` (e.g. nothing under `api/` matching the remainder), **catches
+it and continues to the next sibling pattern** — it does not propagate the failure. So a path like
+`/api/nimportequoi/` doesn't stop at the `api/` include failing; the root resolver keeps trying `share/`,
+`admin/`, `accounts/`, etc., and eventually reaches the catch-all, which matches unconditionally. The
+practical effect: **there is essentially no request path in this application that fails to resolve to some
+view**, no matter how deeply nested the attempted route — which is also why an unauthenticated request to a
+nonexistent path 302s to login rather than 404ing: it's not a separate mechanism, it's the catch-all's own
+`login_required` wrapper firing on whatever falls through to it.
+
+**When 404/403/500 actually fire, verified against this app's own view code, not assumed**: 404 and 403
+cannot fire from a routing miss in this app (there effectively is no routing miss); they only fire when a
+URL resolves successfully to a real view whose own code explicitly raises the exception during execution.
+Confirmed concretely: `documents.views.serve_logo` (`/logo`) raises `Http404` when no custom logo is
+configured; Django admin's own `get_object_or_404` calls and its per-model `PermissionDenied` (see the
+Task 3 entry above) are the other confirmed paths — real, but narrow and admin/staff-adjacent, not general
+customer navigation. **500 is different and broadly reachable**: it fires for any unhandled exception in
+any successfully-routed view, which has nothing to do with the catch-all problem — confirmed `IndexView`
+itself (hit by every authenticated page load) performs a real DB query
+(`self.request.user.ui_settings.settings.get(...)`) inside `get_frontend_language()`, so a database outage
+while a user's browser is loading the app would render the branded `500.html`, exactly the "Angular/API/
+session unavailable" scenario the architect described. **Conclusion reported to the architect before any
+code was written**: 400/403/404 are real but narrow paths, worth keeping as cheap defense-in-depth, but
+were never going to be "the customer's 404 page" — Angular's own client-side router owns that surface by
+design, and already appears to be branded. 500 (and, as it turned out, 403_csrf below) are the ones that
+matter for an actual customer hitting them in the ordinary course of using the product.
+
+**The missed fourth page — `403_csrf.html`**: verified via `django/views/csrf.py` that a CSRF failure is
+handled by a **separate mechanism entirely** — `CsrfViewMiddleware` calls `settings.CSRF_FAILURE_VIEW`
+(`django.views.csrf.csrf_failure`) directly, never going through `response_for_exception`/`handler403` at
+all, which is exactly why the 403 work didn't already cover it. Confirmed the context it receives:
+`t.render(request=request)` — **the `reason`/`no_referer`/`no_cookie`/`DEBUG` dict Django builds is used
+only by its own built-in fallback template, and is never passed to a custom `403_csrf.html`** — so the new
+page cannot differentiate *why* CSRF failed even if it wanted to, which reinforces rather than conflicts
+with the instruction to keep the copy generic ("your session has expired... sign in again") instead of
+using Django's security vocabulary. Added `src/documents/templates/403_csrf.html`, extending the same
+`error_base.html`, with a clock icon (calm, matching 403/404's tone, not the 500 danger tint), heading
+"Your session has expired," and a "Sign in again" action linking to `/accounts/login/` — the one universal
+recovery action for this entire class of problem regardless of the specific cause.
+
+**Checked for a fifth page — found one more, `400.html`**: grepped Django 5.2.5's own source for every
+`TEMPLATE_NAME`/`loader.get_template(...)` call across `django/views/defaults.py` and `django/views/
+csrf.py` — confirms the **complete** set Django exposes a template hook for is exactly five:
+`400`/`403`/`403_csrf`/`404`/`500`. Added `src/documents/templates/400.html` for completeness. Its
+real-world reachability is honestly the narrowest of the five — traced through
+`django/http/multipartparser.py` to check whether it might matter for this app's document uploads
+specifically (a natural first guess, since `DATA_UPLOAD_MAX_MEMORY_SIZE` defaults to 2.5&nbsp;MB and is
+never overridden in `settings.py`) and confirmed that limit only applies to non-file multipart *fields*,
+not file content itself — actual document uploads are not subject to it, so this isn't the customer-facing
+upload-size gap it might first appear to be. `400.html` is added purely for completeness of the set the
+architect asked to see in full, not because it has a specific, verified, everyday trigger in this app the
+way 403_csrf and 500 do.
+
+**i18n**: 7 new strings (3 for `400.html`, 4 for `403_csrf.html`), same procedure as before — French
+targets hand-added to `django.po`, positioned alphabetically by source file
+(`400.html` before `403.html`; `403_csrf.html` between `403.html` and `404.html`, matching `"403.html" <
+"403_csrf.html" < "404.html"` string ordering).
+
+- **Files**: `src/documents/templates/400.html` (new), `src/documents/templates/403_csrf.html` (new),
+  `src/locale/fr_FR/LC_MESSAGES/django.po`, `DOCVERA_BRANDING.md`, `DOCVERA_DESIGN_SYSTEM.md`.
+- **Reason**: architect follow-up on review item 7 — confirm reachability before assuming coverage, and
+  close the gap the architect found by hand (a CSRF failure showing Django's raw, unbranded page).
+- **Approach**: see above.
+- **Upgrade impact**: same as the original three pages — **new files only**, no upstream template
+  overridden. No CSS changes were needed; both new pages reuse `error_base.html`'s existing
+  `.error-page-*` classes as-is.
+
+**Verification**: same environment limitation as the original three pages (no `uv`, no Django installed in
+this project's own environment) — used a disposable, isolated Django 5.2.5 install outside the repo
+(discarded after use) to read `django/urls/resolvers.py`, `django/views/csrf.py`, and
+`django/http/multipartparser.py` directly, rather than reasoning about routing/CSRF/upload-limit behavior
+from memory. `git diff --stat` on `django.po` shows a clean 28-insertion, 0-deletion addition;
+`msgid`/`msgstr` counts both increased from 547 to 554 (balanced, 7 new entries). Could not reproduce the
+architect's original observation end-to-end (no running container in this environment) — the routing
+explanation above is derived from reading the actual resolver source against this project's actual
+`urls.py`, not from reproducing the browser session; recommend the architect re-test the same three URLs
+plus an expired-session CSRF failure against a container with this commit applied, to confirm the
+explanation holds in practice.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

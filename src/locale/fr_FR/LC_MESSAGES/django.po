@@ -1239,6 +1239,18 @@ msgstr "Certains champs personnalisés n'existent pas ou ont été spécifiés d
 msgid "Invalid variable detected."
 msgstr "Variable invalide détectée."
 
+#: documents/templates/400.html:4
+msgid "Bad request"
+msgstr "Requête incorrecte"
+
+#: documents/templates/400.html:14
+msgid "We couldn't process that request"
+msgstr "Nous n'avons pas pu traiter cette requête"
+
+#: documents/templates/400.html:17
+msgid "The request may be malformed or too large. Please try again, or go back to the previous page."
+msgstr "La requête est peut-être incorrecte ou trop volumineuse. Veuillez réessayer, ou revenir à la page précédente."
+
 #: documents/templates/403.html:4
 msgid "Access restricted"
 msgstr "Accès restreint"
@@ -1250,6 +1262,22 @@ msgstr "Vous n'avez pas accès à cette page"
 #: documents/templates/403.html:16
 msgid "Your account doesn't have permission to view this page. If you believe this is a mistake, ask an administrator to grant access."
 msgstr "Votre compte n'a pas la permission de consulter cette page. Si vous pensez qu'il s'agit d'une erreur, demandez à un administrateur de vous accorder l'accès."
+
+#: documents/templates/403_csrf.html:4
+msgid "Session expired"
+msgstr "Session expirée"
+
+#: documents/templates/403_csrf.html:13
+msgid "Your session has expired"
+msgstr "Votre session a expiré"
+
+#: documents/templates/403_csrf.html:16
+msgid "For your security, sessions expire after a period of inactivity. Please sign in again to continue."
+msgstr "Pour votre sécurité, les sessions expirent après une période d'inactivité. Veuillez vous reconnecter pour continuer."
+
+#: documents/templates/403_csrf.html:20
+msgid "Sign in again"
+msgstr "Se reconnecter"
 
 #: documents/templates/404.html:4
 msgid "Page not found"

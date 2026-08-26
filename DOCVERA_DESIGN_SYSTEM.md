@@ -328,15 +328,47 @@ other sidebar icon carries, and the two GitHub/update-check footer icons (`info-
 both are minor, low-traffic inconsistencies rather than the "typographic character instead of a drawn
 icon" defect this task specifically targeted, so left as-is rather than folded into an unrelated change.
 
-## 5.14 Branded Django error pages (403 / 404 / 500)
+## 5.14 Branded Django error pages (400 / 403 / 403_csrf / 404 / 500)
 
 **These pages must render with no Angular app, no API, and no logged-in session available** — a 500 may
 well mean exactly those things are down. They are plain Django templates
-(`src/documents/templates/403.html`/`404.html`/`500.html`, extending a shared
+(`src/documents/templates/400.html`/`403.html`/`403_csrf.html`/`404.html`/`500.html`, extending a shared
 `src/documents/templates/paperless-ngx/error_base.html`), picked up automatically by Django's default
-`handler403`/`handler404`/`handler500` (which look up bare `403.html`/`404.html`/`500.html` by template
-name, not by app namespace — hence these three live at the app's template root rather than nested under
-`paperless-ngx/` the way the auth pages are).
+error-handling hooks — bare template names, resolved by the app-directories loader without an app
+namespace, hence these five live at the app's template root rather than nested under `paperless-ngx/` the
+way the auth pages are. This is the **complete set** Django itself exposes a template hook for — confirmed
+by grepping Django 5.2.5's own source for every `TEMPLATE_NAME`/`loader.get_template(...)` call across
+`django/views/defaults.py` and `django/views/csrf.py`; there is no sixth one to discover later.
+`400`/`403`/`404`/`500` share one mechanism (`django/views/defaults.py`, wired via `response_for_exception`
+in `django/core/handlers/exception.py`); `403_csrf.html` is a **separate** mechanism entirely —
+`CsrfViewMiddleware` calls `settings.CSRF_FAILURE_VIEW` (`django.views.csrf.csrf_failure`) directly when
+CSRF validation fails, never going through `response_for_exception`/`handler403` at all, which is why it
+needed its own investigation rather than being assumed covered by the 403 work.
+
+**Reachability, verified against this app's actual `urls.py` and Django's own `URLResolver.resolve()`
+source, not assumed**: `paperless/urls.py`'s last pattern is an unconditional catch-all
+(`re_path(r".*", login_required(ensure_csrf_cookie(IndexView.as_view())), name="base")`). Django's root
+`URLResolver.resolve()` loops over every top-level pattern and, on a `Resolver404` raised by any nested
+`include()` (e.g. nothing under `api/` matching), **continues to the next sibling pattern** rather than
+propagating the failure — confirmed by reading `django/urls/resolvers.py` directly. The practical effect:
+there is essentially no request path in this app — mistyped, under `/api/`, under `/accounts/`, anywhere —
+that fails to resolve to *some* view, because the catch-all always matches last. **404/403 therefore cannot
+fire from a routing miss in this app; they only fire when a URL resolves successfully to a real view and
+that view's own code explicitly raises the exception during execution.** Concretely: `documents.views.
+serve_logo` (`/logo`) raises `Http404` when no custom logo is configured; Django admin's own
+`get_object_or_404` calls (bad primary key on a real admin URL) and its per-model `PermissionDenied` (see
+§5.13's Task 3 note) are the other confirmed cases — real, but narrow, staff/admin-adjacent paths, not
+general customer navigation. `403_csrf.html` is different and **broadly reachable** — any authenticated
+session that goes stale while a form sits open (the common case: a login tab left open overnight) hits it
+on the next submit, independent of routing entirely since it fires from `CsrfViewMiddleware`, before view
+dispatch. `500.html` is the most broadly reachable of all: it fires for *any* unhandled exception in *any*
+successfully-routed view, including `IndexView` itself — which every authenticated page load hits, and
+which does a real DB query (`request.user.ui_settings...`) that can fail if the database is unavailable.
+**The takeaway for anyone extending this set**: 400/403/404 cover real but narrow paths and are
+cheap defense-in-depth, not the primary customer error surface (Angular's own client-side router already
+owns that for typo'd paths, by design — the catch-all above is intentional architecture, not a gap to
+close). 403_csrf and 500 are the two that matter most for an actual customer hitting them in the ordinary
+course of using the product.
 
 **Layout deliberately does not reuse `paperless-ngx/base.html`'s two-column brand panel** — that layout is
 built for a page whose job is to hold someone's attention (a login form with marketing copy alongside it);
@@ -349,15 +381,23 @@ produced this section.
 **Tone differs per page, and reuses the §5.12 reasoning rather than inventing a second convention**: 403 is
 a permission boundary (calm, muted icon, no alarm styling — "your account doesn't have permission... ask
 an administrator," the same framing §5.12 established for in-app 403s); 404 states plainly that nothing is
-broken, the address doesn't exist; 500 is a genuine failure and says so, without ever including a stack
-trace or technical detail (`{% translate %}`-only copy, nothing from `{{ exception }}` is ever rendered).
+broken, the address doesn't exist; 400 is similarly calm/generic (a malformed or oversized request, not a
+Docvera fault); 500 is a genuine failure and says so, without ever including a stack trace or technical
+detail (`{% translate %}`-only copy, nothing from `{{ exception }}` is ever rendered). **403_csrf is
+deliberately written in plain, non-technical language** — "your session has expired... sign in again," not
+Django's own "CSRF verification failed" security vocabulary — because the overwhelmingly common trigger is
+mundane session staleness, not an actual attack, and a customer should never have to parse security
+jargon to understand "sign in again."
 
-**Critical constraint, verified by reading Django's own `django/views/defaults.py` source rather than
-assumed**: the three default error views pass *different* context to their template:
+**Critical constraint, verified by reading Django's own `django/views/defaults.py` and `django/views/
+csrf.py` source rather than assumed**: the five default error views pass *different* context to their
+template:
 
 | Handler | Context passed | Context processors run? |
 |---|---|---|
+| `bad_request` (400) | `request=request` only — no extra dict (`"Context: None"` per Django's own docstring) | Yes |
 | `permission_denied` (403) | `request=request, context={"exception": ...}` | Yes |
+| `csrf_failure` (403_csrf) | `request=request` only — **the `reason`/`no_referer`/`no_cookie`/`DEBUG` dict Django builds is used only by its own fallback template, never passed to a custom one** | Yes |
 | `page_not_found` (404) | `context, request` (`request_path`, `exception`) | Yes |
 | `server_error` (500) | **`template.render()` — no arguments at all** | **No — and no `request` either** |
 
@@ -365,9 +405,11 @@ The 500 template therefore cannot rely on **anything** context-processor-driven 
 `documents.context_processors.settings`, which supplies the dynamic `APP_TITLE`/`APP_LOGO` used elsewhere,
 included) or on a `request` object being present. `{% static %}`, `{% translate %}`/`{% blocktranslate %}`,
 and `{% include %}` with only literal (`with x="..."`) arguments all still work with zero context — that's
-exactly what `error_base.html` and all three pages are built from, deliberately. Anyone extending these
-pages later must keep that constraint in mind: something that works when testing the 403 or 404 page can
-still break the 500 page specifically, because only 500 gets an empty context.
+exactly what `error_base.html` and all five pages are built from, deliberately. Anyone extending these
+pages later must keep that constraint in mind: something that works when testing 400/403/403_csrf/404 can
+still break the 500 page specifically, because only 500 gets an empty context — and 403_csrf specifically
+cannot differentiate *why* CSRF failed (stale cookie vs. missing referer vs. no cookie at all) even if a
+future revision wanted to, since none of those flags reach a custom template.
 
 **Known gap, flagged, not fixed here (out of this task's scope)**: `base.css` defines `--pngx-primary` once
 (`#1A3D7C` Navy), with **no dark-mode override** — unlike `src-ui/src/theme.scss`, which lightens the same
