@@ -8,7 +8,7 @@ from paperless_mail.signals import mail_consumer_declaration
 class PaperlessMailConfig(AppConfig):
     name = "paperless_mail"
 
-    verbose_name = _("Paperless mail")
+    verbose_name = _("Mail")
 
     def ready(self):
         from documents.signals import document_consumer_declaration

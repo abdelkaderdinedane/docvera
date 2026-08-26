@@ -2498,6 +2498,92 @@ in both light and dark color schemes before treating this as fully verified.
 
 ---
 
+## Phase 2 exit gate, follow-up — "Paperless mail" admin section heading
+
+Architect found a fourth leftover-brand string on the admin index: a section headed "PAPERLESS-NG POUR LE
+COURRIEL" (French rendering of "Paperless-ngx Mail"), sitting one page away from the branding fixed in the
+previous two Phase 2 exit-gate commits. Investigated the declaration and scope before changing anything,
+per instruction.
+
+**Where it's declared, and how the on-screen French text came to include "-ngx" when the English source
+doesn't**: `src/paperless_mail/apps.py:11` — `verbose_name = _("Paperless mail")`. Its
+`fr_FR/LC_MESSAGES/django.po` translation was `"Paperless-ng pour le courriel"` — the translator
+independently baked in "-ngx" wording that was never in the English source at all. Confirmed via
+`en_US/LC_MESSAGES/django.po`: `msgid "Paperless mail"` / `msgstr ""` — an **empty** `msgstr`, meaning
+gettext falls back to the raw `msgid` for English-locale admins; the `.po` file plays no role in what
+English users see, only the Python string does.
+
+**Every other `AppConfig.verbose_name` in the project checked for the same pattern** (grepped `src/*/apps.py`):
+`documents` ("Documents", generic, fine); `paperless` (`verbose_name = _("Paperless")`) and
+`ApplicationConfiguration.Meta.verbose_name` (`"paperless application settings"`, `paperless/models.py`) —
+same pattern, but **currently dormant**: neither the `paperless` app nor `ApplicationConfiguration` has
+anything registered in any `admin.py` (confirmed: `paperless/admin.py` only re-registers
+`django.contrib.auth.User`, which still displays under "Authentication and Authorization" since Django
+groups admin sections by the *model's* app_label, not the registering file's app), so nothing renders.
+`paperless_tesseract`/`paperless_text` declare no `verbose_name` and have no `admin.py` at all. One more
+instance of the same root string found while checking every admin-visible surface, not just headings:
+`paperless_mail/admin.py:61`, a `MailRuleAdmin` fieldset `description` ("Paperless will only process
+mails...") shown on the Mail Rule add/edit form.
+
+**Decision: fix the source (`verbose_name`/the fieldset string) directly, not via locale-file overrides —
+architect-confirmed**. Locale-only overriding is not actually available for the case that matters most:
+since English's `msgstr` is empty and gettext falls back to `msgid`, the *default* (English) rendering is
+governed entirely by the Python string; a locale file can only ever affect non-English locales. Making
+English-locale admins stop seeing "Paperless mail" would require writing a *non-empty* `en_US` translation
+whose content diverges from its own source purely for branding — a misuse of the translation mechanism
+(fragile against a future `makemessages`/`msgmerge` regeneration, and does nothing to reduce the ~49-locale
+footprint the string already has). Checked the migration concern specifically before deciding: grepped
+`paperless_mail/migrations/*.py` for any reference to `verbose_name` or the app's display name — zero
+matches, confirming (not assuming) `AppConfig.verbose_name` is purely a presentation-layer attribute
+Django resolves at runtime, never serialized into migration state, unlike `app_label` (the stable machine
+identifier, `"paperless_mail"`, entirely untouched by this change).
+
+**Scope, per instruction — fix only what's currently visible**: `paperless_mail/apps.py` and
+`paperless_mail/admin.py:61` only. `paperless/apps.py` and `paperless/models.py`'s dormant instances of the
+same pattern are deliberately left alone — they render nowhere today, and editing an upstream-tracked file
+that produces no visible output adds merge cost for no benefit. Revisit if `ApplicationConfiguration` (or
+anything else in the `paperless` app) is ever registered in Django admin.
+
+**Wording**: named as a Docvera capability rather than transliterating the upstream name, per instruction —
+`verbose_name` changed from `"Paperless mail"` to `"Mail"`, matching this product's own existing
+terminology (the Angular sidebar's Automation section already calls this same feature "Mail" — see
+`app-frame.component.html`). The fieldset description's "Paperless will only process..." becomes "Docvera
+will only process...". French targets use "Courriel" for "Mail" — the exact term this product's own
+sidebar already uses for the same feature (`messages.fr_FR.xlf`'s translation of "Mail" is "Courriel"),
+chosen for cross-surface terminology consistency rather than a fresh translation choice.
+
+**The other ~49 locale catalogs — a known, recorded state, not an oversight to be rediscovered later**:
+`"Paperless mail"` (and its own independently-translated wording) exists in every one of
+`src/locale/*/LC_MESSAGES/django.po` — checked, not assumed (grepped for the string across the whole
+`src/locale/` tree). Per the established convention this session, only `fr_FR` is hand-maintained; every
+other locale keeps its existing, now-stale translation of the old string until a full re-localization pass
+happens. Recording this explicitly here so it reads as a deliberate, scoped decision if it comes up again,
+not a gap discovered the same way this one was.
+
+- **Files**: `src/paperless_mail/apps.py`, `src/paperless_mail/admin.py`,
+  `src/locale/fr_FR/LC_MESSAGES/django.po`, `DOCVERA_BRANDING.md`.
+- **Reason**: Phase 2 exit-gate criterion — no unintended source-brand UI remains; this was the one
+  instance the earlier admin-branding pass didn't cover, since it's neither a template nor a `site.*`
+  settings attribute.
+- **Approach**: see above.
+- **Upgrade impact**: both edited files are upstream-tracked (`paperless_mail/apps.py`,
+  `paperless_mail/admin.py`), so this creates a small, real merge-conflict surface against a future
+  `git merge tags/vX.Y.Z` if upstream ever touches these exact lines — a one-line diff in each of two
+  small, low-churn files, the same shape and risk level as the `site_header`/`site_title` change in the
+  prior admin-branding commit. No migration or app_label impact (verified above). Skipping the two dormant
+  instances keeps the diff — and the future merge-conflict surface — to only the files with actual visible
+  output today.
+
+**Verification**: `py_compile` confirms both edited Python files remain syntactically valid; `django.po`
+diff is a clean 8-line, in-place update (two `msgid`/`msgstr` pairs changed, nothing added or orphaned,
+`msgid`/`msgstr` counts unchanged at 554/554, balanced); checked for a pre-existing `msgid "Mail"` entry
+before introducing one, to rule out a gettext duplicate-msgid conflict — none existed. Could not render
+`/admin/` in a browser in this environment (no `uv`, no Django installed in this project itself, no
+running container) — recommend the architect reload the admin index in French to confirm the heading now
+reads "Courriel" and the Mail Rule add form's filter description reads "Docvera ne traitera...".
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
