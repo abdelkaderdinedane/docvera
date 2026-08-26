@@ -5,6 +5,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
 import { RouterTestingModule } from '@angular/router/testing'
 import { NgxBootstrapIconsModule, allIcons } from 'ngx-bootstrap-icons'
+import { PermissionsService } from 'src/app/services/permissions.service'
 import { TagComponent } from '../../common/tag/tag.component'
 import { DocumentCardSmallComponent } from './document-card-small.component'
 
@@ -43,6 +44,10 @@ describe('DocumentCardSmallComponent', () => {
         provideHttpClientTesting(),
       ],
     }).compileComponents()
+
+    jest
+      .spyOn(TestBed.inject(PermissionsService), 'currentUserCan')
+      .mockReturnValue(true)
 
     fixture = TestBed.createComponent(DocumentCardSmallComponent)
     component = fixture.componentInstance
@@ -149,6 +154,22 @@ describe('DocumentCardSmallComponent', () => {
       fixture.detectChanges()
 
       expect(iconRow('folder').classList).not.toContain('invisible')
+    })
+  })
+
+  describe('accessible labels on action buttons', () => {
+    it('exposes an aria-label on the open and download links, matching their title', () => {
+      const openLink: HTMLElement = fixture.nativeElement.querySelector(
+        'a[aria-label="Open"]'
+      )
+      expect(openLink).not.toBeNull()
+      expect(openLink.getAttribute('title')).toEqual('Open')
+
+      const downloadLink: HTMLElement = fixture.nativeElement.querySelector(
+        'a[aria-label="Download"]'
+      )
+      expect(downloadLink).not.toBeNull()
+      expect(downloadLink.getAttribute('title')).toEqual('Download')
     })
   })
 })

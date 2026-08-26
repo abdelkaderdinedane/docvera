@@ -498,12 +498,18 @@ Acceptance criteria for all Docvera UI work:
 - **Keyboard**: every interactive element reachable and operable by keyboard, in a logical order.
 - **Focus**: a visible focus indicator on every focusable element, never removed without a replacement.
 - **Accessible names**: every control has a name via visible text, `aria-label`, or `aria-labelledby` —
-  a `title` attribute also satisfies this. An icon-only control repeated per row/item in a list needs a
-  *distinguishing* name (e.g. `aria-label="Remove {{item.name}}"`), not a generic one, since
-  screen-reader users navigating by control name can't otherwise tell repeated instances apart.
-  A label hidden via a responsive utility class (e.g. Bootstrap's `d-none d-sm-inline`) is removed from
-  the accessibility tree, not just visually — it does not satisfy this requirement at any viewport
-  width where the class applies.
+  a `title` attribute technically also satisfies WCAG's accessible-name computation, but for an
+  **icon-only** control (no visible text at all), pair it with `aria-label` rather than relying on `title`
+  alone: `title` is reliably read on mouse hover but not consistently exposed to screen readers on
+  keyboard focus, is never shown at all on touch, and duplicates as a distracting hover tooltip once
+  `aria-label` is also present — see the document-list small card's Open/Preview/Download buttons
+  (Increment 3) for the pattern: `title` for the sighted-mouse-hover tooltip, `aria-label` bound to the
+  identical string for assistive technology, both driven by one source string so they can't drift apart.
+  An icon-only control repeated per row/item in a list needs a *distinguishing* name (e.g.
+  `aria-label="Remove {{item.name}}"`), not a generic one, since screen-reader users navigating by control
+  name can't otherwise tell repeated instances apart. A label hidden via a responsive utility class (e.g.
+  Bootstrap's `d-none d-sm-inline`) is removed from the accessibility tree, not just visually — it does not
+  satisfy this requirement at any viewport width where the class applies.
 - **Semantics**: correct landmarks, heading hierarchy with no skipped level. Reusable components placed
   at varying page depths must not hard-code a heading level — see `empty-state`/`error-state`'s
   `headingLevel` input pattern above (a generic element with `role="heading"` + `[attr.aria-level]`,

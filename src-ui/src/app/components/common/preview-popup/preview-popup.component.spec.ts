@@ -159,6 +159,16 @@ describe('PreviewPopupComponent', () => {
     expect(component.popover.isOpen()).toBeFalsy()
   })
 
+  it('should expose the link title as an aria-label, not just a title, for icon-only callers', () => {
+    const link: HTMLElement = fixture.nativeElement.querySelector('a')
+    expect(link.getAttribute('title')).toEqual(component.linkTitle)
+    expect(link.getAttribute('aria-label')).toEqual(component.linkTitle)
+
+    component.linkTitle = 'Preview document'
+    fixture.detectChanges()
+    expect(link.getAttribute('aria-label')).toEqual('Preview document')
+  })
+
   it('should dispatch find event on viewer loaded if searchQuery set', () => {
     documentService.searchQuery = 'test'
     settingsService.set(SETTINGS_KEYS.USE_NATIVE_PDF_VIEWER, false)

@@ -2709,6 +2709,78 @@ color schemes.
 
 ---
 
+## Increment 3, document list item 3 — accessible labels on the grid-view card's action buttons
+
+Accessibility gap, not a visual one, per the architect's framing. Investigated what already existed before
+changing anything: of the three icon-only buttons per card (Open, Preview, Download), two already had an
+explicit `title` (`title="Open"`/`title="Download"`, both already `i18n-title`); the third
+(`pngx-preview-popup`) had a `linkTitle` `@Input` defaulting to `$localize`\`Open preview\`, applied via
+`[title]="linkTitle"` — also already present, just not passed explicitly by this caller. So all three
+technically had *some* accessible name already, via `title` alone.
+
+**Why that wasn't good enough**: `title` reliably shows as a mouse-hover tooltip and does satisfy WCAG's
+accessible-name computation when it's the only source, but it's a weaker pattern for an icon-only control
+specifically — inconsistent screen-reader exposure on keyboard focus (as opposed to mouse hover), never
+shown on touch, and it's the *only* affordance a keyboard/AT user gets for a button with no visible text.
+Added `aria-label` alongside the existing `title` on all three, bound to the identical string in each case
+so the two can't drift apart:
+- `document-card-small`'s Open/Download links: added `aria-label`/`i18n-aria-label` with new
+  `docvera.documentList.card.openLabel`/`downloadLabel` custom ids, same source text as their existing
+  `title`.
+- `preview-popup.component.html` (the shared component behind the Preview button): added
+  `[attr.aria-label]="linkTitle"` — reusing the *same* `linkTitle` input that already drives `[title]`, so
+  no new translatable string was needed here at all, and every caller of this shared component (document
+  cards, the table view, anywhere else it's used) gets the fix at once rather than needing each call site
+  patched individually.
+
+**A stray duplicate attribute noticed and cleaned up in passing**: the Open link had `i18n-title` written
+twice (`title="Open" i18n-title ... i18n-title`) — harmless (Angular tolerates a repeated attribute) but
+clearly a copy-paste leftover; removed while touching this exact line for the `aria-label` addition.
+
+**`DOCVERA_DESIGN_SYSTEM.md` §7 updated**: the existing "a `title` attribute also satisfies this" rule was
+accurate but incomplete — it's now qualified with the icon-only-control case this fix addresses, and points
+at this pattern (`title` for mouse hover, `aria-label` bound to the same string for assistive technology) as
+the reference implementation for future icon-only controls.
+
+**i18n**: 2 new strings via `ng extract-i18n`, French targets added to `messages.fr_FR.xlf`
+(`docvera.documentList.card.openLabel` → "Ouvrir", `downloadLabel` → "Télécharger"). The preview-popup fix
+needed no new string at all, per above.
+
+**Spec coverage**: `document-card-small.component.spec.ts` — new test asserting both links expose
+`aria-label` matching their `title` (required mocking `PermissionsService.currentUserCan()` to `true`, since
+the Open link is permission-gated and the real, unmocked service denies by default in a test context — this
+was the actual proof the attribute renders correctly: confirmed via a live Angular render in Jest, not by
+reading the template). `preview-popup.component.spec.ts` — new test confirming `aria-label` tracks
+`linkTitle` including after it changes, proving the binding is reactive, not a one-time default.
+
+- **Files**: `src-ui/src/app/components/document-list/document-card-small/document-card-small.component.html`,
+  `.spec.ts`; `src-ui/src/app/components/common/preview-popup/preview-popup.component.html`, `.spec.ts`;
+  `src-ui/messages.xlf`, `src-ui/src/locale/messages.fr_FR.xlf`; `DOCVERA_DESIGN_SYSTEM.md`.
+- **Reason**: Increment 3, document list item 3 — icon-only action buttons need a robust accessible name,
+  not just a `title`.
+- **Approach**: see above.
+- **Upgrade impact**: `document-card-small.component.html` is upstream-shared (small, additive diff — two
+  attributes added, one duplicate removed, no structural change). `preview-popup.component.html` is also
+  upstream-shared but the change there is a single new attribute binding reusing an existing input — about
+  as low-risk as an upstream-shared-file edit gets.
+
+**Verification**: `pnpm run test` on both affected spec files — 24/24 passing, confirming the `aria-label`
+attribute renders correctly with the right value in a real (English) Angular render. **Could not fully
+verify the French production bundle for this specific string** — the standard `ng build --configuration
+production` + inspect `fr-FR/main.js` procedure used throughout this phase reported zero "no translation
+found" warnings for either new id (the normal build-time signal a translation resolved), but a direct
+substring search of the minified `fr-FR/main.js` for "Ouvrir"/"Télécharger" was inconclusive: "Ouvrir"
+appears in the bundle but is ambiguous (an unrelated, pre-existing "Ouvrir" translation for a different
+string already exists elsewhere in the app), and "Télécharger" could not be found at all despite three
+separate `.xlf` entries for it (including two pre-existing, unrelated ones) — most likely explained by
+string interning/deduplication in the minifier obscuring plain substring search for short, common words,
+consistent with every other custom id this phase passing the same build check without issue, but not
+something this environment let me confirm with certainty. Recommend the architect load the document list in
+French and hover/tab to the Open and Download buttons to confirm the aria-label (inspectable via browser
+dev tools' accessibility tree) reads "Ouvrir"/"Télécharger" before treating this fully verified.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
