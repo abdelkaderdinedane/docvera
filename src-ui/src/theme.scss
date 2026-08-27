@@ -118,7 +118,17 @@ $form-check-radio-checked-bg-image-dark: url("data:image/svg+xml,<svg xmlns='htt
   }
 
   .btn {
-    --bs-btn-disabled-opacity: 0.35;
+    // 0.7, not Bootstrap's own 0.65 default: on a dark background, the same
+    // opacity value yields a lower rendered contrast than it does on light
+    // (alpha-blending toward near-black moves less far, visually, than
+    // blending toward white at equal alpha) — computed against this app's
+    // actual button colors, 0.7 here lands close to what light mode's own
+    // unmodified 0.65 already achieves, rather than a lower, harder-to-read
+    // result. See DOCVERA_DESIGN_SYSTEM.md §7 for the full before/after
+    // contrast table (previously 0.35, markedly more aggressive than
+    // Bootstrap's default and the actual source of illegible disabled
+    // buttons in dark mode).
+    --bs-btn-disabled-opacity: 0.7;
   }
   .btn.btn-link {
     --bs-btn-disabled-opacity: 0.85;

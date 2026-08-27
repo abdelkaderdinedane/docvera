@@ -2874,6 +2874,75 @@ the threshold feels right in practice, since `> 2` is a considered but ultimatel
 
 ---
 
+## Increment 3, document detail item 2 — disabled save buttons legible in dark mode
+
+With no unsaved changes, the Save/Save & next/Discard buttons are disabled, but their dark-mode styling
+made it ambiguous whether they were disabled or just low-contrast — reported, not assumed; measured before
+changing anything, per instruction.
+
+**Root cause**: `src-ui/src/theme.scss`'s dark-mode block sets `.btn { --bs-btn-disabled-opacity: 0.35; }`
+— markedly more aggressive than Bootstrap's own default (`0.65`), which light mode still uses unmodified
+(no light-mode override exists at all).
+
+**Measured, before and after** (WCAG's contrast requirement formally exempts disabled controls — SC
+1.4.3 — so none of these are compliance failures; this is the legibility/ambiguity problem as reported):
+
+| Pairing | Enabled | Disabled, light (unchanged) | Disabled, dark — before | Disabled, dark — after |
+|---|---|---|---|---|
+| Save (white on blue fill) | 4.50:1 | 2.62:1 | **2.16:1** | 3.23:1 |
+| Save & next/close (blue text) | 4.02:1 dark | 2.62:1 | **1.49:1** | 2.56:1 |
+| Discard (gray-600 text) | 3.85:1 dark | 2.48:1 | **1.52:1** | 2.53:1 |
+
+At 0.35, dark-mode disabled buttons sat at ≈1.5:1 — barely distinguishable from the page background,
+which reads as broken rather than disabled. Simply removing the override (falling back to Bootstrap's own
+0.65) was tried and rejected: alpha-blending toward a dark background yields lower rendered contrast than
+the same alpha toward a light one for these specific colors, so 0.65 in dark mode only reaches ≈2.35–2.37:1
+— still visibly weaker than what light mode achieves at the *identical* opacity value (≈2.48–2.62:1).
+**0.7** was chosen by sweeping candidate values for the one that brings dark mode to rough parity with
+light mode's own disabled legibility — clearly muted, unambiguously non-actionable, still legible.
+`.btn.btn-link`'s separate `0.85` override is untouched (no document-detail button uses it).
+
+**Major, unrelated discovery made while computing this — flagged, not fixed here**: pinning down these
+buttons' *actual* colors required checking `.btn-primary`/`.btn-outline-primary`/`.btn-outline-secondary`'s
+real values, and the finding was unexpected: **verified via both source SCSS and the compiled production
+bundle that none of these Bootstrap button classes are reassigned to Docvera Navy anywhere in the Angular
+app**. `src-ui/src/styles.scss` imports Bootstrap's pre-built `dist/css/bootstrap.css` directly; that
+file's component-level button variables are baked as literal hex values (`#0d6efd` blue, `#6c757d` gray),
+independent of the general-purpose `--bs-primary` token Docvera *does* override (confirmed: `var(
+--bs-primary)` appears zero times in the compiled Bootstrap CSS). `theme.scss` overrides these buttons'
+*hover/focus/active* text color but never their base-state fill/text/border. **Every `.btn-primary`/
+`.btn-outline-primary`/`.btn-outline-secondary` in the Angular app renders in Bootstrap's stock colors, not
+Docvera Navy, in its idle state** — confirmed in the compiled bundle, not assumed from source alone. This
+also means two of these buttons' *enabled*-state contrast (table above) is itself marginal-to-failing in
+dark mode, a separate, pre-existing defect this fix does not touch. Full detail in
+`DOCVERA_DESIGN_SYSTEM.md` §7, "Disabled-button opacity decision."
+
+**Why not fixed here**: re-theming these button classes touches every button in the Angular app —
+dashboard, sidebar, dialogs, every screen — not a targeted document-detail change, and well beyond what
+"preserve proven functionality, targeted fixes only" scopes this task to. **Recommend a dedicated,
+separately-scoped task** to wire `.btn-primary`/`.btn-outline-primary`/`.btn-outline-secondary` to Docvera
+Navy app-wide, given the scale of what it touches.
+
+- **Files**: `src-ui/src/theme.scss`, `DOCVERA_DESIGN_SYSTEM.md`.
+- **Reason**: Increment 3, document detail item 2 — disabled controls ambiguous with low-contrast ones in
+  dark mode.
+- **Approach**: see above.
+- **Upgrade impact**: `--bs-btn-disabled-opacity` is a small, global (not document-detail-scoped) token
+  change in a Docvera-owned file (`theme.scss` is not upstream-shared the way component templates are) —
+  low conflict risk on a future upstream merge, and the change itself improves disabled-button legibility
+  for every button in the app in dark mode, not just document-detail's, as a direct consequence of fixing
+  the shared token rather than a per-button override.
+
+**Verification**: contrast figures computed via the WCAG relative-luminance formula (script-checked, not
+eyeballed) and cross-checked against the actual compiled production CSS (`ng build --configuration
+production`, inspecting `styles.css` directly — confirmed `.65` unchanged in light mode, `.7` compiled for
+both the explicit dark theme and the auto/`prefers-color-scheme` dark variant). Could not visually confirm
+in a real browser in this environment (no `pnpm start` + backend available) — recommend the architect load
+the document detail screen with no unsaved changes in dark mode and confirm the buttons now read as
+"clearly disabled but legible."
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
