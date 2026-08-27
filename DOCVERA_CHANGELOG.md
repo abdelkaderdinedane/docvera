@@ -2943,6 +2943,45 @@ the document detail screen with no unsaved changes in dark mode and confirm the 
 
 ---
 
+## Increment 3, document detail item 3 — archive serial number label shortened to one line
+
+"Numéro de série d'archivage (NSA)" took three lines of label for a field most users never fill, at the
+same visual weight as Correspondent and Document type. Instruction: shorten the French label to one line
+if the translation allows it, or report that it can't — a translation and layout question, not a
+structural one. Nothing removed, relocated, or restructured.
+
+**It allows it, confirmed by precedent already in the same app**: the English source, `"Archive serial
+number"`, isn't the problem — it's short enough in English that this field doesn't wrap there. The French
+*translation* specifically expanded it into a much longer descriptive phrase. Checking `messages.fr_FR.xlf`
+for how the short English abbreviation "ASN" (used as this same field's column header, sort-menu entry,
+and elsewhere) is already translated elsewhere in the very same app: **"NSA"** — a plain three-letter
+French abbreviation, already established, already used consistently in `document-list.component.html`'s
+table header, `filter-editor.component.ts`'s sort options, and `document.ts`'s display-field definitions.
+The document-detail field label was the one place still carrying the long-form phrasing.
+
+**Fix**: the French `<target>` for the `"Archive serial number"` trans-unit (`document-detail.component
+.html:127`) changed from `"Numéro de série d'archivage (NSA)"` to `"NSA"` — matching the abbreviation
+already used everywhere else this concept appears in French. The English `<source>` is untouched, since
+English was never the problem. No template or code change — this is a pure translation-resource edit, and
+also matches the terseness of this same form's other field labels (Correspondent, Document type, Storage
+path, Tags are all one or two words).
+
+- **Files**: `src-ui/src/locale/messages.fr_FR.xlf`.
+- **Reason**: Increment 3, document detail item 3 — a rarely-used field's label wrapped to three lines,
+  visually outweighing daily-use fields next to it.
+- **Approach**: see above.
+- **Upgrade impact**: a locale-resource-only change; no template or code touched, so no merge-conflict
+  surface against a future `git merge tags/vX.Y.Z` at all.
+
+**Verification**: full `ng build --configuration production`, checked directly against `src/documents/
+static/frontend/fr-FR/main.js` — confirmed the old long phrase no longer appears anywhere in the compiled
+bundle, and `"NSA"` compiles in the expected context, alongside this form's other short field-label
+constants (e.g. `"Titre"` for Title). Could not visually confirm the label now renders on one line in a
+real browser in this environment (no `pnpm start` + backend available) — recommend the architect confirm
+in the French UI before treating this as fully verified.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

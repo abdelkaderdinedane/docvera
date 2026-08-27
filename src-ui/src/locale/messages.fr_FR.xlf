@@ -7560,7 +7560,7 @@
           <context context-type="sourcefile">src/app/components/document-detail/document-detail.component.html</context>
           <context context-type="linenumber">127</context>
         </context-group>
-        <target state="final">Numéro de série d'archivage (NSA)</target>
+        <target state="final">NSA</target>
       </trans-unit>
       <trans-unit id="5114742157723900905" datatype="html" approved="yes">
         <source>Date created</source>
