@@ -488,6 +488,30 @@ underneath them — see §7, "Django admin color-token override," for the comput
 part of Django's own visual identity the way the teal header bar and links are, and touching them would
 work against the explicit "keep the override minimal" instruction for a marginal, unverified visual gain.
 
+## 5.16 Document detail — conditional bottom save-button row
+
+**The Details tab renders the same `saveButtons` template twice** (`document-detail.component.html`, via
+`*ngTemplateOutlet="saveButtons"`) — once in the always-visible toolbar above the tabs, once at the end of
+the Details tab's own content, after the custom fields list. This is not accidental duplication: git
+history (`d22b27afe`, upstream PR #5008, "Show doc detail nav buttons above & below fields") shows the
+bottom instance was added specifically so a form extended by several custom fields doesn't scroll the top
+row out of view — it's appended only inside the Details tab's own `ngbNavContent`, not on every tab,
+confirming the "long form" reasoning structurally even though the original commit message doesn't spell it
+out explicitly.
+
+**On a short form, both rows being visible is redundant, not helpful** — the reported problem. The fix
+preserves the original mechanism rather than removing it: `hasManyCustomFields` (a getter,
+`document.custom_fields.length > 2`) gates the bottom instance with `@if`; the top instance is unconditional
+and unchanged. **The threshold is a judgment call, not a derived constant** — the Details tab's fixed rows
+(title, ASN, created date, correspondent, document type, storage path, tags — seven, always present
+regardless of custom fields) already consume a predictable amount of vertical space; how many additional
+custom-field rows it takes before the top row scrolls out of view depends on viewport height, which this
+fix does not measure directly (no `ResizeObserver`/`IntersectionObserver` — a real DOM-measurement approach
+would be a bigger change than a "targeted fix" for one screen warrants). `> 2` was chosen as a modest,
+conservative trigger: 0–2 custom fields keeps only the top row (matches the reported "form this short" case
+exactly); 3+ restores the original above-and-below behavior. Revisit if user feedback suggests the threshold
+is off in either direction — it's a single number in one getter, not load-bearing elsewhere.
+
 ---
 
 ## 7. Accessibility (WCAG 2.1 AA)
@@ -797,3 +821,4 @@ admin's own (slightly darker, `#121212` vs `#161618`) background rather than ass
 `--primary-fg`, message/border/selected-row colors. The two pairings that actually change (accent-on-new-
 header-bg, breadcrumbs-fg-on-new-breadcrumbs-bg) are in the table above and both pass with wide margin —
 confirming it was safe to leave these untouched rather than a gap.
+

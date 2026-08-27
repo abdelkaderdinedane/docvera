@@ -2817,6 +2817,63 @@ unreachable." No fix attempted here, per instruction.
 
 ---
 
+## Increment 3, document detail item 1 — bottom save-button row shown conditionally, not removed
+
+The architect's constraint governs this task more than any other this increment: no redesign, targeted
+fixes only, preserve proven functionality. "Abandonner / Enregistrer & suivant / Enregistrer" appeared
+twice — above and below the form — and on a short form both being visible at once is redundant.
+Investigated *why* both exist before touching anything, per instruction.
+
+**Why both exist, confirmed via git history, not assumed**: `git log -G` on
+`document-detail.component.html` for the `saveButtons` template-outlet pattern surfaces the exact commit:
+`d22b27afe`, upstream paperless-ngx PR #5008, "Show doc detail nav buttons above & below fields"
+(2023-12-17). The commit message alone doesn't spell out the reasoning, but its diff does: the second
+outlet was inserted only inside the Details tab's own `ngbNavContent`, immediately after the custom-fields
+loop — not duplicated on every tab (Content, Notes, etc.). That placement is the evidence: it's there
+specifically for a Details tab extended by custom fields, where the top row can scroll out of view — the
+architect's own hypothesis, confirmed structurally rather than by reading the commit message alone.
+
+**Fix — conditional, not removed, per instruction**: added `hasManyCustomFields` (a getter on
+`DocumentDetailComponent`, `document.custom_fields.length > 2`) and wrapped only the *bottom* instance's
+`@if`; the top instance stays unconditional, exactly as before. `> 2` is a deliberate but acknowledged
+judgment call — the Details tab's seven always-present fixed rows (title, ASN, dates, correspondent,
+document type, storage path, tags) consume a predictable amount of space regardless of custom fields; how
+many additional custom-field rows it takes to scroll the top row out of view depends on viewport height,
+which this fix does not measure (a `ResizeObserver`-based approach would be a bigger, less targeted change
+than one screen warrants). Full reasoning in `DOCVERA_DESIGN_SYSTEM.md` §5.16.
+
+**Nothing else touched**: no change to the `saveButtons` template's own content, the tab structure, the
+panel split, the preview controls, save behavior, or field ordering — per the explicit "do NOT change"
+list for this task.
+
+**Spec coverage**: `document-detail.component.spec.ts` — new `bottom save button row` describe block
+asserts exactly one `button[type="submit"]` renders for the shared test fixture's short form (one custom
+field), and exactly two once `addField()` is used to bring the form to three custom fields — using the
+real `addField()` method (not direct array mutation) since it's what keeps `document.custom_fields` and
+the parallel `customFieldFormFields` `FormArray` in sync, which the template's per-field form-group
+binding depends on.
+
+- **Files**: `src-ui/src/app/components/document-detail/document-detail.component.ts`, `.html`, `.spec.ts`;
+  `DOCVERA_DESIGN_SYSTEM.md`.
+- **Reason**: Increment 3, document detail item 1 — duplicate, always-visible save controls on short forms.
+- **Approach**: see above.
+- **Upgrade impact**: **this is an upstream-shared component and an actively-evolving one** — `git log
+  --all -G` on this exact `saveButtons` pattern found not only the originating 2023 PR but a second,
+  *later* upstream commit (`04779d72b`, "Tweak: adjust doc details button toolbar flow (#13382)",
+  2026-07-28) that reorganizes this same toolbar again in a newer, signal-based upstream revision beyond
+  this fork's currently-pinned v2.20.15 baseline — confirming upstream continues active work on this exact
+  area. The diff itself is small (one getter, one `@if` wrapper), but the conflict *surface* is real: a
+  future `git merge tags/vX.Y.Z` that pulls in upstream's own toolbar restructuring will very likely need a
+  hand-merge here, more so than an average file in this repo.
+
+**Verification**: `pnpm run test -- document-detail.component.spec.ts` — 79/79 passing, including the 2 new
+tests, no existing test broken (confirmed none of the existing 77 tests depended on both button-row
+instances existing simultaneously). Could not visually confirm the transition point (2→3 custom fields) in
+a real browser in this environment (no `pnpm start` + backend available) — recommend the architect confirm
+the threshold feels right in practice, since `> 2` is a considered but ultimately judgment-based choice.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

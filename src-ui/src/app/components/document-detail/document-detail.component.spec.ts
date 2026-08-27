@@ -1004,6 +1004,38 @@ describe('DocumentDetailComponent', () => {
     )
   })
 
+  describe('bottom save button row', () => {
+    // The Details tab's fixed fields already fit above the fold on most
+    // viewports; the bottom row exists specifically for forms extended by
+    // several custom fields, where the top row can scroll out of view. On a
+    // short form (the shared `doc` fixture has one custom field), both rows
+    // being visible at once is redundant rather than helpful.
+    it('does not duplicate the save buttons for a short form', () => {
+      initNormally()
+      expect(component.hasManyCustomFields).toBeFalsy()
+      expect(
+        fixture.debugElement.queryAll(By.css('button[type="submit"]'))
+      ).toHaveLength(1)
+    })
+
+    it('shows the bottom save button row once the form has many custom fields', () => {
+      initNormally()
+      // addField() keeps document.custom_fields and the parallel
+      // customFieldFormFields FormArray in sync (see updateFormForCustomFields) -
+      // pushing directly to document.custom_fields without it leaves the
+      // template's per-field [formGroup] binding pointing at a control that
+      // doesn't exist.
+      component.addField(customFields[1])
+      component.addField(customFields[1])
+      fixture.detectChanges()
+
+      expect(component.hasManyCustomFields).toBeTruthy()
+      expect(
+        fixture.debugElement.queryAll(By.css('button[type="submit"]'))
+      ).toHaveLength(2)
+    })
+  })
+
   it('should correctly determine changed fields', () => {
     initNormally()
     expect(component['getChangedFields']()).toEqual({

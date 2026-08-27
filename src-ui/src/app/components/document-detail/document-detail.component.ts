@@ -1258,6 +1258,16 @@ export class DocumentDetailComponent
     return !this.document || this.userCanEditDoc(doc)
   }
 
+  // The Details tab's fixed fields (title, ASN, dates, correspondent,
+  // document type, storage path, tags) fit comfortably above the fold on
+  // most viewports; a handful of custom fields on top of those is where the
+  // top save-button row can scroll out of view (the original reason the
+  // bottom row exists, per #5008). Below that, showing both rows is
+  // redundant rather than helpful.
+  get hasManyCustomFields(): boolean {
+    return (this.document?.custom_fields?.length ?? 0) > 2
+  }
+
   private userCanEditDoc(doc: Document): boolean {
     return (
       this.permissionsService.currentUserCan(
