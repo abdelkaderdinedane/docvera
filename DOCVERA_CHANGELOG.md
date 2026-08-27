@@ -2982,6 +2982,41 @@ in the French UI before treating this as fully verified.
 
 ---
 
+## Increment 3, document detail item 4 — Content tab OCR textarea, investigated, no change
+
+Investigation only, per instruction: "Determine whether it actually is editable and, if not, why a
+textarea rather than a read-only region... if it is editable by design, leaving it alone is correct."
+
+**Confirmed editable by design, traced through the actual save path, not assumed from the markup alone**:
+`<textarea formControlName='content' ...>` binds to a plain, enabled `FormControl` (`content: new
+FormControl('')`, `document-detail.component.ts`) — no `readonly`/`disabled` attribute anywhere on the
+element itself. Typing in it marks the control `dirty`; `save()`'s `getChangedFields()` iterates every
+`documentForm` control generically and includes any dirty one — `content` included — in the `PATCH`
+payload sent to the backend. There is no special-casing that silently drops edits to this field. Whether
+the control is editable at all is governed by the same mechanism as every other field on the form:
+`this.documentForm.disable()`/`.enable()`, toggled by `userCanEditDoc()` — a user without edit permission
+gets the whole form disabled uniformly, `content` included, exactly like every other field, with no
+inconsistency.
+
+**Why a textarea rather than a styled read-only region**: because it's a real, ordinary editable text
+field like any other Angular reactive-form control — full-text OCR output is imperfect, and letting a user
+correct recognition errors directly (which then also improves that document's full-text search accuracy
+going forward) is a deliberate, long-standing paperless-ngx feature, not an oversight. `docs/changelog.md`
+references content-field edits being tracked in the audit log, further evidence this is a taken-seriously,
+intentional editable field rather than an accidental one.
+
+**Conclusion, per the instruction's own conditional**: it is editable by design, so leaving it alone is
+correct. No code change made.
+
+- **Files**: none — investigation only.
+- **Verification**: read `document-detail.component.ts`'s form definition, `getChangedFields()`, and the
+  `documentForm.disable()`/`.enable()` permission-gating logic directly, rather than inferring behavior
+  from the template alone. Did not reproduce end-to-end against a live backend in this environment (no
+  `uv`/Django available) — this traces the code path precisely but a live save-and-reload confirmation
+  would be the final word if the architect wants it.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
