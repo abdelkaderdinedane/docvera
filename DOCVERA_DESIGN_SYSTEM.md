@@ -972,3 +972,56 @@ enabled-state dark-mode contrast (Discard: gray-600 text, 3.85:1, from the disab
 remains below 4.5:1. It's staying neutral gray rather than Navy (correct, per the hierarchy reasoning
 above), but the specific gray Bootstrap ships needs its own, separately-scoped contrast fix — tracked here
 as a known gap, not addressed by this change.
+
+### Focus ring contrast fix (`src-ui/src/theme.scss`, `--pngx-focus-alpha`)
+
+**Deliberately scoped and shipped separately from the button fill/text fix above**, on explicit
+instruction: this ring isn't a button-specific concern — it's the shared box-shadow used by `.btn:focus`,
+`.btn-check:focus + .btn`, `.dropdown-item:focus`, `.form-control:focus`, `.form-check-input:focus`,
+`.form-check-radio:focus`, and `.form-select:focus` (`styles.scss`) — every focusable control in the app,
+not just buttons. It's a UI-component boundary (WCAG 2.1 SC 1.4.11), which needs 3:1, not the 4.5:1 text
+floor used elsewhere in this section.
+
+**Found while auditing button focus states, measured against every surface the ring can actually appear
+on** — not just the page background, since a ring around a control sitting on a card, a modal, or a
+popover is judged against *that* surface, and this app's various "elevated" surfaces
+(`--pngx-bg-alt`/`-alt2`/`-darker`) are not all the same color as the page:
+
+| Surface | Light mode background | Dark mode background |
+|---|---|---|
+| Page / `.card` / `.modal-content` (all three share one value in this app) | `#fff` | `#161618` |
+| `.popover` / `--pngx-bg-alt` | `#fff` (same as page) | `#242529` (lighter than page) |
+| `--pngx-bg-alt2` (dropdown-item active/hover backgrounds, etc.) | `#e9ecef` | `#232323` |
+| `--pngx-bg-darker` (a focused `.form-control`'s *own* background, `.dropdown-item:hover`) | `#f8f9fa` | `#101216` |
+
+**Before, at the existing alpha values (light 0.3, dark 0.6)**: every surface failed, in both modes —
+light mode's best case was 1.74:1 (page), worst 1.69:1 (`--pngx-bg-alt2`); dark mode's best case was 2.56:1
+(`--pngx-bg-darker`), worst 2.35:1 (`--pngx-bg-alt`, the popover surface) — all below the 3:1 floor, on
+literally every interactive element in the application.
+
+**Fix**: raised `--pngx-focus-alpha` to the value that clears 3:1 against the *worst* surface in each mode,
+with a small margin rather than landing exactly on the threshold (a ring that's exactly 3.00:1 on paper can
+render under 3:1 after real anti-aliasing/subpixel rounding):
+
+| Mode | Old alpha | New alpha | Worst-case surface | Old contrast | New contrast |
+|---|---|---|---|---|---|
+| Light | 0.3 | **0.6** | `--pngx-bg-alt2` | 1.69:1 | 3.20:1 |
+| Dark | 0.6 | **0.8** | `--pngx-bg-alt` (popover) | 2.35:1 | 3.13:1 |
+
+Every other surface in each mode clears 3:1 by a wider margin at these values (light: 3.36–3.43:1 on
+page/`--pngx-bg-darker`; dark: 3.20–3.64:1 on `--pngx-bg-alt2`/page/`--pngx-bg-darker`) — confirmed by
+building the actual production bundle and reading the computed `box-shadow` on real focused elements
+(button and text input) placed on each surface, in a live browser, not just computed from the formula.
+
+**Visual trade-off, viewed live rather than assumed**: at these values the ring reads as a clearly visible,
+solid-looking navy outline — noticeably more present than the previous barely-there haze, but not a bright
+or garish highlight; it looks like an ordinary, confident focus indicator comparable to what most modern
+web apps ship, not an accessibility-mode-only treatment. The trade-off is judged acceptable: going from
+"fails 3:1 everywhere" to "passes 3:1 everywhere" necessarily makes the ring more opaque, and 0.6/0.8 were
+chosen as the *minimum* values that clear the floor with a small margin, not rounded up further than
+necessary for a "safer-looking" number.
+
+**Rule going forward**: `--pngx-focus-alpha` must be re-checked against every value in the surface table
+above (not just the page background) if any of `--pngx-primary-lightness`, `--pngx-bg-alt`, `--pngx-bg-alt2`,
+or `--pngx-bg-darker` change in the future — a value that passes against the page can still fail against a
+lighter elevated surface, which is exactly the gap this fix closed.

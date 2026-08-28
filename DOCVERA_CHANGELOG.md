@@ -3003,6 +3003,44 @@ actions rely on. Full contrast tables (before/after, every state, both themes) i
 
 ---
 
+## Increment 3, focus ring contrast — `--pngx-focus-alpha` raised to clear 3:1 (app-wide)
+
+Shipped as its own commit, deliberately separate from the button colours entry above, on explicit
+instruction: this ring isn't a button concern — it's shared by every focusable control in the app
+(`.btn`, `.form-control`, `.form-check-input`, `.form-check-radio`, `.form-select`, `.dropdown-item`), so
+it's a broader, more consequential change than anything else in this list, not a smaller one.
+
+**Found while auditing button focus states**: the ring (a `box-shadow` using `hsla(..., --pngx-focus-alpha)`)
+failed the WCAG 2.1 SC 1.4.11 3:1 UI-boundary requirement on **every surface it appears on, in both
+themes** — not a single missed case. Measured against page/card/modal, `.popover`/`--pngx-bg-alt`,
+`--pngx-bg-alt2`, and `--pngx-bg-darker` (a focused `.form-control`'s own background): light mode ranged
+1.69–1.74:1, dark mode 2.35–2.56:1, all below 3:1.
+
+**Fix**: `--pngx-focus-alpha` raised from 0.3 to **0.6** (light) and from 0.6 to **0.8** (dark) — the
+minimum values, with a small margin, that clear 3:1 against the *worst* surface in each mode
+(`--pngx-bg-alt2` light, `--pngx-bg-alt`/popover dark). Every other surface clears with more margin.
+Full per-surface table in `DOCVERA_DESIGN_SYSTEM.md` §7, "Focus ring contrast fix."
+
+**Visual trade-off, checked live rather than assumed**: at these values the ring reads as a clearly visible,
+solid navy outline — more present than the previous near-invisible haze, but not garish; comparable to an
+ordinary focus indicator in most modern web apps, not an accessibility-only treatment. Judged acceptable:
+passing 3:1 everywhere necessarily costs some subtlety, and the chosen values are the minimum that clears
+the floor, not rounded up further than needed.
+
+- **Files**: `src-ui/src/theme.scss`, `DOCVERA_DESIGN_SYSTEM.md`.
+- **Reason**: see above.
+- **Approach**: see above.
+- **Upgrade impact**: a single-token change (`--pngx-focus-alpha`) in a Docvera-owned file — low conflict
+  risk on a future merge, and the fix applies to every focusable control app-wide as a direct consequence
+  of fixing the shared token, not a per-component patch.
+- **Verification**: contrast computed via the WCAG relative-luminance formula for all eight surface/mode
+  combinations (script-checked), then confirmed against the actual compiled production bundle
+  (`ng build --configuration production`) by focusing real buttons and inputs placed on each surface in a
+  live browser (via keyboard `Tab`, not just `:focus` simulated by class) and reading the computed
+  `box-shadow`, in both light and dark mode.
+
+---
+
 ## Increment 3, document detail item 3 — archive serial number label shortened to one line
 
 "Numéro de série d'archivage (NSA)" took three lines of label for a field most users never fill, at the

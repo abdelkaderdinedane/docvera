@@ -46,7 +46,14 @@
   --pngx-bg-darker: var(--bs-gray-100);
   --pngx-bg-alt2: var(--bs-gray-200); // #e9ecef
   --pngx-bg-disabled: #f7f7f7;
-  --pngx-focus-alpha: 0.3;
+  // 0.3 measured at only ~1.7:1 against every surface the focus ring can
+  // appear on (page, card, modal, popover, form-control:focus's own darker
+  // background) — a UI-component boundary needs 3:1 (WCAG 2.1 SC 1.4.11).
+  // 0.6 clears 3:1 against the lowest-contrast light-mode surface
+  // (--pngx-bg-alt2, ~3.2:1) with a small margin. See
+  // DOCVERA_DESIGN_SYSTEM.md §7, "Focus ring contrast fix", for the full
+  // per-surface table and both modes' before/after.
+  --pngx-focus-alpha: 0.6;
   --pngx-toast-max-width: 340px;
   --bs-info: var(--pngx-bg-alt2);
   --bs-info-rgb: 233, 236, 239;
@@ -117,7 +124,12 @@ $form-check-radio-checked-bg-image-dark: url("data:image/svg+xml,<svg xmlns='htt
   --pngx-bg-alt2: #232323;
   --pngx-bg-darker: #101216;
   --pngx-bg-disabled: var(--pngx-bg-alt);
-  --pngx-focus-alpha: 0.6;
+  // 0.6 measured at only ~2.35-2.56:1 against dark mode's surfaces — still
+  // below the 3:1 UI-boundary floor. 0.8 clears 3:1 against the
+  // lowest-contrast surface (--pngx-bg-alt, the popover background, ~3.1:1)
+  // with a small margin. See DOCVERA_DESIGN_SYSTEM.md §7, "Focus ring
+  // contrast fix".
+  --pngx-focus-alpha: 0.8;
   --pngx-primary-faded: var(--pngx-primary-darken-15);
   --pngx-primary-text-contrast: var(--bs-body-color);
   --bs-body-color: #{$text-color-dark-bg};
