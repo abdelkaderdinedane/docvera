@@ -11,6 +11,28 @@
   --pngx-primary-text-contrast: var(--bs-light);
 
   --bs-primary: hsl(var(--pngx-primary), var(--pngx-primary-lightness));
+  // Docvera solid-fill button tokens (--pngx-primary-fill/-fill-text). Hover
+  // and active states reuse the existing --pngx-primary-darken-5/-15 below —
+  // those are already declared at :root the same way, so they're already
+  // mode-independent for the same reason; no new tokens needed for them.
+  // --pngx-primary-fill/-fill-text are deliberately declared ONCE, here at
+  // :root, and never re-declared inside @mixin paperless-green-dark-mode or
+  // @mixin dark-mode. A solid fill's own contrast against its own label text
+  // doesn't depend on the surrounding page background the way --bs-primary's
+  // page-text role does, so it must not follow --bs-primary's dark-mode
+  // lightening (29% -> 58%, needed only so Navy TEXT/links stay legible on
+  // the dark page background). Because this is declared at :root and
+  // --pngx-primary-lightness is only OVERRIDDEN deeper in the tree (at body,
+  // by paperless-green-dark-mode), var() substitution here always resolves
+  // using :root's own, un-overridden value: 29% for the default Docvera Navy
+  // brand color in both themes, and — for a user-chosen custom theme color,
+  // which SettingsService sets as an inline style directly on :root itself
+  // (see settings.service.ts) — the user's own chosen lightness, exactly
+  // matching --bs-primary's existing (already mode-independent) behavior for
+  // custom colors. See DOCVERA_DESIGN_SYSTEM.md §7, "Primary button fill vs.
+  // text token split".
+  --pngx-primary-fill: hsl(var(--pngx-primary), var(--pngx-primary-lightness));
+  --pngx-primary-fill-text: #f8f9fa; // Bootstrap's own $gray-100/--bs-light value, referenced directly rather than via var(--bs-light) — dark mode repoints --bs-light itself to a dark shade for a different pairing (outline-primary's lightened hover fill), which would wrongly flip this token too if aliased.
   --bs-border-color: var(--bs-gray-400);
   --pngx-primary-faded: hsl(var(--pngx-primary), calc(var(--pngx-primary-lightness) + 76%));
   --pngx-primary-lighten-10: hsl(var(--pngx-primary), calc(var(--pngx-primary-lightness) + 10%));
@@ -51,6 +73,7 @@ $form-check-radio-checked-bg-image-dark: url("data:image/svg+xml,<svg xmlns='htt
 
 .primary-light {
   --pngx-primary-text-contrast: #{$text-color-light-bg} !important;
+  --pngx-primary-fill-text: #{$text-color-light-bg} !important;
 
   .form-check:not(.form-switch) {
     .form-check-input:checked[type=checkbox] {
@@ -69,6 +92,7 @@ $form-check-radio-checked-bg-image-dark: url("data:image/svg+xml,<svg xmlns='htt
 
 .primary-dark {
   --pngx-primary-text-contrast: #{$text-color-dark-bg} !important;
+  --pngx-primary-fill-text: #{$text-color-dark-bg} !important;
 }
 
 .text-primary-contrast {
@@ -132,18 +156,6 @@ $form-check-radio-checked-bg-image-dark: url("data:image/svg+xml,<svg xmlns='htt
   }
   .btn.btn-link {
     --bs-btn-disabled-opacity: 0.85;
-  }
-
-  .btn-primary {
-    &:hover, &:focus, &.active, &:active {
-      color: var(--bs-body-color) !important;
-    }
-  }
-
-  &.primary-light .btn-primary {
-    &:hover, &:focus, &.active, &:active {
-      color: var(--pngx-bg-darker) !important;
-    }
   }
 
   .btn-dark {

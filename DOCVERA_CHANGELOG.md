@@ -2943,6 +2943,66 @@ the document detail screen with no unsaved changes in dark mode and confirm the 
 
 ---
 
+## Increment 3, button colours — Docvera Navy fill/text token split (app-wide)
+
+Follow-up to the "major, unrelated discovery" flagged in document detail item 2 above, run as its own,
+separately-scoped task per that item's own recommendation — button color is a Phase 2 exit-gate item
+("no unintended source-brand UI remains") and buttons appear on nearly every screen.
+
+**Correction to item 2's own claim, above**: item 2 said none of `.btn-primary`/`.btn-outline-primary`/
+`.btn-outline-secondary` were reassigned to Docvera Navy, based on reading `theme.scss`. Loading the actual
+compiled production bundle in a browser and reading computed styles for every state showed that claim was
+wrong for two of the three: `src-ui/src/styles.scss` (not `theme.scss`) already wires `.btn-primary` and
+`.btn-outline-primary` to `var(--bs-primary)` and wins the cascade over Bootstrap's stock colors. Only
+`.btn-outline-secondary` genuinely stays Bootstrap gray — and that turned out to be correct, not a gap (see
+below). Full correction and re-verified inventory in `DOCVERA_DESIGN_SYSTEM.md` §7, "Primary button fill
+vs. text token split."
+
+**What was actually broken, both verified live in a browser against the compiled bundle**:
+1. `.btn-primary`'s pressed/active state fell through to Bootstrap's stock blue in both themes — a
+   specificity gap (`.btn-outline-primary` already had the fix `.btn-primary` was missing).
+2. `.btn-primary`'s dark-mode idle fill/text pairing failed WCAG AA at 1.75:1 (needs 4.5:1) — the same
+   "one token can't serve two roles" conflict already solved twice this phase (`base.css`'s
+   `--pngx-primary`/`--pngx-primary-text` split; the sidebar's active-state background/text decoupling),
+   recurring a third time for buttons specifically.
+
+**Approach**: new `--pngx-primary-fill`/`--pngx-primary-fill-text` tokens (`theme.scss`, declared once at
+`:root`, deliberately never re-declared in the dark-mode mixins) give `.btn-primary` a fill role that stays
+at the true brand lightness in both themes — for the default Navy *and* for a user-chosen custom theme
+color, since `SettingsService` already sets `--pngx-primary`/`--pngx-primary-lightness` as an inline style
+directly on `:root`, which the new tokens inherit for free. `.btn-primary` (`styles.scss`) gained the
+missing `&:active, &.active` override and had its two conflicting dark-mode-only text-color overrides
+(`theme.scss`) deleted. `.btn-outline-primary` was left untouched — already correct on inspection (its
+hover/active fill computed at 4.56:1 in dark mode, passing but with almost no margin — flagged, not
+touched). `.btn-outline-secondary`/`.btn-dark`/`.btn-light` were deliberately left neutral, on explicit
+instruction — turning secondary/chrome actions Navy would flatten the hierarchy Cancel/Discard-style
+actions rely on. Full contrast tables (before/after, every state, both themes) in
+`DOCVERA_DESIGN_SYSTEM.md` §7.
+
+- **Files**: `src-ui/src/theme.scss`, `src-ui/src/styles.scss`, `DOCVERA_DESIGN_SYSTEM.md`,
+  `DOCVERA_BRANDING.md`.
+- **Reason**: see above.
+- **Approach**: see above.
+- **Upgrade impact — cumulative, stated plainly**: `theme.scss` has now been modified in four separate
+  passes this phase (the original Navy rebrand of the `paperless-green`/`paperless-green-dark-mode` mixins,
+  the disabled-opacity fix in item 2 above, the sidebar active-state work, and this one), each touching a
+  different part of the same file. None of the individual diffs are large, but a future
+  `git merge tags/vX.Y.Z` that happens to touch `theme.scss` now has four independent Docvera changes to
+  reconcile in one file instead of one. `styles.scss` gains its first Docvera-motivated edits this phase
+  (`.btn-primary`'s block and the `.dropdown.show > .btn-primary` rule) — a new upstream-shared file now in
+  play for future merges, previously untouched by any Docvera commit.
+- **Verification**: contrast computed via the WCAG relative-luminance formula (script-checked). Every
+  state (idle/hover/active/focus/disabled) for `.btn-primary`, `.btn-outline-primary`,
+  `.btn-outline-secondary`, `.btn-danger`, `.btn-outline-danger`, `.btn-link`, `.btn-dark`, `.btn-light`
+  confirmed by building the actual production bundle (`ng build --configuration production`) and reading
+  computed styles — including real `:hover`/`:active` pseudo-state, not just class-simulated approximations
+  — in a live browser, in both light and dark mode. Custom theme-color behavior (the
+  `--pngx-primary`/`--pngx-primary-lightness` inline-style path, `.primary-light`/`.primary-dark`) was
+  verified by reading `settings.service.ts` and the token cascade directly, not exercised live through the
+  color-picker UI — worth a spot-check if the architect wants extra certainty there.
+
+---
+
 ## Increment 3, document detail item 3 — archive serial number label shortened to one line
 
 "Numéro de série d'archivage (NSA)" took three lines of label for a field most users never fill, at the

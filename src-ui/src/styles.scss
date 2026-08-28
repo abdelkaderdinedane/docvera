@@ -146,17 +146,34 @@ table .btn-link {
 }
 
 .btn-primary {
-  color: var(--pngx-primary-text-contrast);
-  background-color: var(--bs-primary);
-  border-color: var(--bs-primary);
+  // Fill + its own label text: --pngx-primary-fill/-fill-text, not
+  // --bs-primary/--pngx-primary-text-contrast — see theme.scss's :root block
+  // and DOCVERA_DESIGN_SYSTEM.md §7 for why a solid fill needs a
+  // mode-independent value distinct from the page-text role.
+  color: var(--pngx-primary-fill-text);
+  background-color: var(--pngx-primary-fill);
+  border-color: var(--pngx-primary-fill);
 
   &:hover, &:focus {
     background-color: var(--pngx-primary-darken-5) !important;
     border-color: var(--pngx-primary-darken-5) !important;
   }
 
+  // Bootstrap's own high-specificity active-state selector
+  // (:not(.btn-check)+.btn:active, .btn.active, .btn:first-child:active — see
+  // its compiled CSS) otherwise beats this class's single-class specificity
+  // and wins on press, showing Bootstrap's stock blue instead of Navy. Needs
+  // its own darken shade (darken-15, not -5) so pressed stays visually
+  // distinguishable from hover, same reasoning as the base.css button-border
+  // fix in DOCVERA_DESIGN_SYSTEM.md §7.
+  &:active, &.active {
+    color: var(--pngx-primary-fill-text) !important;
+    background-color: var(--pngx-primary-darken-15) !important;
+    border-color: var(--pngx-primary-darken-15) !important;
+  }
+
   &:disabled, &.disabled {
-    color: var(--pngx-primary-text-contrast);
+    color: var(--pngx-primary-fill-text);
     background-color: var(--pngx-primary-darken-5) !important;
     border-color: var(--pngx-primary-darken-5) !important;
   }
@@ -229,8 +246,8 @@ a.navbar-brand:focus-visible {
 
 .dropdown.show {
   > .btn-primary {
-    background-color: var(--bs-primary);
-    border-color: var(--bs-primary);
+    background-color: var(--pngx-primary-fill);
+    border-color: var(--pngx-primary-fill);
   }
 
   > .btn-outline-primary {

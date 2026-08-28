@@ -853,25 +853,122 @@ parity with what light mode already achieves (≈2.5:1) — clearly muted, unamb
 legible. `.btn.btn-link`'s separate `0.85` override is untouched (no document-detail button is `.btn-link`,
 out of scope).
 
-**Known gap, found while computing this, not fixed — flagged prominently, deserves its own task**: computing
-these numbers required first determining `.btn-primary`/`.btn-outline-primary`/`.btn-outline-secondary`'s
-*actual* colors, and the finding was unexpected — **verified via both source SCSS and the compiled
-production bundle** that these Bootstrap component classes are **not reassigned to Docvera Navy anywhere in
-this Angular app**. `src-ui/src/styles.scss` imports Bootstrap's pre-built `dist/css/bootstrap.css` directly
-(not a custom SCSS recompilation with a Docvera `$primary`), and Bootstrap's own component-level variables
-(`.btn-primary`'s `--bs-btn-bg`, `.btn-outline-primary`'s `--bs-btn-color`, etc.) are baked as literal hex
-values in that file, independent of the general-purpose `--bs-primary` custom property Docvera *does*
-override at `:root` (confirmed: `var(--bs-primary)` appears zero times in the entire compiled Bootstrap
-CSS). `theme.scss` overrides `.btn-primary`/`.btn-outline-primary`'s *hover/focus/active* text color, but
-never their *base*-state `--bs-btn-bg`/`--bs-btn-color`/`--bs-btn-border-color`. The practical result:
-**every `.btn-primary`/`.btn-outline-primary`/`.btn-outline-secondary` in the Angular app renders in
-Bootstrap's stock blue (`#0d6efd`) and gray (`#6c757d`), not Docvera Navy, in its idle state** — confirmed
-in the compiled `styles.css`, not just source. This is a pre-existing, previously-undocumented gap
-(everything this session's prior contrast work touched was either `src/documents/static/base.css`, the
-Django-rendered pages — a completely separate stylesheet that *does* wire `.btn.btn-primary` to
-`var(--pngx-primary)` by hand — or Angular's *other* Navy consumers like `.text-primary`/`--bs-secondary-color`,
-not the button component classes themselves). It also means two of these buttons' *enabled*-state contrast
-is itself marginal-to-failing in dark mode (table above) — a separate defect from the disabled-opacity fix
-this section addresses, and out of scope for a document-detail-only task: fixing it means re-theming
-`.btn-primary`/`.btn-outline-primary`/`.btn-outline-secondary` app-wide, touching every button in the
-Angular app, not a targeted document-detail change. Recommend a dedicated task.
+**Correction (superseded by the button fill/text token split below)**: this section originally claimed,
+based on reading `theme.scss` alone, that `.btn-primary`/`.btn-outline-primary`/`.btn-outline-secondary`
+were "not reassigned to Docvera Navy anywhere in this Angular app" and rendered in Bootstrap's stock blue/
+gray in their idle state. **That claim was wrong for two of the three classes, and the error was caught by
+loading the actual compiled production bundle in a browser and reading computed styles, rather than by
+reading source a second time** — see "Primary button fill vs. text token split" below for the full,
+re-verified inventory. In short: `src-ui/src/styles.scss` (not `theme.scss`, which is what the original
+claim checked) already wires `.btn-primary` and `.btn-outline-primary`'s idle/hover state to
+`var(--bs-primary)`, and — because that rule is declared later in the compiled stylesheet than Bootstrap's
+own `.btn-primary`/`.btn-outline-primary` blocks, at equal selector specificity — it wins the cascade and
+renders Navy, not Bootstrap blue. Only `.btn-outline-secondary` genuinely stays Bootstrap's stock gray, and
+that turned out to be the *correct*, deliberate choice (a neutral secondary action, not a missed rebrand —
+see below), not a gap. The real, previously-undiscovered defects were narrower than "buttons are the wrong
+color": a Bootstrap-specificity bug that let `.btn-primary`'s *pressed/active* state fall through to
+Bootstrap's stock blue, and a genuine dark-mode fill/text contrast failure on `.btn-primary`'s idle state.
+Both are fixed below. **Lesson for future contrast/rebrand audits in this file**: a claim about what color
+actually renders must be checked against the compiled bundle in a browser, not inferred from reading one
+source file — this file's own claims are a snapshot to re-verify, not a source of truth, exactly as true for
+future readers as it was for the person who wrote the wrong claim in the first place.
+
+### Primary button fill vs. text token split (`src-ui/src/theme.scss`, `src-ui/src/styles.scss`)
+
+**Full button-class inventory, verified live against the compiled production bundle** (not inferred from
+source), covering every Bootstrap button class actually used anywhere in the Angular app:
+
+| Class | Uses | Role | Idle colour | Verdict |
+|---|---|---|---|---|
+| `.btn-primary` | ~31 | Primary/brand action | Navy (`var(--bs-primary)`, via `styles.scss`) | Idle already correct; **active state and dark-mode contrast were broken — fixed here** |
+| `.btn-outline-primary` | ~73 | Primary, lower emphasis | Navy, all states | Already correct, untouched |
+| `.btn-outline-secondary` | ~94 (heaviest use of any button class) | Secondary/neutral (Cancel, Discard) | Bootstrap stock gray | **Correct as-is** — deliberately left neutral so secondary actions read as lower-hierarchy than Navy primary actions; see "known, accepted debt" below for its pre-existing dark-mode contrast gap |
+| `.btn-dark` | ~43 | Neutral chrome/icon button | Re-themed to neutral grey/dark surface (not Bootstrap's default near-black) | Deliberately neutral, not brand-carrying — left as-is |
+| `.btn-light` | ~19 | Neutral chrome button | Bootstrap default, dark-mode text patched | Deliberately neutral — left as-is |
+| `.btn-link` | ~18 | Inline text action | Navy (`var(--bs-primary)`) | Already correct |
+| `.btn-danger` / `.btn-outline-danger` | ~13 / ~12 | Destructive | Bootstrap stock red | Correct — semantic, left alone |
+| `.btn-secondary`, `.btn-success`, `.btn-warning`, `.btn-info`, `.btn-outline-dark`, `.btn-outline-light` | 0 | — | — | Unused anywhere in the Angular app, no action needed |
+
+**Two real, verified defects on `.btn-primary`, found by loading the compiled bundle in a browser and
+reading computed styles for every state (idle/hover/active/focus/disabled), not by inspecting source**:
+
+1. **Pressed/active state fell through to Bootstrap's stock blue, in both themes.** Bootstrap's own
+   active-state selector (`:not(.btn-check)+.btn:active, .btn:first-child:active, .btn.active, .btn.show` —
+   specificity 2–3 classes) beats `.btn-primary`'s single-class override (specificity 1), regardless of
+   source order. `.btn-outline-primary` already had an explicit `.active`/`:active` override that wins this
+   fight; `.btn-primary` never got the equivalent, so any mousedown or `.active`-toggle on a primary button
+   showed `#0A58CA` (Bootstrap blue) instead of Navy.
+2. **Dark-mode idle fill/text pairing failed WCAG AA — 1.75:1, needs 4.5:1.** `.btn-primary`'s label color
+   (`--pngx-primary-text-contrast`) resolved to `var(--bs-body-color)` (`#ABB2BF`) in dark mode — a color
+   tuned for the *page* background, not for sitting on top of the *lightened* dark-mode Navy fill
+   (`#4E84DA`, `--pngx-primary-lightness: 58%` — see the color-token decision earlier in this section).
+   Root cause: `--bs-primary`/`--pngx-primary-lightness` serves two different roles that need to move in
+   *opposite* directions in dark mode — a page-text role that must lighten to stay legible against the dark
+   page background (already handled, see above), and a solid-fill role whose own contrast against its own
+   label text doesn't depend on the page background at all and must **not** move. One token can't serve
+   both, the same conflict already solved once for `base.css` (see "Navy-as-text dark-mode fix" above) and
+   for the sidebar active state (see above) — this is the same shape of problem recurring in a third place,
+   not a new kind of bug.
+
+**Fix — new fill-role tokens, declared once at `:root`, deliberately never re-declared inside
+`@mixin paperless-green-dark-mode` or `@mixin dark-mode`**:
+
+```scss
+--pngx-primary-fill: hsl(var(--pngx-primary), var(--pngx-primary-lightness));
+--pngx-primary-fill-text: #f8f9fa;
+```
+
+Because these live only at `:root` and `--pngx-primary-lightness` is only *overridden* deeper in the tree
+(at `body`, by `paperless-green-dark-mode`), `var()` substitution here always resolves using `:root`'s own,
+un-overridden value. That value is:
+- **29% (the true Docvera Navy brand lightness) in both light and dark mode**, for the default,
+  uncustomized theme — the dark-mode 58% bump never reaches `:root` itself, only `body`.
+- **The user's own chosen lightness, mode-independent**, for a custom theme color. `SettingsService`
+  (`src-ui/src/app/services/settings.service.ts`) sets `--pngx-primary`/`--pngx-primary-lightness` as an
+  *inline style directly on `:root`* when a user picks a custom accent color, which is exactly why
+  `--bs-primary` is already mode-independent for custom colors today — `--pngx-primary-fill` inherits that
+  same property for free, by construction, with no special-casing needed. `--pngx-primary-fill-text`
+  defaults to a literal near-white (not aliased to `--bs-light`, which dark mode repoints to a *dark* shade
+  for a different pairing — `.btn-outline-primary`'s lightened hover fill, see below — and would wrongly
+  flip this token too if aliased) and is overridden in `.primary-light`/`.primary-dark` exactly the way
+  `--pngx-primary-text-contrast` already is, so a user-chosen light or dark custom color still gets correct
+  contrasting label text.
+
+`.btn-primary` (`styles.scss`) now uses `--pngx-primary-fill`/`--pngx-primary-fill-text` for its idle and
+disabled state, and gained the missing explicit `&:active, &.active` rule (using the existing
+`--pngx-primary-darken-15` token — already mode-independent for the same `:root`-declaration reason, and
+already unused by anything else that would be affected) so pressed state is visually distinct from both
+idle and hover and no longer exposes Bootstrap blue. The two dark-mode-only overrides that were fighting
+this (`.btn-primary { &:hover, &:focus, &.active, &:active { color: var(--bs-body-color) !important; } }`
+and its `.primary-light` sibling) are deleted — they're what was forcing the wrong text color in the first
+place, and are no longer needed now that the fill/text pairing is correct unconditionally. `.dropdown.show
+> .btn-primary` was repointed from `--bs-primary` to `--pngx-primary-fill` for the same idle-fill
+consistency. `.btn-outline-primary` was **not** touched — its hover/active fill already uses `--bs-light`
+(which dark mode repoints to `#1c1c1f`) paired with the lightened `--bs-primary` fill, computed at 4.56:1 in
+dark mode (passes, but with almost no margin — worth revisiting if the dark-mode Navy lightness ever
+changes) — and its idle state was already correct.
+
+**Computed contrast, before/after, every `.btn-primary` state** (mode-independent after the fix, so one
+column covers both themes; before, light mode was already correct — only dark mode is a before/after):
+
+| State | Fill (mode-independent, after) | Before (dark mode) | After (both modes) | Requirement | Result |
+|---|---|---|---|---|---|
+| Idle | `#1A3F7A` (29% lightness) | 1.75:1 (light-mode fill was already fine) | **9.79:1** | 4.5:1 | **Fixed** |
+| Hover/disabled | `#153465` (darken-5) | 5.76:1 (passed by accident — see below) | **11.64:1** | 4.5:1 | Passes, unchanged in substance |
+| Active/pressed | `#0C1E3B` (darken-15, new) | N/A — was Bootstrap blue, 3.02:1 against the wrong text color | **15.75:1** | 4.5:1 | **Fixed** (wrong color *and* contrast) |
+
+**Why hover/disabled "passed by accident" before this fix, and why that's still worth recording**: the
+`--pngx-primary-darken-5`/`-darken-15` tokens are *also* declared once at `:root`, so they were already
+immune to the dark-mode lightness bump — they just happened to already behave the way the new fill tokens
+are now deliberately designed to behave. Nothing about their own definition changed in this fix. This is
+also why `--pngx-primary-darken-18` and `-27` (used by `.alert-primary` and `.card-selected`, not by any
+button) were deliberately **not** touched: they have zero button consumers, changing them was never
+necessary to fix buttons, and touching them would have widened this change into alerts/cards without
+review. `--pngx-primary-darken-27` in particular has no consumer anywhere in the current codebase — left as
+dead but harmless, not removed, since removing an unused token is a separate cleanup, not a button fix.
+
+**Known, accepted debt — not folded into this fix, on explicit instruction**: `.btn-outline-secondary`'s
+enabled-state dark-mode contrast (Discard: gray-600 text, 3.85:1, from the disabled-opacity table above)
+remains below 4.5:1. It's staying neutral gray rather than Navy (correct, per the hierarchy reasoning
+above), but the specific gray Bootstrap ships needs its own, separately-scoped contrast fix — tracked here
+as a known gap, not addressed by this change.
