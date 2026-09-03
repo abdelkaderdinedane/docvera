@@ -2,6 +2,7 @@ import { NgClass, NgTemplateOutlet } from '@angular/common'
 import {
   Component,
   ElementRef,
+  OnDestroy,
   QueryList,
   ViewChild,
   ViewChildren,
@@ -43,13 +44,28 @@ import { WidgetFrameComponent } from '../widget-frame/widget-frame.component'
     TourNgBootstrapModule,
   ],
 })
-export class UploadFileWidgetComponent extends ComponentWithPermissions {
+export class UploadFileWidgetComponent
+  extends ComponentWithPermissions
+  implements OnDestroy
+{
   private websocketStatusService = inject(WebsocketStatusService)
   private uploadDocumentsService = inject(UploadDocumentsService)
   settingsService = inject(SettingsService)
 
   @ViewChildren(NgbAlert) alerts: QueryList<NgbAlert>
   @ViewChild('fileUpload') fileUploadInput: ElementRef<HTMLInputElement>
+
+  // Local, immediate acknowledgment shown next to the upload control itself
+  // (distinct from the shared fixed-bottom consumer-status-list panel below)
+  // so a first-time user doesn't have to notice a panel that can render far
+  // from wherever they triggered the upload from (e.g. the dashboard's quick
+  // actions card). Driven by the same FileStatus objects the shared panel
+  // already tracks, not a separate parallel state, so it can't drift out of
+  // sync with what actually got queued. Auto-hides after a few seconds — it
+  // is a brief "yes, that worked" acknowledgment, not a second progress
+  // display competing with the real one.
+  recentlyAdded: FileStatus[] = []
+  private recentlyAddedTimeout: ReturnType<typeof setTimeout>
 
   openFilePicker(): void {
     this.fileUploadInput?.nativeElement.click()
@@ -143,10 +159,30 @@ export class UploadFileWidgetComponent extends ComponentWithPermissions {
 
   public onFileSelected(event: Event) {
     const files = (event.target as HTMLInputElement).files
+    const countBefore = this.getStatus().length
     for (let i = 0; i < files?.length; i++) {
       const file = files.item(i)
       file && this.uploadDocumentsService.uploadFile(file)
     }
+    this.acknowledgeRecentUpload(countBefore)
+  }
+
+  private acknowledgeRecentUpload(countBefore: number): void {
+    // uploadFile() pushes each new FileStatus synchronously before any
+    // async work starts, so the slice past countBefore is exactly what this
+    // selection just added, in order.
+    const added = this.getStatus().slice(countBefore)
+    if (!added.length) return
+
+    this.recentlyAdded = added
+    clearTimeout(this.recentlyAddedTimeout)
+    this.recentlyAddedTimeout = setTimeout(() => {
+      this.recentlyAdded = []
+    }, 5000)
+  }
+
+  ngOnDestroy(): void {
+    clearTimeout(this.recentlyAddedTimeout)
   }
 
   get slimSidebarEnabled(): boolean {

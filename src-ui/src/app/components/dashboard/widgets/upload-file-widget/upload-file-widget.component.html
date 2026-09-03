@@ -8,6 +8,12 @@
       </button>
       <input type="file" class="visually-hidden" (change)="onFileSelected($event)" multiple #fileUpload>
     </form>
+    @if (recentlyAdded.length > 0) {
+      <div class="small text-center mt-2" role="status">
+        <i-bs class="text-success" name="check-circle"></i-bs>&nbsp;
+        <ng-container i18n>{recentlyAdded.length, plural, =1 {{{recentlyAdded[0].filename}} added, processing started} other {{{recentlyAdded.length}} documents added, processing started}}</ng-container>
+      </div>
+    }
     @if (getStatus().length > 0) {
     <div class="fixed-bottom p-2 p-md-4 d-flex justify-content-end pe-none consumer-status-list" [ngClass]="slimSidebarEnabled ? 'col-slim' : 'offset-md-3 offset-lg-2'">
       <div class="col col-lg-4 col-xl-3 ps-0 pe-0 ps-lg-3 pe-lg-0 pe-auto overflow-y-scroll">

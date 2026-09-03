@@ -7324,6 +7324,14 @@
         </context-group>
         <target state="translated">ou déposer des fichiers n'importe où</target>
       </trans-unit>
+      <trans-unit id="7187593019005447421" datatype="html">
+        <source>{VAR_PLURAL, plural, =1 {<x id="INTERPOLATION"/> added, processing started} other {<x id="INTERPOLATION_1"/> documents added, processing started}}</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/components/dashboard/widgets/upload-file-widget/upload-file-widget.component.html</context>
+          <context context-type="linenumber">14</context>
+        </context-group>
+        <target state="translated">{VAR_PLURAL, plural,=1 {<x id="INTERPOLATION"/> ajouté, traitement démarré} other {<x id="INTERPOLATION_1"/> documents ajoutés, traitement démarré}}</target>
+      </trans-unit>
       <trans-unit id="1749180330008942007" datatype="html" approved="yes">
         <source>Dismiss completed</source>
         <context-group purpose="location">

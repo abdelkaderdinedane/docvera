@@ -3115,6 +3115,69 @@ correct. No code change made.
 
 ---
 
+## Increment 3, dashboard item 1 — local upload acknowledgment next to the upload control
+
+Reported: the upload action ("Importer un document", the dashboard's quick-actions card, top-left) is
+visually far from its confirmation, which renders bottom-right. A first-time user who doesn't look there
+doesn't know their file was accepted.
+
+**Investigated first, per instruction, before touching anything**: the confirmation isn't a single
+app-wide shared component the way it first appears. It's a `fixed-bottom` overlay block
+(`.consumer-status-list`) declared inside `UploadFileWidgetComponent`'s own template
+(`upload-file-widget.component.html`), and that component is only ever placed once in the whole app — in
+the dashboard's sidebar column (`dashboard.component.html`). The "Importer un document" quick action
+doesn't have its own upload control at all: `QuickActionsWidgetComponent.onUploadClick()` just emits
+`triggerUpload`, which `DashboardComponent.triggerUpload()` forwards to
+`uploadWidget.openFilePicker()` — a `@ViewChild` reference to the real (hidden) file input that lives in
+the sidebar widget. So two different widgets are involved: the button the user clicks (top-left, main
+column) and the one that owns the actual upload control and renders the confirmation (top of the sidebar,
+`sticky-lg-top`). The panel itself is pinned to the viewport bottom-right via `fixed-bottom`, independent
+of either widget's position in the page.
+
+**What else feeds the same mechanism**: the underlying data (`WebsocketStatusService`, a root-singleton
+fed by one shared WebSocket connection opened in `app.component.ts`) is genuinely global — the REST upload
+endpoint, mail ingestion, and the folder-watch consumer all invoke the same Celery task, which broadcasts
+over the same channel-layer group the frontend subscribes to. But the *visual* panel is dashboard-only:
+on every other route there is no per-stage progress panel at all, only a generic one-line toast from the
+separate, actually-global `ToastService`. Confirmed before proposing anything, since moving or restyling
+this panel would have changed what's shown for mail/API-ingested documents too, whenever the user happens
+to be on the dashboard — that risk is why relocation was ruled out rather than attempted.
+
+**Fix — additive, not a relocation**: `UploadFileWidgetComponent` previously gave zero local feedback —
+`onFileSelected()` just called `uploadDocumentsService.uploadFile()` for each file and returned, with the
+fixed-bottom panel as the only signal anywhere. A new `recentlyAdded: FileStatus[]` array, populated by
+diffing `getStatus()` before/after the upload calls (the newly-pushed `FileStatus` objects, not a separate
+parallel list — see the code comment for why this can't drift out of sync with what the shared panel
+tracks), drives a small message rendered directly under the upload button: "*{filename}* added,
+processing started" (or "*N* documents added, processing started" for a multi-file selection, via ICU
+plural). It auto-hides after 5 seconds via a single `setTimeout` (cleared in the new `ngOnDestroy`). The
+shared `.consumer-status-list` panel is untouched — same markup, same position, same behavior.
+
+**Color note**: the checkmark icon is `.text-success` (Bootstrap green); the message text itself is not —
+computed contrast of `.text-success` (`#198754`, unmodified by this app in either theme) is 4.53:1 light /
+**3.99:1 dark**, below the 4.5:1 text floor. The icon, as a graphical/decorative element, only needs 3:1
+(WCAG 1.4.11) and clears it in both modes; the actual sentence uses the default body text color instead,
+which is already verified compliant everywhere else in the app. Status is still carried by the checkmark
+shape, not color alone.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/upload-file-widget/upload-file-widget.component.ts`,
+  `.html`; `src-ui/messages.xlf`; `src-ui/src/locale/messages.fr_FR.xlf`.
+- **Reason**: see above.
+- **Approach**: see above.
+- **Upgrade impact**: low. `UploadFileWidgetComponent` is an upstream-shared component, but the change is
+  additive (a new local property, a new template block, one new method) — it doesn't touch the existing
+  upload flow, the shared status service, or any upstream-authored logic, so a future
+  `git merge tags/vX.Y.Z` touching this file's *existing* code is unaffected; only literally adjacent lines
+  are new.
+- **Verification**: existing Jest suite (`upload-file-widget.component.spec.ts`, 7 tests, all upload/status
+  behavior) still passes unmodified. Built the actual production bundle
+  (`ng build --configuration production`) and confirmed the new ICU plural string compiles correctly into
+  both `en-US` and `fr-FR` output (`grep` for the French text — "ajouté, traitement démarré" — in the
+  compiled `fr-FR/main.js`). Did not exercise the live upload flow end-to-end against a running backend in
+  this environment (no `uv`/Django available) — the architect's own live re-test is the final word here.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |
