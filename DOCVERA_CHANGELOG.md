@@ -3178,6 +3178,68 @@ shape, not color alone.
 
 ---
 
+## Increment 3, dashboard item 2 — honest plateau animation for a stalled OCR progress bar
+
+Reported: the existing progress bar doesn't tell the user how far along a ~40-second OCR pass is.
+
+**Investigated first**: a progress bar already existed in the shipped UI
+(`<ngb-progressbar [value]="status.getProgress()">`), so the real finding wasn't "no indicator exists" but
+why it doesn't help. The backend (`documents/consumer.py`) reports only a handful of **fixed percentage
+checkpoints** per consumption — `NEW_FILE` 0%, `PARSING_DOCUMENT` 20%, `GENERATING_THUMBNAIL` 70%,
+`PARSE_DATE` 90%, `SAVE_DOCUMENT` 95%, `FINISHED` 100% — not a continuous signal. There *is* a finer-grained
+hook designed for exactly this gap: `DocumentParser.progress()` / the `progress_callback` plumbed through
+`consumer.py` to rescale into a 20-80% range during actual parsing (`consumer.py`, around the parser
+construction). **Confirmed by grepping every parser** (`paperless_tesseract`, `paperless_tika`,
+`paperless_text`) that none of them ever call it — zero matches for `progress_callback`/`self.progress(` in
+any of the three. It's dead plumbing. `ocrmypdf.ocr()` is even called with `"progress_bar": False`
+explicitly (`paperless_tesseract/parsers.py`) — and that flag only controls ocrmypdf's own CLI tqdm output,
+not a data hook that could be redirected to the web UI. Net effect: for a photographed document, the ~35 of
+40 seconds spent actually OCRing sits the whole time at a frozen 20%, then jumps to 70/90/95/100 in the
+last couple of seconds.
+
+**On explicit instruction, no fabricated progress was added.** The fix instead makes the existing bar
+honestly signal "still working" during a plateau, without ever implying forward motion: `isPlateaued()`
+(`upload-file-widget.component.ts`) returns true whenever `status.phase === WORKING` — every checkpoint
+within that phase is a coarse jump, not a granular one, so the whole phase is treated as a potential
+plateau, not just the specific 20% stage. When true, the `<ngb-progressbar>` gets Bootstrap's
+`[striped]`/`[animated]` inputs. **Verified, not assumed, that this can't misrepresent progress**: read
+Bootstrap's own CSS directly — `.progress-bar-animated` only applies `animation: 1s linear infinite
+progress-bar-stripes`, and that keyframe only animates `background-position-x` (the stripe texture
+scrolling within the element), never `width`. The bar's actual width is a separate binding
+(`style.width.%` from `[value]`), untouched by `[striped]`/`[animated]`. Confirmed live in a browser: the
+element's inline `width` stayed byte-for-byte identical (`"20%"`) across repeated reads while the striped
+texture rendered and animated — the bar cannot appear to advance because nothing in this change touches
+the property that would make it advance. `prefers-reduced-motion: reduce` disables the animation
+(falling back to a static striped look, matching the same pattern `pngx-skeleton`'s pulse already uses —
+not full removal, so it still reads as "not finished").
+
+**Recorded here for whoever picks this up next, per instruction**: if Docvera ever needs real OCR
+progress — and for a commercial product with 40-second waits on a single document, it probably will — the
+`DocumentParser.progress()` / `progress_callback` mechanism already exists end-to-end
+(`consumer.py` → `documents/parsers.py` → the websocket payload's `current_progress`/`max_progress`
+fields → `FileStatus.getProgress()` on the frontend) and is fully wired, just never invoked. The gap is
+entirely inside `paperless_tesseract` (and, if ever needed, `paperless_tika`): no parser calls
+`self.progress(current, max)` during its actual work. `ocrmypdf` doesn't expose a clean, stable
+per-page/per-step callback via its public Python API (`progress_bar` is a CLI-output toggle, not a data
+hook) — real progress would most plausibly come from counting pages processed so far against
+`page_count` for a multi-page document, which is a real backend task, not a frontend tweak. This is an
+upstream-paperless-ngx gap, not something Docvera introduced — recorded here so the next person doesn't
+have to rediscover it from scratch.
+
+- **Files**: `src-ui/src/app/components/dashboard/widgets/upload-file-widget/upload-file-widget.component.ts`,
+  `.html`, `.scss`.
+- **Reason**: see above.
+- **Approach**: see above.
+- **Upgrade impact**: low — purely additive template bindings and one new component method, no existing
+  logic changed.
+- **Verification**: read `documents/consumer.py`'s actual `_send_progress` call sites and every parser's
+  source directly (not assumed) to confirm the checkpoint list and the dead callback. Verified Bootstrap's
+  animation mechanism via its own compiled CSS. Confirmed live in a browser (via a minimal static harness
+  using the actual compiled `styles.css`) that the bar's bound width never changes while striped/animated
+  classes are toggled. Existing Jest suite still passes.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

@@ -55,3 +55,14 @@
     max-height: calc(100vh - 208px); // e.g. below the upload button
   }
 }
+
+// The "still working" stripe animation (see isPlateaued() in the component)
+// never moves the bar itself, only the stripe texture — but it's still
+// motion, so it respects prefers-reduced-motion the same way pngx-skeleton's
+// pulse does: fall back to a static striped look, not full removal, so the
+// bar still reads as "not finished" without the scrolling motion.
+@media (prefers-reduced-motion: reduce) {
+  ::ng-deep .progress-bar-animated {
+    animation: none;
+  }
+}

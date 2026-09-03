@@ -134,6 +134,20 @@ export class UploadFileWidgetComponent
     )
   }
 
+  // The backend only reports a handful of fixed checkpoints during
+  // consumption (0/20/70/90/95/100, see documents.consumer.py) — there is no
+  // real per-page or per-second signal within the WORKING phase, so the bar
+  // sits at one width for however long that stage actually takes (the OCR
+  // pass alone can hold it at 20% for most of a 40-second job). The striped/
+  // animated treatment communicates "still working" without moving the bar
+  // itself — Bootstrap's animation only scrolls the stripe pattern's
+  // background-position within the existing width, it never changes the
+  // width — so it can't be misread as fabricated advancement. See
+  // DOCVERA_CHANGELOG.md for why real per-stage progress isn't available.
+  isPlateaued(status: FileStatus): boolean {
+    return status.phase === FileStatusPhase.WORKING
+  }
+
   getStatusColor(status: FileStatus) {
     switch (status.phase) {
       case FileStatusPhase.UPLOADING:

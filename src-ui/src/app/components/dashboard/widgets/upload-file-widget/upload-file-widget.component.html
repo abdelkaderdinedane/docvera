@@ -55,7 +55,7 @@
     @if (!isFinished(status) || (isFinished(status) && !status.documentId)) {
       <p class="mb-0 pb-1">{{status.message}}</p>
     }
-    <ngb-progressbar [value]="status.getProgress()" [max]="1" [type]="getStatusColor(status)"></ngb-progressbar>
+    <ngb-progressbar [value]="status.getProgress()" [max]="1" [type]="getStatusColor(status)" [striped]="isPlateaued(status)" [animated]="isPlateaued(status)"></ngb-progressbar>
     <div *pngxIfPermissions="{ action: PermissionAction.View, type: PermissionType.Document }">
       @if (isFinished(status)) {
         <div>
