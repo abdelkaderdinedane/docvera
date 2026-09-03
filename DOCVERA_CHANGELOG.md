@@ -3240,6 +3240,50 @@ have to rediscover it from scratch.
 
 ---
 
+## Increment 3, dashboard item 3 — statistics endpoint cache-control alignment (not a confirmed fix)
+
+Reported: the dashboard's document count and storage figure only update on a full page reload, not when a
+document finishes processing.
+
+**Investigated first, and the mechanism that should already prevent this turned out to already exist**:
+`StatisticsWidgetComponent.ngOnInit()` already subscribes to
+`websocketConnectionService.onDocumentConsumptionFinished()` and calls `reload()` on every completion — not
+a new or fragile addition; the same pattern exists in upstream history back to at least 2023. Traced the
+full chain to rule out the obvious causes: the backend commits the new document's transaction
+(`consumer.py`, inside `with transaction.atomic():`) *before* sending the `SUCCESS` websocket message that
+triggers the reload, so there's no transaction-visibility race; `StatisticsView`
+(`src/documents/views.py`) runs a live, uncached DB query with no server-side caching involved. The
+reload-on-completion wiring, the commit ordering, and the query itself all check out — which doesn't match
+what was observed live.
+
+**One concrete asymmetry found, not confirmed as the cause**: `StatisticsView.get()` was missing the
+`@method_decorator(cache_control(no_cache=True))` that sibling views in the same file (the
+thumbnail/preview/metadata endpoints) explicitly carry. Its absence leaves the response without an
+explicit anti-caching header, which is at least a plausible opening for browser-level caching to serve a
+stale response on a rapid repeat request. **This is not shipped as a confirmed fix for the reported
+symptom** — it could not be verified against a live backend in this environment, and per instruction, a
+fix should not be claimed for a cause that hasn't been proven. It's added because it's a genuine,
+zero-risk inconsistency with this file's own established convention, on its own merits.
+
+**If the architect's live re-test still shows stale statistics after this**, the cause is somewhere this
+investigation didn't reach — the reload wiring, the commit-before-notify ordering, and the query itself
+were all checked and are correct, so the remaining candidates are more likely to be about a proxy/nginx
+caching layer in the specific deployment being tested rather than a defect in this codebase's own logic.
+This paragraph exists so that outcome is already on record here rather than the changelog having claimed a
+fix that didn't fix anything.
+
+- **Files**: `src/documents/views.py`.
+- **Reason**: see above.
+- **Approach**: see above.
+- **Upgrade impact**: negligible — a single decorator, consistent with the file's own existing pattern on
+  three other views.
+- **Verification**: `python -m ast` parse check (no `uv`/Django available in this environment to run the
+  real test suite or a live server). Traced `consumer.py`'s transaction/notify ordering and
+  `StatisticsView`'s query logic by reading source directly, not assumed. **Not verified against live
+  behavior** — the architect's own re-test after this ships is the actual verification.
+
+---
+
 ## Non-branding supporting commits (for traceability)
 
 | Commit | Summary | Relation to branding work |

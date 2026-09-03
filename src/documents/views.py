@@ -2259,6 +2259,7 @@ class GlobalSearchView(PassUserMixin):
 class StatisticsView(GenericAPIView):
     permission_classes = (IsAuthenticated,)
 
+    @method_decorator(cache_control(no_cache=True))
     def get(self, request, format=None):
         user = request.user if request.user is not None else None
 
